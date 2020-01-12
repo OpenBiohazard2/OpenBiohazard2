@@ -101,18 +101,21 @@ func readBitFieldArray(bitReader *BitReader, array *UnpackArray, curIndex int) i
 	return curIndex
 }
 
-func readBitField(bitReader *BitReader) int {
+func readBinaryNumber(bitReader *BitReader) int {
+	// Read a list of zero bits terminated by a one bit
 	numZeroBits := int(0)
 	for bitReader.UnsafeReadBit() == 0 {
 		numZeroBits++
 	}
 
-	bitfieldValue := int(1)
+	// Read in a binary number with 'numZeroBits'
+	// Convert to decimal
+	binaryNumber := int(1)
 	for i := 0; i < numZeroBits; i++ {
-		bitfieldValue = bitReader.UnsafeReadBit() + (bitfieldValue << 1)
+		binaryNumber = bitReader.UnsafeReadBit() + (binaryNumber << 1)
 	}
 
-	return bitfieldValue
+	return binaryNumber
 }
 
 // Determine the start of each byte array
@@ -200,13 +203,12 @@ func initUnpackBlock(bitReader *BitReader) (UnpackArray, UnpackArray, error) {
 		}
 
 		if bit == 1 {
-			prevValue ^= readBitField(bitReader)
+			prevValue ^= readBinaryNumber(bitReader)
 		}
 		array1.Ptr8[i].length = int64(prevValue)
 	}
 
 	initArrayStart(&array1)
-
 	initArrayTree(&array1)
 
 	// Array 2
@@ -220,7 +222,7 @@ func initUnpackBlock(bitReader *BitReader) (UnpackArray, UnpackArray, error) {
 
 	j := 0
 	for j < int(array2.DataCount) {
-		curBitField := readBitField(bitReader)
+		curBitField := readBinaryNumber(bitReader)
 		if curBit == 1 {
 			for i := 0; i < curBitField; i++ {
 				array2Tmp[j+i] = readBitFieldArray(bitReader, &array1, int(array1.DataCount))
@@ -228,12 +230,10 @@ func initUnpackBlock(bitReader *BitReader) (UnpackArray, UnpackArray, error) {
 			j += curBitField
 			curBit = 0
 		} else if curBit == 0 {
-			if curBitField > 0 {
-				for i := 0; i < curBitField; i++ {
-					array2Tmp[j+i] = 0
-				}
-				j += curBitField
+			for i := 0; i < curBitField; i++ {
+				array2Tmp[j+i] = 0
 			}
+			j += curBitField
 			curBit = 1
 		}
 	}
@@ -245,6 +245,7 @@ func initUnpackBlock(bitReader *BitReader) (UnpackArray, UnpackArray, error) {
 	}
 
 	initArrayStart(&array2)
+	initArrayTree(&array2)
 
 	// Array 3
 	array3 := newUnpackArray(16)
@@ -257,14 +258,13 @@ func initUnpackBlock(bitReader *BitReader) (UnpackArray, UnpackArray, error) {
 		}
 
 		if bit == 1 {
-			prevValue ^= readBitField(bitReader)
-			array3.Ptr8[i].length = int64(prevValue)
-		} else if bit == 0 {
-			array3.Ptr8[i].length = int64(prevValue)
+			prevValue ^= readBinaryNumber(bitReader)
 		}
+		array3.Ptr8[i].length = int64(prevValue)
 	}
 
 	initArrayStart(&array3)
+	initArrayTree(&array3)
 
 	return array2, array3, nil
 }
@@ -293,10 +293,7 @@ func unpackADT(r io.ReaderAt) ([]uint16, []uint8, error) {
 			return []uint16{}, []uint8{}, err
 		}
 
-		initArrayTree(&array2)
-		initArrayTree(&array3)
-
-		for curBlockLength := 0; curBlockLength < int(blockLen); curBlockLength++ {
+		for i := 0; i < int(blockLen); i++ {
 			curBitField := readBitFieldArray(bitReader, &array2, int(array2.DataCount))
 
 			// Check if the bit field can fit within a byte
@@ -315,7 +312,7 @@ func unpackADT(r io.ReaderAt) ([]uint16, []uint8, error) {
 
 				// copy from start offset
 				startOffset := (tmp16kOffset - curBitField - 1) & 0x3fff
-				for i := 0; i < numValues; i++ {
+				for j := 0; j < numValues; j++ {
 					tmp16k[tmp16kOffset] = tmp16k[startOffset]
 					imageByteData = append(imageByteData, tmp16k[tmp16kOffset])
 					startOffset = (startOffset + 1) % len(tmp16k)

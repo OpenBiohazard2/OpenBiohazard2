@@ -12,7 +12,7 @@ const (
 	PLAYER_CLAIRE         = 1
 	PLAYER_FORWARD_SPEED  = 25
 	PLAYER_BACKWARD_SPEED = 15
-	ROOMCUT_FILE          = "data/roomcut.bin"
+	ROOMCUT_FILE          = "data/Common/bin/roomcut.bin"
 	LEON_MODEL_FILE       = "data/Pl0/PLD/PL00.PLD"
 )
 
@@ -23,6 +23,8 @@ type GameDef struct {
 	MaxCamerasInRoom int
 	IsCameraLoaded   bool
 	IsRoomLoaded     bool
+	Doors            []ScriptDoor
+	Player           *Player
 }
 
 func NewGame(stageId int, roomId int, cameraId int) *GameDef {
@@ -33,6 +35,7 @@ func NewGame(stageId int, roomId int, cameraId int) *GameDef {
 		MaxCamerasInRoom: 0,
 		IsCameraLoaded:   false,
 		IsRoomLoaded:     false,
+		Doors:            make([]ScriptDoor, 0),
 	}
 }
 
@@ -66,6 +69,41 @@ func (g *GameDef) PredictPositionBackward(position mgl32.Vec3, rotationAngle flo
 	return position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
 }
 
+func (g *GameDef) PredictPositionForwardSlope(position mgl32.Vec3, rotationAngle float32, slopedEntity *fileio.CollisionEntity) mgl32.Vec3 {
+	modelMatrix := mgl32.Ident4()
+	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(rotationAngle)))
+	movementDelta := modelMatrix.Mul4x1(mgl32.Vec4{PLAYER_FORWARD_SPEED, 0.0, 0.0, 0.0})
+	predictPositionFlat := position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
+
+	distanceFromRampBottom := 0.0
+	if slopedEntity.SlopeType == 0 || slopedEntity.SlopeType == 1 {
+		// ramp bottom is on the x-axis
+		distanceFromRampBottom = math.Abs(float64(predictPositionFlat.X()-slopedEntity.RampBottom)) / float64(slopedEntity.Width)
+	} else if slopedEntity.SlopeType == 2 || slopedEntity.SlopeType == 3 {
+		// ramp bottom is on the z-axis
+		distanceFromRampBottom = math.Abs(float64(predictPositionFlat.Z()-slopedEntity.RampBottom)) / float64(slopedEntity.Density)
+	}
+	predictPositionY := float64(slopedEntity.SlopeHeight) * distanceFromRampBottom
+	return mgl32.Vec3{predictPositionFlat.X(), float32(predictPositionY), predictPositionFlat.Z()}
+}
+
+func (g *GameDef) PredictPositionBackwardSlope(position mgl32.Vec3, rotationAngle float32, slopedEntity *fileio.CollisionEntity) mgl32.Vec3 {
+	modelMatrix := mgl32.Ident4()
+	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(rotationAngle)))
+	movementDelta := modelMatrix.Mul4x1(mgl32.Vec4{-1 * PLAYER_BACKWARD_SPEED, 0.0, 0.0, 0.0})
+	predictPositionFlat := position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
+	distanceFromRampBottom := 0.0
+	if slopedEntity.SlopeType == 0 || slopedEntity.SlopeType == 1 {
+		// ramp bottom is on the x-axis
+		distanceFromRampBottom = math.Abs(float64(predictPositionFlat.X()-slopedEntity.RampBottom)) / float64(slopedEntity.Width)
+	} else if slopedEntity.SlopeType == 2 || slopedEntity.SlopeType == 3 {
+		// ramp bottom is on the z-axis
+		distanceFromRampBottom = math.Abs(float64(predictPositionFlat.Z()-slopedEntity.RampBottom)) / float64(slopedEntity.Density)
+	}
+	predictPositionY := float64(slopedEntity.SlopeHeight) * distanceFromRampBottom
+	return mgl32.Vec3{predictPositionFlat.X(), float32(predictPositionY), predictPositionFlat.Z()}
+}
+
 func (gameDef *GameDef) NextRoom() {
 	gameDef.CameraId = 0
 	gameDef.RoomId++
@@ -82,25 +120,49 @@ func (gameDef *GameDef) PrevRoom() {
 	}
 }
 
-func (gameDef *GameDef) HandleCameraSwitch(position mgl32.Vec3, cameraSwitches []fileio.RVDHeader) {
-	for _, cameraSwitch := range cameraSwitches {
-		// Other camera
-		if int(cameraSwitch.Cam0) != gameDef.CameraId {
-			continue
-		}
-		// Current region
-		if int(cameraSwitch.Cam1) == 0 {
-			continue
+// Shows which regions are reachable from the current camera
+// The key is the camera id
+// The value is an array of switches that are reachable
+func (gameDef *GameDef) GenerateCameraSwitchTransitions(cameraSwitches []fileio.RVDHeader) map[int][]int {
+	cameraSwitchTransitions := make(map[int][]int, 0)
+	for roomCameraId := 0; roomCameraId < gameDef.MaxCamerasInRoom; roomCameraId++ {
+		cam1ZeroIndices := make([]int, 0)
+		checkSwitchesIndices := make([]int, 0)
+		for switchIndex, cameraSwitch := range cameraSwitches {
+			// Cam0 is the current camera
+			if int(cameraSwitch.Cam0) == roomCameraId {
+				// The first cam1 = 0 is used for a different purpose
+				// The second cam1 = 0 is the real camera switch
+				if int(cameraSwitch.Cam1) == 0 {
+					cam1ZeroIndices = append(cam1ZeroIndices, switchIndex)
+				} else {
+					checkSwitchesIndices = append(checkSwitchesIndices, switchIndex)
+				}
+			}
 		}
 
-		region := cameraSwitch
+		if len(cam1ZeroIndices) >= 2 {
+			transitionRegion := cam1ZeroIndices[len(cam1ZeroIndices)-1]
+			checkSwitchesIndices = append(checkSwitchesIndices, transitionRegion)
+		}
+
+		cameraSwitchTransitions[roomCameraId] = checkSwitchesIndices
+	}
+	return cameraSwitchTransitions
+}
+
+func (gameDef *GameDef) HandleCameraSwitch(position mgl32.Vec3, cameraSwitches []fileio.RVDHeader,
+	cameraSwitchTransitions map[int][]int) {
+	for _, regionIndex := range cameraSwitchTransitions[gameDef.CameraId] {
+		region := cameraSwitches[regionIndex]
 		corner1 := mgl32.Vec3{float32(region.X1), 0, float32(region.Z1)}
 		corner2 := mgl32.Vec3{float32(region.X2), 0, float32(region.Z2)}
 		corner3 := mgl32.Vec3{float32(region.X3), 0, float32(region.Z3)}
 		corner4 := mgl32.Vec3{float32(region.X4), 0, float32(region.Z4)}
+
 		if isPointInRectangle(position, corner1, corner2, corner3, corner4) {
 			// Switch to a new camera
-			gameDef.CameraId = int(cameraSwitch.Cam1)
+			gameDef.CameraId = int(region.Cam1)
 			gameDef.IsCameraLoaded = false
 
 			if gameDef.CameraId >= gameDef.MaxCamerasInRoom {
@@ -113,7 +175,26 @@ func (gameDef *GameDef) HandleCameraSwitch(position mgl32.Vec3, cameraSwitches [
 	}
 }
 
-func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities []fileio.CollisionEntity) bool {
+func (gameDef *GameDef) HandleRoomSwitch(position mgl32.Vec3) {
+	for _, door := range gameDef.Doors {
+		corner1 := mgl32.Vec3{float32(door.X), 0, float32(door.Y)}
+		corner2 := mgl32.Vec3{float32(door.X), 0, float32(door.Y + door.Height)}
+		corner3 := mgl32.Vec3{float32(door.X + door.Width), 0, float32(door.Y + door.Height)}
+		corner4 := mgl32.Vec3{float32(door.X + door.Width), 0, float32(door.Y)}
+		if isPointInRectangle(position, corner1, corner2, corner3, corner4) {
+			// Switch to a new room
+			gameDef.StageId = 1 + int(door.Stage)
+			gameDef.RoomId = int(door.Room)
+			gameDef.CameraId = int(door.Camera)
+			gameDef.Player.Position = mgl32.Vec3{float32(door.NextX), float32(door.NextY), float32(door.NextZ)}
+
+			gameDef.IsRoomLoaded = false
+			gameDef.IsCameraLoaded = false
+		}
+	}
+}
+
+func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities []fileio.CollisionEntity) *fileio.CollisionEntity {
 	for _, entity := range collisionEntities {
 		switch entity.Shape {
 		case 0:
@@ -123,7 +204,7 @@ func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities
 			corner3 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z) + float32(entity.Density)}
 			corner4 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z)}
 			if isPointInRectangle(newPosition, corner1, corner2, corner3, corner4) {
-				return true
+				return &entity
 			}
 		case 1:
 			// Triangle \\|
@@ -131,7 +212,15 @@ func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities
 			vertex2 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z + entity.Density)}
 			vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z)}
 			if isPointInTriangle(newPosition, vertex1, vertex2, vertex3) {
-				return true
+				return &entity
+			}
+		case 2:
+			// Triangle |/
+			vertex1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
+			vertex2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z + entity.Density)}
+			vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z + entity.Density)}
+			if isPointInTriangle(newPosition, vertex1, vertex2, vertex3) {
+				return &entity
 			}
 		case 3:
 			// Triangle /|
@@ -139,14 +228,14 @@ func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities
 			vertex2 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z + entity.Density)}
 			vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z)}
 			if isPointInTriangle(newPosition, vertex1, vertex2, vertex3) {
-				return true
+				return &entity
 			}
 		case 6:
 			// Circle
 			radius := float32(entity.Width) / 2.0
 			center := mgl32.Vec3{float32(entity.X) + radius, 0, float32(entity.Z) + radius}
 			if isPointInCircle(newPosition, center, radius) {
-				return true
+				return &entity
 			}
 		case 7:
 			// Ellipse, rectangle with rounded corners on the x-axis
@@ -154,7 +243,7 @@ func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities
 			minorAxis := float32(entity.Density) / 2.0
 			center := mgl32.Vec3{float32(entity.X) + majorAxis, 0, float32(entity.Z) + minorAxis}
 			if isPointInEllipseXAxisMajor(newPosition, center, majorAxis, minorAxis) {
-				return true
+				return &entity
 			}
 		case 8:
 			// Ellipse, rectangle with rounded corners on the z-axis
@@ -162,11 +251,51 @@ func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities
 			minorAxis := float32(entity.Width) / 2.0
 			center := mgl32.Vec3{float32(entity.X) + minorAxis, 0, float32(entity.Z) + majorAxis}
 			if isPointInEllipseZAxisMajor(newPosition, center, majorAxis, minorAxis) {
-				return true
+				return &entity
+			}
+		case 9:
+			// Rectangle climb up
+			corner1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
+			corner2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z) + float32(entity.Density)}
+			corner3 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z) + float32(entity.Density)}
+			corner4 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z)}
+			if isPointInRectangle(newPosition, corner1, corner2, corner3, corner4) {
+				return &entity
+			}
+		case 10:
+			// Rectangle jump down
+			corner1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
+			corner2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z) + float32(entity.Density)}
+			corner3 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z) + float32(entity.Density)}
+			corner4 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z)}
+			if isPointInRectangle(newPosition, corner1, corner2, corner3, corner4) {
+				return &entity
+			}
+		case 11:
+			// Ramp
+			corner1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
+			corner2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z) + float32(entity.Density)}
+			corner3 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z) + float32(entity.Density)}
+			corner4 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z)}
+			if isPointInRectangle(newPosition, corner1, corner2, corner3, corner4) {
+				return &entity
+			}
+		case 12:
+			// Stairs
+			corner1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
+			corner2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z) + float32(entity.Density)}
+			corner3 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z) + float32(entity.Density)}
+			corner4 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z)}
+			if isPointInRectangle(newPosition, corner1, corner2, corner3, corner4) {
+				return &entity
 			}
 		}
 	}
-	return false
+	return nil
+}
+
+func (gameDef *GameDef) CheckRamp(entity *fileio.CollisionEntity) bool {
+	return entity.Shape == 11 || entity.Shape == 12
 }
 
 func isPointInTriangle(point mgl32.Vec3, corner1 mgl32.Vec3, corner2 mgl32.Vec3, corner3 mgl32.Vec3) bool {

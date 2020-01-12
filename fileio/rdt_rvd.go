@@ -26,6 +26,8 @@ type RVDOutput struct {
 	CameraSwitches []RVDHeader
 }
 
+// A camera switch is a flat zone in 3D space, where you switch from one camera to
+// another when the player crosses it
 func LoadRDT_RVD(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets RDTOffsets) (*RVDOutput, error) {
 	reader := io.NewSectionReader(r, int64(offsets.OffsetCameraSwitches), fileLength-int64(offsets.OffsetCameraSwitches))
 
@@ -36,6 +38,7 @@ func LoadRDT_RVD(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 			return nil, err
 		}
 
+		// End of block
 		if rvdHeader.Flag == 255 && rvdHeader.Floor == 255 && rvdHeader.Cam0 == 255 && rvdHeader.Cam1 == 255 {
 			break
 		}

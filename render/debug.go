@@ -2,6 +2,7 @@ package render
 
 import (
 	"../fileio"
+	"../game"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
@@ -11,59 +12,22 @@ const (
 	RENDER_TYPE_DEBUG = 4
 )
 
-func RenderCameraSwitches(programShader uint32, cameraSwitches []fileio.RVDHeader, curCameraId int) {
+func RenderCameraSwitches(programShader uint32, cameraSwitches []fileio.RVDHeader,
+	cameraSwitchTransitions map[int][]int, curCameraId int) {
 	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
 	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_DEBUG)
 
 	// Build vertex data
-	entityVertexBuffer := buildCameraSwitchVertices(cameraSwitches, curCameraId)
-
-	floatSize := 4
-
-	// 3 floats for vertex
-	stride := int32(3 * floatSize)
-
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
-
-	var vbo uint32
-	gl.GenBuffers(1, &vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(entityVertexBuffer)*floatSize, gl.Ptr(entityVertexBuffer), gl.STATIC_DRAW)
-
-	// Position attribute
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
-	gl.EnableVertexAttribArray(0)
-
-	diffuseUniform := gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
-	gl.Uniform1i(diffuseUniform, 0)
-
-	// Green rectangle
-	debugColorLoc := gl.GetUniformLocation(programShader, gl.Str("debugColor\x00"))
-	gl.Uniform4f(debugColorLoc, 0.0, 1.0, 0.0, 0.3)
-
-	// Draw triangles
-	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(entityVertexBuffer)/3))
-
-	// Cleanup
-	gl.DisableVertexAttribArray(0)
+	entityVertexBuffer := buildCameraSwitchVertices(cameraSwitches, cameraSwitchTransitions, curCameraId)
+	RenderDebugEntity(programShader, entityVertexBuffer, [4]float32{0.0, 1.0, 0.0, 0.3})
 }
 
-func buildCameraSwitchVertices(cameraSwitches []fileio.RVDHeader, curCameraId int) []float32 {
+func buildCameraSwitchVertices(cameraSwitches []fileio.RVDHeader, cameraSwitchTransitions map[int][]int,
+	curCameraId int) []float32 {
 	vertexBuffer := make([]float32, 0)
 
-	for _, cameraSwitch := range cameraSwitches {
-		// Don't display regions for other cameras
-		if int(cameraSwitch.Cam0) != curCameraId {
-			continue
-		}
-
-		// Don't display current region
-		if int(cameraSwitch.Cam1) == 0 {
-			continue
-		}
-
+	for _, regionIndex := range cameraSwitchTransitions[curCameraId] {
+		cameraSwitch := cameraSwitches[regionIndex]
 		vertex1 := mgl32.Vec3{float32(cameraSwitch.X1), 0, float32(cameraSwitch.Z1)}
 		vertex2 := mgl32.Vec3{float32(cameraSwitch.X2), 0, float32(cameraSwitch.Z2)}
 		vertex3 := mgl32.Vec3{float32(cameraSwitch.X3), 0, float32(cameraSwitch.Z3)}
@@ -96,6 +60,13 @@ func RenderCollisionEntities(programShader uint32, collisionEntities []fileio.Co
 			vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z)}
 			tri := buildDebugTriangle(vertex1, vertex2, vertex3)
 			vertexBuffer = append(vertexBuffer, tri...)
+		case 2:
+			// Triangle |/
+			vertex1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
+			vertex2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z + entity.Density)}
+			vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z + entity.Density)}
+			tri := buildDebugTriangle(vertex1, vertex2, vertex3)
+			vertexBuffer = append(vertexBuffer, tri...)
 		case 3:
 			// Triangle /|
 			vertex1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
@@ -126,36 +97,86 @@ func RenderCollisionEntities(programShader uint32, collisionEntities []fileio.Co
 		}
 	}
 
-	floatSize := 4
+	RenderDebugEntity(programShader, vertexBuffer, [4]float32{1.0, 0.0, 0.0, 0.3})
+}
 
-	// 3 floats for vertex
-	stride := int32(3 * floatSize)
+func RenderSlopedSurfaces(programShader uint32, collisionEntities []fileio.CollisionEntity) {
+	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
+	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_DEBUG)
 
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
+	vertexBuffer := make([]float32, 0)
+	for _, entity := range collisionEntities {
+		switch entity.Shape {
+		case 11:
+			// Ramp
+			rect := buildDebugSlopedRectangle(entity)
+			vertexBuffer = append(vertexBuffer, rect...)
+		case 12:
+			// Stairs
+			rect := buildDebugSlopedRectangle(entity)
+			vertexBuffer = append(vertexBuffer, rect...)
+		}
+	}
 
-	var vbo uint32
-	gl.GenBuffers(1, &vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertexBuffer)*floatSize, gl.Ptr(vertexBuffer), gl.STATIC_DRAW)
+	if len(vertexBuffer) == 0 {
+		return
+	}
 
-	// Position attribute
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
-	gl.EnableVertexAttribArray(0)
+	RenderDebugEntity(programShader, vertexBuffer, [4]float32{1.0, 0.0, 1.0, 0.3})
+}
 
-	diffuseUniform := gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
-	gl.Uniform1i(diffuseUniform, 0)
+func buildDebugSlopedRectangle(entity fileio.CollisionEntity) []float32 {
+	// Types 0 and 1 starts from x-axis
+	// Types 2 and 3 starts from z-axis
+	switch entity.SlopeType {
+	case 0:
+		vertex1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
+		vertex2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z + entity.Density)}
+		vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), float32(entity.SlopeHeight), float32(entity.Z + entity.Density)}
+		vertex4 := mgl32.Vec3{float32(entity.X + entity.Width), float32(entity.SlopeHeight), float32(entity.Z)}
+		return buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
+	case 1:
+		vertex1 := mgl32.Vec3{float32(entity.X), float32(entity.SlopeHeight), float32(entity.Z)}
+		vertex2 := mgl32.Vec3{float32(entity.X), float32(entity.SlopeHeight), float32(entity.Z + entity.Density)}
+		vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z + entity.Density)}
+		vertex4 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z)}
+		return buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
+	case 2:
+		vertex1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
+		vertex2 := mgl32.Vec3{float32(entity.X), float32(entity.SlopeHeight), float32(entity.Z + entity.Density)}
+		vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), float32(entity.SlopeHeight), float32(entity.Z + entity.Density)}
+		vertex4 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z)}
+		return buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
+	case 3:
+		vertex1 := mgl32.Vec3{float32(entity.X), float32(entity.SlopeHeight), float32(entity.Z)}
+		vertex2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z + entity.Density)}
+		vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z + entity.Density)}
+		vertex4 := mgl32.Vec3{float32(entity.X + entity.Width), float32(entity.SlopeHeight), float32(entity.Z)}
+		return buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
+	}
 
-	// Collision entities should be drawn in red
-	debugColorLoc := gl.GetUniformLocation(programShader, gl.Str("debugColor\x00"))
-	gl.Uniform4f(debugColorLoc, 1.0, 0.0, 0.0, 0.3)
+	return []float32{}
+}
 
-	// Draw triangles
-	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(vertexBuffer)/3))
+func RenderDoors(programShader uint32, doors []game.ScriptDoor) {
+	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
+	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_DEBUG)
 
-	// Cleanup
-	gl.DisableVertexAttribArray(0)
+	vertexBuffer := make([]float32, 0)
+	for _, door := range doors {
+		vertex1 := mgl32.Vec3{float32(door.X), 0, float32(door.Y)}
+		vertex2 := mgl32.Vec3{float32(door.X), 0, float32(door.Y + door.Height)}
+		vertex3 := mgl32.Vec3{float32(door.X + door.Width), 0, float32(door.Y + door.Height)}
+		vertex4 := mgl32.Vec3{float32(door.X + door.Width), 0, float32(door.Y)}
+		rect := buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
+		vertexBuffer = append(vertexBuffer, rect...)
+	}
+
+	if len(vertexBuffer) == 0 {
+		return
+	}
+
+	RenderDebugEntity(programShader, vertexBuffer, [4]float32{0.0, 0.0, 1.0, 0.3})
 }
 
 func buildDebugRectangle(corner1 mgl32.Vec3, corner2 mgl32.Vec3, corner3 mgl32.Vec3, corner4 mgl32.Vec3) []float32 {
@@ -241,4 +262,36 @@ func buildDebugEllipse(centerVertex mgl32.Vec3, majorAxis float32, minorAxis flo
 		ellipseBuffer = append(ellipseBuffer, vertex2...)
 	}
 	return ellipseBuffer
+}
+
+func RenderDebugEntity(programShader uint32, entityVertexBuffer []float32, color [4]float32) {
+	floatSize := 4
+
+	// 3 floats for vertex
+	stride := int32(3 * floatSize)
+
+	var vao uint32
+	gl.GenVertexArrays(1, &vao)
+	gl.BindVertexArray(vao)
+
+	var vbo uint32
+	gl.GenBuffers(1, &vbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	gl.BufferData(gl.ARRAY_BUFFER, len(entityVertexBuffer)*floatSize, gl.Ptr(entityVertexBuffer), gl.STATIC_DRAW)
+
+	// Position attribute
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
+	gl.EnableVertexAttribArray(0)
+
+	diffuseUniform := gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
+	gl.Uniform1i(diffuseUniform, 0)
+
+	debugColorLoc := gl.GetUniformLocation(programShader, gl.Str("debugColor\x00"))
+	gl.Uniform4f(debugColorLoc, color[0], color[1], color[2], color[3])
+
+	// Draw triangles
+	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(entityVertexBuffer)/3))
+
+	// Cleanup
+	gl.DisableVertexAttribArray(0)
 }

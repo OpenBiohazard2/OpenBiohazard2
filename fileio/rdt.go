@@ -51,6 +51,7 @@ type RDTOutput struct {
 	CameraSwitchData *RVDOutput
 	LightData        *LITOutput
 	CollisionData    *SCAOutput
+	InitScriptData   *SCDOutput
 }
 
 func LoadRDTFile(filename string) (*RDTOutput, error) {
@@ -58,7 +59,7 @@ func LoadRDTFile(filename string) (*RDTOutput, error) {
 	defer rdtFile.Close()
 
 	if rdtFile == nil {
-		log.Fatal("RDT file doesn't exist")
+		log.Fatal("RDT file doesn't exist. Filename:", filename)
 		return nil, fmt.Errorf("RDT file doesn't exist")
 	}
 
@@ -109,6 +110,13 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		return nil, err
 	}
 
+	offset := int64(offsets.OffsetInitScript)
+	initSCDReader := io.NewSectionReader(r, offset, fileLength-offset)
+	initSCDOutput, err := LoadRDT_SCDStream(initSCDReader, fileLength, rdtHeader, offsets)
+	if err != nil {
+		return nil, err
+	}
+
 	// Sprite animations
 	LoadRDT_ESP(r, fileLength, rdtHeader, offsets)
 
@@ -118,6 +126,7 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		CameraSwitchData: rvdOutput,
 		LightData:        litOutput,
 		CollisionData:    scaOutput,
+		InitScriptData:   initSCDOutput,
 	}
 	return output, nil
 }

@@ -18,9 +18,11 @@ type RenderDef struct {
 }
 
 type DebugEntities struct {
-	CameraId          int
-	CameraSwitches    []fileio.RVDHeader
-	CollisionEntities []fileio.CollisionEntity
+	CameraId                int
+	CameraSwitches          []fileio.RVDHeader
+	CollisionEntities       []fileio.CollisionEntity
+	Doors                   []game.ScriptDoor
+	CameraSwitchTransitions map[int][]int
 }
 
 type PlayerEntity struct {
@@ -91,8 +93,12 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity, debugEntities DebugEn
 	cameraId := debugEntities.CameraId
 	cameraSwitches := debugEntities.CameraSwitches
 	collisionEntities := debugEntities.CollisionEntities
-	RenderCameraSwitches(programShader, cameraSwitches, cameraId)
+	cameraSwitchTransitions := debugEntities.CameraSwitchTransitions
+	doors := debugEntities.Doors
+	RenderCameraSwitches(programShader, cameraSwitches, cameraSwitchTransitions, cameraId)
 	RenderCollisionEntities(programShader, collisionEntities)
+	RenderSlopedSurfaces(programShader, collisionEntities)
+	RenderDoors(programShader, doors)
 }
 
 func (r *RenderDef) AddSceneEntity(entityId string, entity *SceneEntity) {
