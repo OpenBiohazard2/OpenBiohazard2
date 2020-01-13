@@ -52,6 +52,7 @@ type RDTOutput struct {
 	LightData        *LITOutput
 	CollisionData    *SCAOutput
 	InitScriptData   *SCDOutput
+	RoomScriptData   *SCDOutput
 }
 
 func LoadRDTFile(filename string) (*RDTOutput, error) {
@@ -110,9 +111,19 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		return nil, err
 	}
 
+	// Script data
+	// Run once when the level loads
 	offset := int64(offsets.OffsetInitScript)
 	initSCDReader := io.NewSectionReader(r, offset, fileLength-offset)
 	initSCDOutput, err := LoadRDT_SCDStream(initSCDReader, fileLength, rdtHeader, offsets)
+	if err != nil {
+		return nil, err
+	}
+
+	// Run during the game
+	offset = int64(offsets.OffsetExecuteScript)
+	roomSCDReader := io.NewSectionReader(r, offset, fileLength-offset)
+	roomSCDOutput, err := LoadRDT_SCDStream(roomSCDReader, fileLength, rdtHeader, offsets)
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +138,7 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		LightData:        litOutput,
 		CollisionData:    scaOutput,
 		InitScriptData:   initSCDOutput,
+		RoomScriptData:   roomSCDOutput,
 	}
 	return output, nil
 }
