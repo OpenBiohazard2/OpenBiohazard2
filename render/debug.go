@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	RENDER_TYPE_DEBUG = 4
+	RENDER_TYPE_DEBUG = 5
 )
 
 func RenderCameraSwitches(programShader uint32, cameraSwitches []fileio.RVDHeader,

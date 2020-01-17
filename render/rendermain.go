@@ -33,6 +33,11 @@ type PlayerEntity struct {
 	AnimationPoseNumber int
 }
 
+type SpriteEntity struct {
+	TextureIds [][]uint32
+	Sprites    []game.ScriptSprite
+}
+
 func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 	if err := gl.Init(); err != nil {
 		panic(err)
@@ -63,7 +68,7 @@ func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 	return renderDef
 }
 
-func (r *RenderDef) RenderFrame(playerEntity PlayerEntity, debugEntities DebugEntities, timeElapsedSeconds float64) {
+func (r *RenderDef) RenderFrame(playerEntity PlayerEntity, debugEntities DebugEntities, spriteEntity SpriteEntity, timeElapsedSeconds float64) {
 	programShader := r.ProgramShader
 
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -88,6 +93,8 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity, debugEntities DebugEn
 	envLightLoc := gl.GetUniformLocation(r.ProgramShader, gl.Str("envLight\x00"))
 	gl.Uniform3fv(envLightLoc, 1, &r.EnvironmentLight[0])
 	RenderEntity(programShader, playerEntity, timeElapsedSeconds)
+
+	RenderSprites(programShader, spriteEntity.Sprites, spriteEntity.TextureIds, timeElapsedSeconds)
 
 	// Only render for debugging
 	cameraId := debugEntities.CameraId

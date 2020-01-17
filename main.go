@@ -78,10 +78,27 @@ func main() {
 	gameDef = game.NewGame(1, 0, 0)
 	gameDef.Player = game.NewPlayer(mgl32.Vec3{18781, 0, -2664}, 180)
 
-	// Sets game difficulty (0 is easy, 1 is normal)
-	gameDef.SetBitArray(0, 25, game.DIFFICULTY_NORMAL)
+	// Set game difficulty (0 is easy, 1 is normal)
+	gameDef.SetBitArray(0, 25, game.DIFFICULTY_EASY)
+	// Set camera id
+	gameDef.SetScriptVariable(26, 0)
+	// Fire animation for ROOM1000
+	gameDef.SetBitArray(5, 5, 0)
+	gameDef.SetBitArray(5, 6, 0)
+	gameDef.SetBitArray(5, 7, 0)
+
+	// Unknown
+	gameDef.SetBitArray(5, 12, 1)
+	gameDef.SetBitArray(5, 14, 1)
+	gameDef.SetBitArray(6, 35, 1)
+	gameDef.SetBitArray(6, 36, 1)
+	gameDef.SetBitArray(6, 37, 1)
+	gameDef.SetBitArray(6, 38, 1)
+	gameDef.SetBitArray(6, 39, 1)
+	gameDef.SetBitArray(6, 40, 1)
 
 	var roomOutput *fileio.RoomImageOutput
+	spriteTextureIds := make([][]uint32, 0)
 
 	for !windowHandler.ShouldClose() {
 		windowHandler.StartFrame()
@@ -94,6 +111,12 @@ func main() {
 			}
 			fmt.Println("Loaded", roomFilename)
 			gameDef.LoadNewRoom(rdtOutput)
+
+			spriteTextureIds = make([][]uint32, 0)
+			for i := 0; i < len(gameDef.GameRoom.SpriteData); i++ {
+				spriteFrames := render.BuildSpriteTexture(gameDef.GameRoom.SpriteData[i])
+				spriteTextureIds = append(spriteTextureIds, spriteFrames)
+			}
 			gameDef.IsRoomLoaded = true
 		}
 
@@ -134,10 +157,23 @@ func main() {
 			Player:              gameDef.Player,
 			AnimationPoseNumber: gameDef.Player.PoseNumber,
 		}
-		renderDef.RenderFrame(playerEntity, debugEntities, timeElapsedSeconds)
+
+		spriteEntity := render.SpriteEntity{
+			TextureIds: spriteTextureIds,
+			Sprites:    gameDef.Sprites,
+		}
+
+		renderDef.RenderFrame(playerEntity, debugEntities, spriteEntity, timeElapsedSeconds)
 
 		handleInput(gameDef, gameDef.GameRoom.CollisionEntities)
 		gameDef.HandleCameraSwitch(gameDef.Player.Position, gameDef.GameRoom.CameraSwitches, gameDef.GameRoom.CameraSwitchTransitions)
 		gameDef.HandleRoomSwitch(gameDef.Player.Position)
+		if gameDef.StageId == 1 && gameDef.RoomId == 0 {
+			// for ROOM1000, start at function 1
+			gameDef.RunScript(gameDef.GameRoom.RoomScriptData, timeElapsedSeconds, false, 1)
+		} else {
+			// start at function 0
+			gameDef.RunScript(gameDef.GameRoom.RoomScriptData, timeElapsedSeconds, false, 0)
+		}
 	}
 }

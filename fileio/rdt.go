@@ -53,6 +53,7 @@ type RDTOutput struct {
 	CollisionData    *SCAOutput
 	InitScriptData   *SCDOutput
 	RoomScriptData   *SCDOutput
+	SpriteOutput     *ESPOutput
 }
 
 func LoadRDTFile(filename string) (*RDTOutput, error) {
@@ -129,7 +130,10 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 	}
 
 	// Sprite animations
-	LoadRDT_ESP(r, fileLength, rdtHeader, offsets)
+	espOutput, err := LoadRDT_ESP(r, fileLength, rdtHeader, offsets)
+	if err != nil {
+		return nil, err
+	}
 
 	output := &RDTOutput{
 		Header:           rdtHeader,
@@ -139,6 +143,7 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		CollisionData:    scaOutput,
 		InitScriptData:   initSCDOutput,
 		RoomScriptData:   roomSCDOutput,
+		SpriteOutput:     espOutput,
 	}
 	return output, nil
 }

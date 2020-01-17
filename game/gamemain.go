@@ -4,6 +4,7 @@ import (
 	"../fileio"
 	"fmt"
 	"github.com/go-gl/mathgl/mgl32"
+	"log"
 )
 
 const (
@@ -26,9 +27,11 @@ type GameDef struct {
 	IsRoomLoaded     bool
 	GameRoom         GameRoom
 	Doors            []ScriptDoor
+	Sprites          []ScriptSprite
 	Player           *Player
 	ScriptMemory     *ScriptMemory
 	ScriptBitArray   map[int]map[int]int
+	ScriptVariable   map[int]int
 }
 
 type GameRoom struct {
@@ -38,7 +41,9 @@ type GameRoom struct {
 	CameraMaskData          [][]fileio.MaskRectangle
 	CollisionEntities       []fileio.CollisionEntity
 	LightData               []fileio.LITCameraLight
-	InitScriptData          []fileio.ScriptFunction
+	InitScriptData          fileio.ScriptFunction
+	RoomScriptData          fileio.ScriptFunction
+	SpriteData              []fileio.SpriteData
 }
 
 func NewGame(stageId int, roomId int, cameraId int) *GameDef {
@@ -50,8 +55,10 @@ func NewGame(stageId int, roomId int, cameraId int) *GameDef {
 		IsCameraLoaded:   false,
 		IsRoomLoaded:     false,
 		Doors:            make([]ScriptDoor, 0),
+		Sprites:          make([]ScriptSprite, 0),
 		ScriptMemory:     NewScriptMemory(),
 		ScriptBitArray:   make(map[int]map[int]int),
+		ScriptVariable:   make(map[int]int),
 	}
 }
 
@@ -158,6 +165,7 @@ func (gameDef *GameDef) HandleRoomSwitch(position mgl32.Vec3) {
 			gameDef.IsRoomLoaded = false
 			gameDef.IsCameraLoaded = false
 			gameDef.Doors = make([]ScriptDoor, 0)
+			gameDef.Sprites = make([]ScriptSprite, 0)
 			gameDef.ScriptMemory = NewScriptMemory()
 		}
 	}
@@ -175,11 +183,21 @@ func (gameDef *GameDef) LoadNewRoom(rdtOutput *fileio.RDTOutput) {
 	gameDef.GameRoom.CollisionEntities = rdtOutput.CollisionData.CollisionEntities
 	gameDef.GameRoom.LightData = rdtOutput.LightData.Lights
 	gameDef.GameRoom.InitScriptData = rdtOutput.InitScriptData.ScriptData
-	gameDef.RunScript(gameDef.GameRoom.InitScriptData, -1, true)
+	gameDef.GameRoom.RoomScriptData = rdtOutput.RoomScriptData.ScriptData
+	gameDef.GameRoom.SpriteData = rdtOutput.SpriteOutput.SpriteData
+	gameDef.RunScript(gameDef.GameRoom.InitScriptData, -1, true, 0)
 }
 
 func (gameDef *GameDef) GetBitArray(bitArrayIndex int, bitNumber int) int {
-	return gameDef.ScriptBitArray[bitArrayIndex][bitNumber]
+	bitArray, exists := gameDef.ScriptBitArray[bitArrayIndex]
+	if !exists {
+		log.Fatal("Bit array index ", bitArrayIndex, " does not exist")
+	}
+	value, exists := bitArray[bitNumber]
+	if !exists {
+		log.Fatal("Bit array index ", bitArrayIndex, " with bit number ", bitNumber, " does not exist")
+	}
+	return value
 }
 
 func (gameDef *GameDef) SetBitArray(bitArrayIndex int, bitNumber int, value int) {
@@ -188,4 +206,12 @@ func (gameDef *GameDef) SetBitArray(bitArrayIndex int, bitNumber int, value int)
 		gameDef.ScriptBitArray[bitArrayIndex] = make(map[int]int)
 	}
 	gameDef.ScriptBitArray[bitArrayIndex][bitNumber] = value
+}
+
+func (gameDef *GameDef) GetScriptVariable(id int) int {
+	return gameDef.ScriptVariable[id]
+}
+
+func (gameDef *GameDef) SetScriptVariable(id int, value int) {
+	gameDef.ScriptVariable[id] = value
 }

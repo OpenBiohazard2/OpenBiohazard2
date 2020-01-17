@@ -26,7 +26,7 @@ type AnimFrame struct {
 
 // x and y are top-left position of sprite in TIM image
 // Offset x and y are the distance to the center of the sprite
-// The total width is 2 * OffsetX and total height is 2 * OffsetY
+// The total width is 2 * -OffsetX and total height is 2 * -OffsetY
 type AnimSprite struct {
 	X       uint8
 	Y       uint8
@@ -34,14 +34,25 @@ type AnimSprite struct {
 	OffsetY int8
 }
 
-func LoadRDT_ESP(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets RDTOffsets) error {
+type ESPOutput struct {
+	SpriteData []SpriteData
+}
+
+type SpriteData struct {
+	Id        int
+	Frames    []AnimFrame
+	Positions []AnimSprite
+	ImageData *TIMOutput
+}
+
+func LoadRDT_ESP(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets RDTOffsets) (*ESPOutput, error) {
 	offset := offsets.OffsetSpriteAnimations
 	reader := io.NewSectionReader(r, int64(offset), fileLength-int64(offset))
 
 	// Read the header
 	espHeader := ESPHeader{}
 	if err := binary.Read(reader, binary.LittleEndian, &espHeader); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Read the offset to each block, which is stored separately
@@ -56,33 +67,43 @@ func LoadRDT_ESP(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 		reader = io.NewSectionReader(r, int64(offsets.OffsetSpriteAnimationsOffset)-int64(i*4), 4)
 		blockOffset := uint32(0)
 		if err := binary.Read(reader, binary.LittleEndian, &blockOffset); err != nil {
-			return err
+			return nil, err
 		}
 		blockOffsets = append(blockOffsets, blockOffset)
 	}
 
-	for _, blockOffset := range blockOffsets {
+	spriteData := make([]SpriteData, len(blockOffsets))
+	for i, blockOffset := range blockOffsets {
 		animationDataOffset := int64(offsets.OffsetSpriteAnimations) + int64(blockOffset)
 		reader = io.NewSectionReader(r, animationDataOffset, fileLength-int64(animationDataOffset))
 		animBlockHeader := AnimBlockHeader{}
 		if err := binary.Read(reader, binary.LittleEndian, &animBlockHeader); err != nil {
-			return err
+			return nil, err
 		}
 
 		// Read animation frames
+		frames := make([]AnimFrame, int(animBlockHeader.NumFrames))
 		for j := 0; j < int(animBlockHeader.NumFrames); j++ {
 			animFrame := AnimFrame{}
 			if err := binary.Read(reader, binary.LittleEndian, &animFrame); err != nil {
-				return err
+				return nil, err
 			}
+			frames[j] = animFrame
 		}
 
 		// Read animation sprites
+		positions := make([]AnimSprite, int(animBlockHeader.NumSprites))
 		for j := 0; j < int(animBlockHeader.NumSprites); j++ {
 			animSprite := AnimSprite{}
 			if err := binary.Read(reader, binary.LittleEndian, &animSprite); err != nil {
-				return err
+				return nil, err
 			}
+			positions[j] = animSprite
+		}
+		spriteData[i] = SpriteData{
+			Id:        int(espHeader.Ids[i]),
+			Frames:    frames,
+			Positions: positions,
 		}
 
 		// TODO: Figure out the remaining offsets of the block
@@ -94,9 +115,15 @@ func LoadRDT_ESP(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 		reader = io.NewSectionReader(r, int64(offset), fileLength-int64(offset))
 		timOutput, err := LoadTIMStream(reader, fileLength-int64(offset))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		offset += uint32(timOutput.NumBytes)
+
+		spriteData[i].ImageData = timOutput
 	}
-	return nil
+
+	output := &ESPOutput{
+		SpriteData: spriteData,
+	}
+	return output, nil
 }

@@ -12,8 +12,8 @@ const (
 	OP_RETURN          = 1
 	OP_EVT_NEXT        = 2
 	OP_EVT_EXEC        = 4
-	OP_IF_ELSE         = 6
-	OP_ELSE_CHECK      = 7
+	OP_IF_START        = 6
+	OP_ELSE_START      = 7
 	OP_END_IF          = 8
 	OP_SLEEP           = 9
 	OP_WSLEEP          = 11
@@ -69,8 +69,8 @@ var (
 		OP_RETURN:          1,
 		OP_EVT_NEXT:        1,
 		OP_EVT_EXEC:        4,
-		OP_IF_ELSE:         4,
-		OP_ELSE_CHECK:      4,
+		OP_IF_START:        4,
+		OP_ELSE_START:      4,
 		OP_END_IF:          1,
 		OP_SLEEP:           4,
 		OP_WSLEEP:          1,
@@ -122,11 +122,12 @@ var (
 )
 
 type SCDOutput struct {
-	ScriptData []ScriptFunction
+	ScriptData ScriptFunction
 }
 
 type ScriptFunction struct {
-	Instructions map[int][]byte // key is program counter, value is command
+	Instructions        map[int][]byte // key is program counter, value is command
+	StartProgramCounter []int          // set per function
 }
 
 func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets RDTOffsets) (*SCDOutput, error) {
@@ -146,11 +147,12 @@ func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64, rdtHeader RDTHe
 		functionOffsets = append(functionOffsets, nextOffset)
 	}
 
-	scriptData := make([]ScriptFunction, len(functionOffsets))
 	programCounter := 0
+	scriptData := ScriptFunction{}
+	scriptData.Instructions = make(map[int][]byte)
+	scriptData.StartProgramCounter = make([]int, 0)
 	for functionNum := 0; functionNum < len(functionOffsets); functionNum++ {
-		functionData := ScriptFunction{}
-		functionData.Instructions = make(map[int][]byte)
+		scriptData.StartProgramCounter = append(scriptData.StartProgramCounter, programCounter)
 
 		var functionLength int64
 		if functionNum != len(functionOffsets)-1 {
@@ -171,7 +173,7 @@ func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64, rdtHeader RDTHe
 				fmt.Println("Unknown opcode:", opcode)
 			}
 
-			functionData.Instructions[programCounter] = generateScriptLine(streamReader, byteSize, opcode)
+			scriptData.Instructions[programCounter] = generateScriptLine(streamReader, byteSize, opcode)
 			programCounter += byteSize
 
 			// return
@@ -179,8 +181,6 @@ func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64, rdtHeader RDTHe
 				break
 			}
 		}
-
-		scriptData[functionNum] = functionData
 	}
 
 	output := &SCDOutput{

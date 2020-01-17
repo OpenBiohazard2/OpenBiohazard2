@@ -36,6 +36,18 @@ void renderEntity() {
   gl_FragDepth = gl_FragCoord.z;
 }
 
+void renderSprite() {
+  vec4 diffuseColor = texture2D(diffuse, fragTexCoord.st);
+  fragColor = diffuseColor;
+
+  if (fragColor.a == 0) {
+    // Hide transparent pixels
+    gl_FragDepth = 1;
+  } else {
+    gl_FragDepth = gl_FragCoord.z;
+  }
+}
+
 void renderDebug() {
   fragColor = debugColor;
   gl_FragDepth = gl_FragCoord.z;
@@ -53,6 +65,9 @@ void main() {
       renderEntity();
       break;
     case 4:
+      renderSprite();
+      break;
+    case 5:
       renderDebug();
       break;
   }

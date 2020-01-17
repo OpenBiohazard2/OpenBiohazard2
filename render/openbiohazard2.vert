@@ -32,6 +32,11 @@ void renderEntity() {
   fragNormal = mat3(transpose(inverse(model))) * vertNormal;
 }
 
+void renderSprite() {
+  gl_Position = projection * view * vec4(position, 1.0);
+  fragTexCoord = vertTexCoord;
+}
+
 void renderDebug() {
   gl_Position = projection * view * vec4(position, 1.0);
   fragTexCoord = vertTexCoord;
@@ -49,6 +54,9 @@ void main() {
       renderEntity();
       break;
     case 4:
+      renderSprite();
+      break;
+    case 5:
       renderDebug();
       break;
   }
