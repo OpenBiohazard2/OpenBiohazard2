@@ -7,7 +7,13 @@ import (
 )
 
 func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities []fileio.CollisionEntity) *fileio.CollisionEntity {
+	playerFloorNum := int(math.Round(float64(newPosition.Y()) / fileio.FLOOR_HEIGHT_UNIT))
 	for _, entity := range collisionEntities {
+		// The boundary is on a different floor than the player
+		if !entity.FloorCheck[playerFloorNum] {
+			continue
+		}
+
 		switch entity.Shape {
 		case 0:
 			// Rectangle

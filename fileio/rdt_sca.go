@@ -4,6 +4,7 @@ package fileio
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -27,7 +28,7 @@ type SCAElement struct {
 	Density uint16
 	Flag    uint16
 	Type    uint16
-	Floor   uint32
+	FloorNumFlag   uint32
 }
 
 type CollisionEntity struct {
@@ -39,6 +40,7 @@ type CollisionEntity struct {
 	SlopeHeight int
 	SlopeType   int
 	RampBottom  float32
+	FloorCheck  []bool
 }
 
 type SCAOutput struct {
@@ -78,6 +80,19 @@ func LoadRDT_SCA(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 			rampBottom = float32(scaElement.Z) + float32(scaElement.Density)
 		}
 
+		// Check if this floor has a collision entity
+		// The boundaries can be different for each floor level
+		floorCheck := make([]bool, 0)
+		// Convert to binary string
+		flags := fmt.Sprintf("%032b", int(scaElement.FloorNumFlag))
+		for j := 31; j >= 0; j-- {
+			if flags[j] == '1' {
+				floorCheck = append(floorCheck, true)
+			} else {
+				floorCheck = append(floorCheck, false)
+			}
+		}
+
 		collisionEntities[i] = CollisionEntity{
 			X:           int(scaElement.X),
 			Z:           int(scaElement.Z),
@@ -87,6 +102,7 @@ func LoadRDT_SCA(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 			SlopeHeight: floorHeightMultiplier * FLOOR_HEIGHT_UNIT,
 			SlopeType:   slopeType,
 			RampBottom:  rampBottom,
+			FloorCheck:  floorCheck,
 		}
 	}
 	output := &SCAOutput{

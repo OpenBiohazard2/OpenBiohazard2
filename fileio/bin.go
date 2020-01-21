@@ -79,6 +79,37 @@ func LoadBIN(r io.ReaderAt, archiveLength int64) ([]ImageFile, error) {
 	return imagesIndex, nil
 }
 
+func LoadTIMImages(inputFilename string) ([]*TIMOutput, error) {
+	binFile, _ := os.Open(inputFilename)
+	defer binFile.Close()
+
+	if binFile == nil {
+		log.Fatal("File doesn't exist")
+		return nil, nil
+	}
+
+	fi, err := binFile.Stat()
+	if err != nil {
+		log.Fatal(err)
+	}
+	archiveLength := fi.Size()
+
+	images := make([]*TIMOutput, 0)
+	totalBytesRead := 0
+
+	for totalBytesRead < int(archiveLength) {
+		timReader := io.NewSectionReader(binFile, int64(totalBytesRead), archiveLength)
+		timOutput, err := LoadTIMStream(timReader, archiveLength)
+		if err != nil {
+			log.Fatal(err)
+		}
+		images = append(images, timOutput)
+		totalBytesRead += timOutput.NumBytes
+	}
+
+	return images, nil
+}
+
 // Room image is stored as an ADT file
 func ExtractRoomBackground(inputFilename string, binOutput *BinOutput, roomId int) *RoomImageOutput {
 	binFile, _ := os.Open(inputFilename)
@@ -115,6 +146,7 @@ func ExtractRoomBackground(inputFilename string, binOutput *BinOutput, roomId in
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	return &RoomImageOutput{
 		BackgroundImage: adtOutput,
 		ImageMask:       timOutput,

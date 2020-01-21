@@ -323,7 +323,7 @@ func unpackADT(r io.ReaderAt) ([]uint16, []uint8, error) {
 	}
 
 	// Convert 8 bit array to 16 bit array, since colors are 16 bit
-	image16BitData := make([]uint16, len(imageByteData)/2)
+	image16BitData := make([]uint16, 1+len(imageByteData)/2)
 	for i := 0; i < len(imageByteData); i += 2 {
 		// Combine 2 bytes to get a 16 bit number
 		image16BitData[i/2] = binary.LittleEndian.Uint16(imageByteData[i : i+2])
