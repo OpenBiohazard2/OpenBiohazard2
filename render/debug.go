@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	RENDER_TYPE_DEBUG = 5
+	RENDER_TYPE_DEBUG = -1
 )
 
 func RenderCameraSwitches(programShader uint32, cameraSwitches []fileio.RVDHeader,
@@ -158,7 +158,7 @@ func buildDebugSlopedRectangle(entity fileio.CollisionEntity) []float32 {
 	return []float32{}
 }
 
-func RenderDoors(programShader uint32, doors []game.ScriptDoor) {
+func RenderDoorTriggers(programShader uint32, doors []game.ScriptDoor) {
 	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
 	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_DEBUG)
 
@@ -177,6 +177,27 @@ func RenderDoors(programShader uint32, doors []game.ScriptDoor) {
 	}
 
 	RenderDebugEntity(programShader, vertexBuffer, [4]float32{0.0, 0.0, 1.0, 0.3})
+}
+
+func RenderItemTriggers(programShader uint32, items []game.ScriptItemAotSet) {
+	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
+	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_DEBUG)
+
+	vertexBuffer := make([]float32, 0)
+	for _, item := range items {
+		vertex1 := mgl32.Vec3{float32(item.X), 0, float32(item.Y)}
+		vertex2 := mgl32.Vec3{float32(item.X), 0, float32(item.Y + item.Height)}
+		vertex3 := mgl32.Vec3{float32(item.X + item.Width), 0, float32(item.Y + item.Height)}
+		vertex4 := mgl32.Vec3{float32(item.X + item.Width), 0, float32(item.Y)}
+		rect := buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
+		vertexBuffer = append(vertexBuffer, rect...)
+	}
+
+	if len(vertexBuffer) == 0 {
+		return
+	}
+
+	RenderDebugEntity(programShader, vertexBuffer, [4]float32{0.0, 1.0, 1.0, 0.3})
 }
 
 func buildDebugRectangle(corner1 mgl32.Vec3, corner2 mgl32.Vec3, corner3 mgl32.Vec3, corner4 mgl32.Vec3) []float32 {
@@ -266,6 +287,10 @@ func buildDebugEllipse(centerVertex mgl32.Vec3, majorAxis float32, minorAxis flo
 
 func RenderDebugEntity(programShader uint32, entityVertexBuffer []float32, color [4]float32) {
 	floatSize := 4
+
+	if len(entityVertexBuffer) == 0 {
+		return
+	}
 
 	// 3 floats for vertex
 	stride := int32(3 * floatSize)

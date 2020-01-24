@@ -42,8 +42,16 @@ void renderDebug() {
   fragTexCoord = vertTexCoord;
 }
 
+void renderItem() {
+  gl_Position = projection * view * model * vec4(position, 1.0);
+  fragTexCoord = vertTexCoord;
+}
+
 void main() {
 	switch (renderType) {
+    case -1:
+      renderDebug();
+      break;
     case 1:
       renderBackground();
       break;
@@ -57,7 +65,7 @@ void main() {
       renderSprite();
       break;
     case 5:
-      renderDebug();
+      renderItem();
       break;
   }
 }

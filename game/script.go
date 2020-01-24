@@ -105,6 +105,22 @@ type ScriptInstrMemberCompare struct {
 	Value    int16
 }
 
+type ScriptItemAotSet struct {
+	Opcode          uint8 // 0x4e
+	Id              uint8
+	Sce             uint8
+	Sat             uint8
+	Floor           uint8
+	Super           uint8
+	X, Y            int16
+	Width, Height   int16
+	ItemId          uint16
+	Amount          uint16
+	ItemPickedIndex uint16 // flag to check if item is picked up
+	Md1ModelId      uint8
+	Act             uint8
+}
+
 func NewScriptMemory() *ScriptMemory {
 	return &ScriptMemory{
 		ProgramCounter:         0,
@@ -199,6 +215,8 @@ func (gameDef *GameDef) RunScript(scriptData fileio.ScriptFunction, timeElapsedS
 			gameDef.ScriptDoorAotSet(lineData)
 		case fileio.OP_MEMBER_CMP:
 			gameDef.ScriptMemberCompare(lineData)
+		case fileio.OP_ITEM_AOT_SET:
+			gameDef.ScriptItemAotSet(lineData)
 		}
 
 		if !gameDef.ScriptMemory.OverrideProgramCounter {
@@ -270,6 +288,10 @@ func (gameDef *GameDef) ScriptIfBlockStart(lineData []byte, scriptData fileio.Sc
 
 	// If/else
 	if value, exists := scriptData.Instructions[endIfBlock-4]; exists {
+		if int(value[0]) == fileio.OP_RETURN {
+			gameDef.ScriptMemory.PushStack([]int{int(opcode), endIfBlock - 4})
+			return
+		}
 		if int(value[0]) != fileio.OP_ELSE_START {
 			log.Fatal("If statement is missing else statement")
 		}
@@ -468,4 +490,12 @@ func (gameDef *GameDef) ScriptMemberCompare(lineData []byte) {
 	gameDef.ScriptMemory.ProgramCounter = counter
 	gameDef.ScriptMemory.OverrideProgramCounter = true
 	gameDef.ScriptMemory.PushStack([]int{opcode, 0})
+}
+
+func (gameDef *GameDef) ScriptItemAotSet(lineData []byte) {
+	byteArr := bytes.NewBuffer(lineData)
+	item := ScriptItemAotSet{}
+	binary.Read(byteArr, binary.LittleEndian, &item)
+
+	gameDef.Items = append(gameDef.Items, item)
 }

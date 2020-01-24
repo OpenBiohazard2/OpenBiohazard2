@@ -48,6 +48,12 @@ void renderSprite() {
   }
 }
 
+void renderItem() {
+  vec4 diffuseColor = texture2D(diffuse, fragTexCoord.st);
+  fragColor = vec4(diffuseColor.rgb, 1.0);
+  gl_FragDepth = gl_FragCoord.z;
+}
+
 void renderDebug() {
   fragColor = debugColor;
   gl_FragDepth = gl_FragCoord.z;
@@ -55,6 +61,9 @@ void renderDebug() {
 
 void main() {
   switch (renderType) {
+    case -1:
+      renderDebug();
+      break;
     case 1:
       renderBackground();
       break;
@@ -68,7 +77,7 @@ void main() {
       renderSprite();
       break;
     case 5:
-      renderDebug();
+      renderItem();
       break;
   }
 }

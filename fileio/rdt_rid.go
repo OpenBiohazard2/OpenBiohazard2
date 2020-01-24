@@ -10,7 +10,8 @@ import (
 
 type RIDHeader struct {
 	Flag        uint16
-	FOV         uint16
+	Unknown     uint8
+	FOV         uint8
 	CameraFromX int32
 	CameraFromY int32
 	CameraFromZ int32
@@ -23,6 +24,7 @@ type RIDHeader struct {
 type CameraInfo struct {
 	CameraFrom mgl32.Vec3
 	CameraTo   mgl32.Vec3
+	CameraFov  float32 // in degrees
 }
 
 type RIDOutput struct {
@@ -48,6 +50,7 @@ func LoadRDT_RID(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 		cameraInfos[i] = CameraInfo{
 			CameraFrom: cameraFrom,
 			CameraTo:   cameraTo,
+			CameraFov:  CalculateFOVDegrees(cameraPosition.FOV),
 		}
 	}
 
@@ -78,4 +81,19 @@ func LoadRDT_RID(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 		CameraMasks:     cameraMasks,
 	}
 	return output, nil
+}
+
+// TODO: Find a more precise formula
+func CalculateFOVDegrees(fovByte uint8) float32 {
+	if fovByte > 200 {
+		return 35.0
+	} else if fovByte > 150 {
+		return 45.0
+	} else if fovByte > 110 {
+		return 50.0
+	} else if fovByte > 80 {
+		return 60.0
+	} else {
+		return 80.0
+	}
 }

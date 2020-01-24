@@ -83,7 +83,7 @@ const (
 	OP_PLC_ROT         = 88
 	OP_XA_ON           = 89
 	OP_PLC_CNT         = 91
-	OP_KEEP_ITEM_CK = 94
+	OP_KEEP_ITEM_CK    = 94
 	OP_XA_VOL          = 95
 	OP_KAGE_SET        = 96
 	OP_SCE_ITEM_LOST   = 98
@@ -174,7 +174,7 @@ var (
 		OP_PLC_ROT:         4,
 		OP_XA_ON:           4,
 		OP_PLC_CNT:         2,
-		OP_KEEP_ITEM_CK: 2,
+		OP_KEEP_ITEM_CK:    2,
 		OP_XA_VOL:          2,
 		OP_KAGE_SET:        14,
 		OP_SCE_ITEM_LOST:   2,

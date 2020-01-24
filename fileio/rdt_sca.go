@@ -22,13 +22,13 @@ type SCAHeader struct {
 }
 
 type SCAElement struct {
-	X       int16
-	Z       int16
-	Width   uint16
-	Density uint16
-	Flag    uint16
-	Type    uint16
-	FloorNumFlag   uint32
+	X            int16
+	Z            int16
+	Width        uint16
+	Density      uint16
+	Flag         uint16
+	Type         uint16
+	FloorNumFlag uint32
 }
 
 type CollisionEntity struct {

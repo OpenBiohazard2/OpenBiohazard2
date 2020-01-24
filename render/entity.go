@@ -25,13 +25,17 @@ type ComponentOffsets struct {
 	EndIndex   int
 }
 
-func RenderEntity(programShader uint32, playerEntity PlayerEntity, timeElapsedSeconds float64) {
+func RenderAnimatedEntity(programShader uint32, playerEntity PlayerEntity, timeElapsedSeconds float64) {
 	texId := playerEntity.TextureId
 	pldOutput := playerEntity.PLDOutput
 	entityVertexBuffer := playerEntity.VertexBuffer
 
 	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
 	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_ENTITY)
+
+	modelLoc := gl.GetUniformLocation(programShader, gl.Str("model\x00"))
+	modelMatrix := playerEntity.Player.GetModelMatrix()
+	gl.UniformMatrix4fv(modelLoc, 1, false, &modelMatrix[0])
 
 	updateAnimationFrame(playerEntity, timeElapsedSeconds)
 
@@ -63,6 +67,7 @@ func RenderEntity(programShader uint32, playerEntity PlayerEntity, timeElapsedSe
 	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, stride, gl.PtrOffset(3*floatSize))
 	gl.EnableVertexAttribArray(1)
 
+	// Normal
 	gl.VertexAttribPointer(2, 3, gl.FLOAT, false, stride, gl.PtrOffset(5*floatSize))
 	gl.EnableVertexAttribArray(2)
 
@@ -173,108 +178,4 @@ func calculateComponentOffsets(pldOutput *fileio.PLDOutput) []ComponentOffsets {
 		}
 	}
 	return componentOffsets
-}
-
-func BuildEntityComponentVertices(pldOutput *fileio.PLDOutput) []float32 {
-	vertexBuffer := make([]float32, 0)
-	textureData := pldOutput.TextureData
-
-	for _, entityModel := range pldOutput.MeshData.Components {
-		// Triangles
-		for j := 0; j < len(entityModel.TriangleIndices); j++ {
-			triangleIndex := entityModel.TriangleIndices[j]
-			textureInfo := entityModel.TriangleTextures[j]
-
-			vertex0 := buildModelVertex(entityModel.TriangleVertices[triangleIndex.IndexVertex0])
-			uv0 := buildTextureUV(float32(textureInfo.U0), float32(textureInfo.V0), textureInfo.Page, textureData)
-			normal0 := buildModelNormal(entityModel.TriangleNormals[triangleIndex.IndexNormal0])
-
-			vertex1 := buildModelVertex(entityModel.TriangleVertices[triangleIndex.IndexVertex1])
-			uv1 := buildTextureUV(float32(textureInfo.U1), float32(textureInfo.V1), textureInfo.Page, textureData)
-			normal1 := buildModelNormal(entityModel.TriangleNormals[triangleIndex.IndexNormal1])
-
-			vertex2 := buildModelVertex(entityModel.TriangleVertices[triangleIndex.IndexVertex2])
-			uv2 := buildTextureUV(float32(textureInfo.U2), float32(textureInfo.V2), textureInfo.Page, textureData)
-			normal2 := buildModelNormal(entityModel.TriangleNormals[triangleIndex.IndexNormal2])
-
-			// v0, v1, v2
-			vertexBuffer = append(vertexBuffer, vertex0...)
-			vertexBuffer = append(vertexBuffer, uv0...)
-			vertexBuffer = append(vertexBuffer, normal0...)
-
-			vertexBuffer = append(vertexBuffer, vertex1...)
-			vertexBuffer = append(vertexBuffer, uv1...)
-			vertexBuffer = append(vertexBuffer, normal1...)
-
-			vertexBuffer = append(vertexBuffer, vertex2...)
-			vertexBuffer = append(vertexBuffer, uv2...)
-			vertexBuffer = append(vertexBuffer, normal2...)
-		}
-
-		// Quads
-		for j := 0; j < len(entityModel.QuadIndices); j++ {
-			quadIndex := entityModel.QuadIndices[j]
-			textureInfo := entityModel.QuadTextures[j]
-
-			vertex0 := buildModelVertex(entityModel.QuadVertices[quadIndex.IndexVertex0])
-			uv0 := buildTextureUV(float32(textureInfo.U0), float32(textureInfo.V0), textureInfo.Page, textureData)
-			normal0 := buildModelNormal(entityModel.QuadNormals[quadIndex.IndexNormal0])
-
-			vertex1 := buildModelVertex(entityModel.QuadVertices[quadIndex.IndexVertex1])
-			uv1 := buildTextureUV(float32(textureInfo.U1), float32(textureInfo.V1), textureInfo.Page, textureData)
-			normal1 := buildModelNormal(entityModel.QuadNormals[quadIndex.IndexNormal1])
-
-			vertex2 := buildModelVertex(entityModel.QuadVertices[quadIndex.IndexVertex2])
-			uv2 := buildTextureUV(float32(textureInfo.U2), float32(textureInfo.V2), textureInfo.Page, textureData)
-			normal2 := buildModelNormal(entityModel.QuadNormals[quadIndex.IndexNormal2])
-
-			vertex3 := buildModelVertex(entityModel.QuadVertices[quadIndex.IndexVertex3])
-			uv3 := buildTextureUV(float32(textureInfo.U3), float32(textureInfo.V3), textureInfo.Page, textureData)
-			normal3 := buildModelNormal(entityModel.QuadNormals[quadIndex.IndexNormal3])
-
-			// v0, v1, v3
-			vertexBuffer = append(vertexBuffer, vertex0...)
-			vertexBuffer = append(vertexBuffer, uv0...)
-			vertexBuffer = append(vertexBuffer, normal0...)
-
-			vertexBuffer = append(vertexBuffer, vertex1...)
-			vertexBuffer = append(vertexBuffer, uv1...)
-			vertexBuffer = append(vertexBuffer, normal1...)
-
-			vertexBuffer = append(vertexBuffer, vertex3...)
-			vertexBuffer = append(vertexBuffer, uv3...)
-			vertexBuffer = append(vertexBuffer, normal3...)
-
-			// v0, v2, v3
-			vertexBuffer = append(vertexBuffer, vertex0...)
-			vertexBuffer = append(vertexBuffer, uv0...)
-			vertexBuffer = append(vertexBuffer, normal0...)
-
-			vertexBuffer = append(vertexBuffer, vertex2...)
-			vertexBuffer = append(vertexBuffer, uv2...)
-			vertexBuffer = append(vertexBuffer, normal2...)
-
-			vertexBuffer = append(vertexBuffer, vertex3...)
-			vertexBuffer = append(vertexBuffer, uv3...)
-			vertexBuffer = append(vertexBuffer, normal3...)
-		}
-	}
-	return vertexBuffer
-}
-
-func buildModelVertex(vertex fileio.MD1Vertex) []float32 {
-	return []float32{float32(vertex.X), float32(vertex.Y), float32(vertex.Z)}
-}
-
-func buildTextureUV(u float32, v float32, texturePage uint16, textureData *fileio.TIMOutput) []float32 {
-	textureOffsetUnit := float32(textureData.ImageWidth) / float32(textureData.NumPalettes)
-	textureCoordOffset := textureOffsetUnit * float32(texturePage&3)
-
-	newU := (float32(u) + textureCoordOffset) / float32(textureData.ImageWidth)
-	newV := float32(v) / float32(textureData.ImageHeight)
-	return []float32{newU, newV}
-}
-
-func buildModelNormal(normal fileio.MD1Vertex) []float32 {
-	return []float32{float32(normal.X), float32(normal.Y), float32(normal.Z)}
 }

@@ -8,13 +8,15 @@ type Camera struct {
 	CameraFrom mgl32.Vec3
 	CameraTo   mgl32.Vec3
 	CameraUp   mgl32.Vec3
+	CameraFov  float32
 }
 
-func NewCamera(cameraFrom mgl32.Vec3, cameraTo mgl32.Vec3, cameraUp mgl32.Vec3) *Camera {
+func NewCamera(cameraFrom mgl32.Vec3, cameraTo mgl32.Vec3, cameraUp mgl32.Vec3, cameraFov float32) *Camera {
 	return &Camera{
 		CameraFrom: cameraFrom,
 		CameraTo:   cameraTo,
 		CameraUp:   cameraUp,
+		CameraFov:  cameraFov,
 	}
 }
 

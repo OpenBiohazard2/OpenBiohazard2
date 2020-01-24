@@ -30,7 +30,7 @@ type RDTOffsets struct {
 	OffsetCameraPosition         uint32 // .rid file
 	OffsetCameraSwitches         uint32 // .rvd file
 	OffsetLights                 uint32 // .lit file
-	OffsetModels                 uint32 // .md1 file
+	OffsetItems                  uint32
 	OffsetFloors                 uint32 // .flr file
 	OffsetBlocks                 uint32 // .blk file
 	OffsetLang1                  uint32 // .msg file
@@ -45,6 +45,11 @@ type RDTOffsets struct {
 	OffsetRBJ                    uint32 // .rbj file
 }
 
+type RDTItemOffsets struct {
+	OffsetTexture uint32 // .tim file
+	OffsetModel   uint32 // .md1 file
+}
+
 type RDTOutput struct {
 	Header           RDTHeader
 	RIDOutput        *RIDOutput // camera positions
@@ -54,6 +59,8 @@ type RDTOutput struct {
 	InitScriptData   *SCDOutput
 	RoomScriptData   *SCDOutput
 	SpriteOutput     *ESPOutput
+	ItemTextureData  []*TIMOutput
+	ItemModelData    []*MD1Output
 }
 
 func LoadRDTFile(filename string) (*RDTOutput, error) {
@@ -112,6 +119,42 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		return nil, err
 	}
 
+	// Read item models and textures
+	itemTextureData := make([]*TIMOutput, rdtHeader.NumModels)
+	itemModelData := make([]*MD1Output, rdtHeader.NumModels)
+	if rdtHeader.NumModels > 0 {
+		// Get the offsets
+		offset := int64(offsets.OffsetItems)
+		tempReader := io.NewSectionReader(r, offset, fileLength-offset)
+		modelItemData := make([]RDTItemOffsets, rdtHeader.NumModels)
+		if err := binary.Read(tempReader, binary.LittleEndian, &modelItemData); err != nil {
+			return nil, err
+		}
+
+		// Read item texture
+		modelTextureLength := fileLength - int64(offsets.OffsetModelImage)
+		for i := 0; i < int(rdtHeader.NumModels); i++ {
+			timReader := io.NewSectionReader(r, int64(modelItemData[i].OffsetTexture), modelTextureLength)
+			timOutput, err := LoadTIMStream(timReader, modelTextureLength)
+			if err != nil {
+				log.Fatal(err)
+			}
+			itemTextureData[i] = timOutput
+		}
+
+		// Read item model
+		for i := 0; i < int(rdtHeader.NumModels); i++ {
+			offset = int64(modelItemData[i].OffsetModel)
+			modelLength := fileLength - offset
+			timReader := io.NewSectionReader(r, offset, modelLength)
+			md1Output, err := LoadMD1Stream(timReader, modelLength)
+			if err != nil {
+				log.Fatal(err)
+			}
+			itemModelData[i] = md1Output
+		}
+	}
+
 	// Script data
 	// Run once when the level loads
 	offset := int64(offsets.OffsetInitScript)
@@ -144,6 +187,8 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		InitScriptData:   initSCDOutput,
 		RoomScriptData:   roomSCDOutput,
 		SpriteOutput:     espOutput,
+		ItemTextureData:  itemTextureData,
+		ItemModelData:    itemModelData,
 	}
 	return output, nil
 }

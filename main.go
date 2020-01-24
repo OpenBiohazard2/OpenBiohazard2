@@ -73,7 +73,7 @@ func main() {
 	modelTexColors := pldOutput.TextureData.ConvertToRenderData()
 	playerTextureId := render.BuildTexture(modelTexColors,
 		int32(pldOutput.TextureData.ImageWidth), int32(pldOutput.TextureData.ImageHeight))
-	playerEntityVertexBuffer := render.BuildEntityComponentVertices(pldOutput)
+	playerEntityVertexBuffer := render.BuildEntityComponentVertices(pldOutput.MeshData, pldOutput.TextureData)
 
 	gameDef = game.NewGame(1, 0, 0)
 	gameDef.Player = game.NewPlayer(mgl32.Vec3{18781, 0, -2664}, 180)
@@ -82,23 +82,10 @@ func main() {
 	gameDef.SetBitArray(0, 25, game.DIFFICULTY_EASY)
 	// Set camera id
 	gameDef.SetScriptVariable(26, 0)
-	// Fire animation for ROOM1000
-	gameDef.SetBitArray(5, 5, 0)
-	gameDef.SetBitArray(5, 6, 0)
-	gameDef.SetBitArray(5, 7, 0)
-
-	// Unknown
-	gameDef.SetBitArray(5, 12, 1)
-	gameDef.SetBitArray(5, 14, 1)
-	gameDef.SetBitArray(6, 35, 1)
-	gameDef.SetBitArray(6, 36, 1)
-	gameDef.SetBitArray(6, 37, 1)
-	gameDef.SetBitArray(6, 38, 1)
-	gameDef.SetBitArray(6, 39, 1)
-	gameDef.SetBitArray(6, 40, 1)
 
 	var roomOutput *fileio.RoomImageOutput
 	spriteTextureIds := make([][]uint32, 0)
+	itemEntities := make([]render.SceneMD1Entity, 0)
 
 	for !windowHandler.ShouldClose() {
 		windowHandler.StartFrame()
@@ -118,6 +105,29 @@ func main() {
 				spriteTextureIds = append(spriteTextureIds, spriteFrames)
 			}
 			gameDef.IsRoomLoaded = true
+
+			for _, item := range gameDef.Items {
+				// skip rendering
+				if item.Md1ModelId == 255 {
+					continue
+				}
+
+				itemTextureData := gameDef.GameRoom.ItemTextureData[item.Md1ModelId]
+				itemMeshData := gameDef.GameRoom.ItemModelData[item.Md1ModelId]
+				itemTexColors := itemTextureData.ConvertToRenderData()
+				itemTextureId := render.BuildTexture(itemTexColors, int32(itemTextureData.ImageWidth), int32(itemTextureData.ImageHeight))
+				itemEntityVertexBuffer := render.BuildEntityComponentVertices(itemMeshData, itemTextureData)
+
+				// position in the center of the trigger region
+				modelPosition := mgl32.Vec3{float32(item.X) + float32(item.Width)/2.0, 0.0, float32(item.Y) + float32(item.Height)/2.0}
+
+				sceneEntity := render.SceneMD1Entity{
+					TextureId:     itemTextureId,
+					VertexBuffer:  itemEntityVertexBuffer,
+					ModelPosition: modelPosition,
+				}
+				itemEntities = append(itemEntities, sceneEntity)
+			}
 		}
 
 		if !gameDef.IsCameraLoaded {
@@ -125,6 +135,7 @@ func main() {
 			cameraPosition := gameDef.GameRoom.CameraPositionData[gameDef.CameraId]
 			renderDef.Camera.CameraFrom = cameraPosition.CameraFrom
 			renderDef.Camera.CameraTo = cameraPosition.CameraTo
+			renderDef.Camera.CameraFov = cameraPosition.CameraFov
 			renderDef.ViewMatrix = renderDef.Camera.GetViewMatrix()
 			renderDef.SetEnvironmentLight(gameDef.GameRoom.LightData[gameDef.CameraId])
 
@@ -147,7 +158,8 @@ func main() {
 			CameraSwitches:          gameDef.GameRoom.CameraSwitches,
 			CameraSwitchTransitions: gameDef.GameRoom.CameraSwitchTransitions,
 			CollisionEntities:       gameDef.GameRoom.CollisionEntities,
-			Doors:                   gameDef.Doors,
+			DoorTriggers:            gameDef.Doors,
+			ItemTriggers:            gameDef.Items,
 		}
 		// Update screen
 		playerEntity := render.PlayerEntity{
@@ -157,23 +169,22 @@ func main() {
 			Player:              gameDef.Player,
 			AnimationPoseNumber: gameDef.Player.PoseNumber,
 		}
-
 		spriteEntity := render.SpriteEntity{
 			TextureIds: spriteTextureIds,
 			Sprites:    gameDef.Sprites,
 		}
 
-		renderDef.RenderFrame(playerEntity, debugEntities, spriteEntity, timeElapsedSeconds)
+		renderDef.RenderFrame(playerEntity, itemEntities, debugEntities, spriteEntity, timeElapsedSeconds)
 
 		handleInput(gameDef, gameDef.GameRoom.CollisionEntities)
 		gameDef.HandleCameraSwitch(gameDef.Player.Position, gameDef.GameRoom.CameraSwitches, gameDef.GameRoom.CameraSwitchTransitions)
 		gameDef.HandleRoomSwitch(gameDef.Player.Position)
-		if gameDef.StageId == 1 && gameDef.RoomId == 0 {
+		/*if gameDef.StageId == 1 && gameDef.RoomId == 0 {
 			// for ROOM1000, start at function 1
 			gameDef.RunScript(gameDef.GameRoom.RoomScriptData, timeElapsedSeconds, false, 1)
 		} else {
 			// start at function 0
 			gameDef.RunScript(gameDef.GameRoom.RoomScriptData, timeElapsedSeconds, false, 0)
-		}
+		}*/
 	}
 }
