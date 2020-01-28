@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	RENDER_TYPE_ITEM = 5
+	RENDER_GAME_STATE_MAIN = 0
+	RENDER_TYPE_ITEM       = 5
 )
 
 type RenderDef struct {
@@ -24,20 +25,8 @@ type RenderDef struct {
 }
 
 type DebugEntities struct {
-	CameraId                int
-	CameraSwitches          []fileio.RVDHeader
-	CollisionEntities       []fileio.CollisionEntity
-	DoorTriggers            []game.ScriptDoor
-	ItemTriggers            []game.ScriptItemAotSet
-	CameraSwitchTransitions map[int][]int
-}
-
-type PlayerEntity struct {
-	TextureId           uint32
-	VertexBuffer        []float32
-	PLDOutput           *fileio.PLDOutput
-	Player              *game.Player
-	AnimationPoseNumber int
+	CameraSwitchDebugEntity *DebugEntity
+	DebugEntities           []*DebugEntity
 }
 
 type SpriteEntity struct {
@@ -87,6 +76,9 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 	// Activate shader
 	gl.UseProgram(programShader)
 
+	renderGameStateUniform := gl.GetUniformLocation(programShader, gl.Str("gameState\x00"))
+	gl.Uniform1i(renderGameStateUniform, RENDER_GAME_STATE_MAIN)
+
 	viewLoc := gl.GetUniformLocation(programShader, gl.Str("view\x00"))
 	projectionLoc := gl.GetUniformLocation(programShader, gl.Str("projection\x00"))
 
@@ -109,15 +101,8 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 	RenderSprites(programShader, spriteEntity.Sprites, spriteEntity.TextureIds, timeElapsedSeconds)
 
 	// Only render for debugging
-	cameraId := debugEntities.CameraId
-	cameraSwitches := debugEntities.CameraSwitches
-	collisionEntities := debugEntities.CollisionEntities
-	cameraSwitchTransitions := debugEntities.CameraSwitchTransitions
-	RenderCameraSwitches(programShader, cameraSwitches, cameraSwitchTransitions, cameraId)
-	RenderCollisionEntities(programShader, collisionEntities)
-	RenderSlopedSurfaces(programShader, collisionEntities)
-	RenderDoorTriggers(programShader, debugEntities.DoorTriggers)
-	RenderItemTriggers(programShader, debugEntities.ItemTriggers)
+	RenderCameraSwitches(programShader, debugEntities.CameraSwitchDebugEntity)
+	RenderDebugEntities(programShader, debugEntities.DebugEntities)
 }
 
 func (r *RenderDef) AddSceneEntity(entityId string, entity *SceneEntity) {
@@ -147,57 +132,6 @@ func BuildTexture(imagePixels []uint16, imageWidth int32, imageHeight int32) uin
 	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 
 	return texId
-}
-
-func (r *RenderDef) RenderSceneEntity(entity *SceneEntity, renderType int32) {
-	// Skip
-	if entity == nil {
-		return
-	}
-
-	vertexBuffer := entity.VertexBuffer
-	if len(vertexBuffer) == 0 {
-		return
-	}
-
-	programShader := r.ProgramShader
-	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
-	gl.Uniform1i(renderTypeUniform, renderType)
-
-	floatSize := 4
-
-	// 3 floats for vertex, 2 floats for texture UV
-	stride := int32(5 * floatSize)
-
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
-
-	var vbo uint32
-	gl.GenBuffers(1, &vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertexBuffer)*floatSize, gl.Ptr(vertexBuffer), gl.STATIC_DRAW)
-
-	// Position attribute
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
-	gl.EnableVertexAttribArray(0)
-
-	// Texture
-	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, stride, gl.PtrOffset(3*floatSize))
-	gl.EnableVertexAttribArray(1)
-
-	diffuseUniform := gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
-	gl.Uniform1i(diffuseUniform, 0)
-
-	gl.ActiveTexture(gl.TEXTURE0)
-	gl.BindTexture(gl.TEXTURE_2D, entity.TextureId)
-
-	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(vertexBuffer)/5))
-
-	// Cleanup
-	gl.DisableVertexAttribArray(0)
-	gl.DisableVertexAttribArray(1)
 }
 
 func (r *RenderDef) GetPerspectiveMatrix(fovDegrees float32) mgl32.Mat4 {

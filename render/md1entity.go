@@ -7,9 +7,11 @@ import (
 )
 
 type SceneMD1Entity struct {
-	TextureId     uint32     // texture id in OpenGL
-	VertexBuffer  []float32  // 3 elements for x,y,z, 2 elements for texture u,v, and 3 elements for normal x,y,z
-	ModelPosition mgl32.Vec3 // Position in world space
+	TextureId          uint32     // texture id in OpenGL
+	VertexBuffer       []float32  // 3 elements for x,y,z, 2 elements for texture u,v, and 3 elements for normal x,y,z
+	ModelPosition      mgl32.Vec3 // Position in world space
+	VertexArrayObject  uint32
+	VertexBufferObject uint32
 }
 
 func (r *RenderDef) RenderMD1Entity(entity SceneMD1Entity, renderType int32) {
@@ -36,14 +38,11 @@ func (r *RenderDef) RenderMD1Entity(entity SceneMD1Entity, renderType int32) {
 	// 3 floats for vertex, 2 floats for texture UV, 3 float for normals
 	stride := int32(8 * floatSize)
 
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
+	vao := entity.VertexArrayObject
 	gl.BindVertexArray(vao)
 
-	var vbo uint32
-	gl.GenBuffers(1, &vbo)
+	vbo := entity.VertexBufferObject
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-
 	gl.BufferData(gl.ARRAY_BUFFER, len(vertexBuffer)*floatSize, gl.Ptr(vertexBuffer), gl.STATIC_DRAW)
 
 	// Position attribute

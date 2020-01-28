@@ -13,6 +13,8 @@ const (
 	PLAYER_BACKWARD_SPEED = 15
 	ROOMCUT_FILE          = "data/Common/bin/roomcut.bin"
 	LEON_MODEL_FILE       = "data/Pl0/PLD/PL00.PLD"
+	RDT_FILE              = "data/Pl%v/Rdu/ROOM%01d%02x%01d.RDT"
+	INVENTORY_FILE        = "data/Common/DATU/st0_pl.tim"
 	DIFFICULTY_EASY       = 0
 	DIFFICULTY_NORMAL     = 1
 )
@@ -71,7 +73,7 @@ func NewGame(stageId int, roomId int, cameraId int) *GameDef {
 func (g *GameDef) GetRoomFilename(playerNum int) string {
 	stage := g.StageId
 	roomNumber := g.RoomId
-	return fmt.Sprintf("data/Pl%v/Rdu/ROOM%01d%02x%01d.RDT", playerNum, stage, roomNumber, playerNum)
+	return fmt.Sprintf(RDT_FILE, playerNum, stage, roomNumber, playerNum)
 }
 
 func (g *GameDef) GetBackgroundImageNumber() int {

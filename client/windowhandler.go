@@ -83,3 +83,7 @@ func (windowHandler *WindowHandler) ShouldClose() bool {
 func (windowHandler *WindowHandler) GetTimeSinceLastFrame() float64 {
 	return windowHandler.deltaTime
 }
+
+func (windowHandler *WindowHandler) GetCurrentTime() float64 {
+	return glfw.GetTime()
+}

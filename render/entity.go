@@ -2,6 +2,7 @@ package render
 
 import (
 	"../fileio"
+	"../game"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -19,10 +20,42 @@ var (
 	curPose     = -1
 )
 
+type PlayerEntity struct {
+	TextureId           uint32
+	VertexBuffer        []float32
+	PLDOutput           *fileio.PLDOutput
+	Player              *game.Player
+	AnimationPoseNumber int
+	VertexArrayObject   uint32
+	VertexBufferObject  uint32
+}
+
 // Offset in vertex buffer
 type ComponentOffsets struct {
 	StartIndex int
 	EndIndex   int
+}
+
+func NewPlayerEntity(textureId uint32,
+	vertexBuffer []float32,
+	pldOutput *fileio.PLDOutput,
+	player *game.Player,
+	animationPoseNumber int) PlayerEntity {
+	var vao uint32
+	gl.GenVertexArrays(1, &vao)
+
+	var vbo uint32
+	gl.GenBuffers(1, &vbo)
+
+	return PlayerEntity{
+		TextureId:           textureId,
+		VertexBuffer:        vertexBuffer,
+		PLDOutput:           pldOutput,
+		Player:              player,
+		AnimationPoseNumber: animationPoseNumber,
+		VertexArrayObject:   vao,
+		VertexBufferObject:  vbo,
+	}
 }
 
 func RenderAnimatedEntity(programShader uint32, playerEntity PlayerEntity, timeElapsedSeconds float64) {
@@ -50,12 +83,10 @@ func RenderAnimatedEntity(programShader uint32, playerEntity PlayerEntity, timeE
 	// 3 floats for vertex, 2 floats for texture UV, 3 float for normals
 	stride := int32(VERTEX_LEN * floatSize)
 
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
+	vao := playerEntity.VertexArrayObject
 	gl.BindVertexArray(vao)
 
-	var vbo uint32
-	gl.GenBuffers(1, &vbo)
+	vbo := playerEntity.VertexBufferObject
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(gl.ARRAY_BUFFER, len(entityVertexBuffer)*floatSize, gl.Ptr(entityVertexBuffer), gl.STATIC_DRAW)
 

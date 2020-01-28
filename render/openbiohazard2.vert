@@ -5,6 +5,7 @@ layout (location = 1) in vec2 vertTexCoord;
 layout (location = 2) in vec3 vertNormal;
 
 uniform int renderType;
+uniform int gameState;
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
@@ -47,8 +48,8 @@ void renderItem() {
   fragTexCoord = vertTexCoord;
 }
 
-void main() {
-	switch (renderType) {
+void renderMainGame() {
+  switch (renderType) {
     case -1:
       renderDebug();
       break;
@@ -66,6 +67,21 @@ void main() {
       break;
     case 5:
       renderItem();
+      break;
+  }
+}
+
+void renderInventory() {
+  renderBackground();
+}
+
+void main() {
+  switch (gameState) {
+    case 0:
+      renderMainGame();
+      break;
+    case 1:
+      renderInventory();
       break;
   }
 }

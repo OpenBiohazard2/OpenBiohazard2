@@ -1,6 +1,7 @@
 #version 410
 
 uniform int renderType;
+uniform int gameState;
 uniform sampler2D diffuse;
 uniform vec3 envLight;
 uniform vec4 debugColor;
@@ -59,7 +60,7 @@ void renderDebug() {
   gl_FragDepth = gl_FragCoord.z;
 }
 
-void main() {
+void renderMainGame() {
   switch (renderType) {
     case -1:
       renderDebug();
@@ -78,6 +79,21 @@ void main() {
       break;
     case 5:
       renderItem();
+      break;
+  }
+}
+
+void renderInventory() {
+  renderBackground();
+}
+
+void main() {
+  switch (gameState) {
+    case 0:
+      renderMainGame();
+      break;
+    case 1:
+      renderInventory();
       break;
   }
 }

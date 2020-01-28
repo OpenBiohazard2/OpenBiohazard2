@@ -8,11 +8,12 @@ import (
 type Action int
 
 const (
-	PLAYER_FORWARD      Action = iota
-	PLAYER_BACKWARD     Action = iota
-	PLAYER_ROTATE_LEFT  Action = iota
-	PLAYER_ROTATE_RIGHT Action = iota
-	PROGRAM_QUIT        Action = iota
+	PLAYER_FORWARD        Action = iota
+	PLAYER_BACKWARD       Action = iota
+	PLAYER_ROTATE_LEFT    Action = iota
+	PLAYER_ROTATE_RIGHT   Action = iota
+	PLAYER_VIEW_INVENTORY Action = iota
+	PROGRAM_QUIT          Action = iota
 )
 
 type InputHandler struct {
@@ -29,11 +30,12 @@ type InputHandler struct {
 
 func NewInputHandler() *InputHandler {
 	actionToKeyMap := map[Action]glfw.Key{
-		PLAYER_FORWARD:      glfw.KeyW,
-		PLAYER_BACKWARD:     glfw.KeyS,
-		PLAYER_ROTATE_LEFT:  glfw.KeyA,
-		PLAYER_ROTATE_RIGHT: glfw.KeyD,
-		PROGRAM_QUIT:        glfw.KeyEscape,
+		PLAYER_FORWARD:        glfw.KeyW,
+		PLAYER_BACKWARD:       glfw.KeyS,
+		PLAYER_ROTATE_LEFT:    glfw.KeyA,
+		PLAYER_ROTATE_RIGHT:   glfw.KeyD,
+		PLAYER_VIEW_INVENTORY: glfw.KeyTab,
+		PROGRAM_QUIT:          glfw.KeyEscape,
 	}
 
 	return &InputHandler{
