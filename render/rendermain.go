@@ -9,8 +9,10 @@ import (
 )
 
 const (
-	RENDER_GAME_STATE_MAIN = 0
-	RENDER_TYPE_ITEM       = 5
+	RENDER_GAME_STATE_MAIN                   = 0
+	RENDER_GAME_STATE_BACKGROUND_SOLID       = 1
+	RENDER_GAME_STATE_BACKGROUND_TRANSPARENT = 2
+	RENDER_TYPE_ITEM                         = 5
 )
 
 type RenderDef struct {

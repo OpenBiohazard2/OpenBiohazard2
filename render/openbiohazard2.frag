@@ -11,11 +11,22 @@ in vec3 fragNormal;
 
 out vec4 fragColor;
 
-void renderBackground() {
+void renderBackgroundSolid() {
   vec4 diffuseColor = texture2D(diffuse, fragTexCoord.st);
   fragColor = vec4(diffuseColor.rgb, 1.0);
   // Must override for all render functions
   gl_FragDepth = gl_FragCoord.z;
+}
+
+void renderBackgroundTransparent() {
+  vec4 diffuseColor = texture2D(diffuse, fragTexCoord.st);
+  fragColor = vec4(diffuseColor.rgb, diffuseColor.a);
+  if (fragColor.a == 0) {
+    // Hide transparent pixels
+    gl_FragDepth = 1;
+  } else {
+    gl_FragDepth = gl_FragCoord.z;
+  }
 }
 
 void renderCameraMask() {
@@ -66,7 +77,7 @@ void renderMainGame() {
       renderDebug();
       break;
     case 1:
-      renderBackground();
+      renderBackgroundSolid();
       break;
     case 2:
       renderCameraMask();
@@ -83,17 +94,16 @@ void renderMainGame() {
   }
 }
 
-void renderInventory() {
-  renderBackground();
-}
-
 void main() {
   switch (gameState) {
     case 0:
       renderMainGame();
       break;
     case 1:
-      renderInventory();
+      renderBackgroundSolid();
+      break;
+    case 2:
+      renderBackgroundTransparent();
       break;
   }
 }

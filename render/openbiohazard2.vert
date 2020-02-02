@@ -15,7 +15,7 @@ uniform mat4 boneOffset;
 out vec2 fragTexCoord;
 out vec3 fragNormal;
 
-void renderBackground() {
+void renderBackground2D() {
   gl_Position = vec4(position, 1.0);
   fragTexCoord = vertTexCoord;
 }
@@ -54,7 +54,7 @@ void renderMainGame() {
       renderDebug();
       break;
     case 1:
-      renderBackground();
+      renderBackground2D();
       break;
     case 2:
       renderCameraMask();
@@ -71,17 +71,14 @@ void renderMainGame() {
   }
 }
 
-void renderInventory() {
-  renderBackground();
-}
-
 void main() {
   switch (gameState) {
     case 0:
       renderMainGame();
       break;
     case 1:
-      renderInventory();
+    case 2:
+      renderBackground2D();
       break;
   }
 }

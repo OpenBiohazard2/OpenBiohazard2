@@ -61,6 +61,9 @@ func LoadADTStream(adtReader io.ReaderAt) *ADTOutput {
 
 	if len(imgArr) < 320*256 {
 		fmt.Println("Warning: the ADT file doesn't contain a 320x240 image")
+		return &ADTOutput{
+			RawData: rawData,
+		}
 	}
 	pixelData := restoreImage(imgArr)
 	return &ADTOutput{

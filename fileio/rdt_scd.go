@@ -198,7 +198,7 @@ type ScriptFunction struct {
 	StartProgramCounter []int          // set per function
 }
 
-func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets RDTOffsets) (*SCDOutput, error) {
+func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64) (*SCDOutput, error) {
 	streamReader := io.NewSectionReader(fileReader, int64(0), fileLength)
 	firstOffset := uint16(0)
 	if err := binary.Read(streamReader, binary.LittleEndian, &firstOffset); err != nil {

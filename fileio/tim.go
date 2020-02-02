@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"io"
 	"log"
+	"math"
 	"os"
 	"strconv"
 )
@@ -178,7 +179,8 @@ func read8BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error)
 
 	for i := 0; i < imageDataLength; i++ {
 		index := imageData[i]
-		colorPalette := palettes[(i%totalImageWidth)/(totalImageWidth/len(palettes))]
+		paletteIndex := int(math.Floor(float64(i%totalImageWidth) * float64(len(palettes)) / float64(totalImageWidth)))
+		colorPalette := palettes[paletteIndex]
 		x := i % totalImageWidth
 		y := i / totalImageWidth
 		pixelData2D[y][x] = colorPalette[index]

@@ -128,7 +128,7 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		tempReader := io.NewSectionReader(r, offset, fileLength-offset)
 		modelItemData := make([]RDTItemOffsets, rdtHeader.NumModels)
 		if err := binary.Read(tempReader, binary.LittleEndian, &modelItemData); err != nil {
-			return nil, err
+			log.Fatal("Error reading item model data ", err)
 		}
 
 		// Read item texture
@@ -137,7 +137,7 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 			timReader := io.NewSectionReader(r, int64(modelItemData[i].OffsetTexture), modelTextureLength)
 			timOutput, err := LoadTIMStream(timReader, modelTextureLength)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal("Error reading item texture: ", err)
 			}
 			itemTextureData[i] = timOutput
 		}
@@ -145,21 +145,31 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		// Read item model
 		for i := 0; i < int(rdtHeader.NumModels); i++ {
 			offset = int64(modelItemData[i].OffsetModel)
+			// Invalid offset
+			if offset == 0 {
+				continue
+			}
 			modelLength := fileLength - offset
 			timReader := io.NewSectionReader(r, offset, modelLength)
 			md1Output, err := LoadMD1Stream(timReader, modelLength)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal("Error reading item model: ", err)
 			}
 			itemModelData[i] = md1Output
 		}
 	}
 
+	offset := int64(offsets.OffsetLang1)
+	if offset > 0 {
+		lang1MsgReader := io.NewSectionReader(r, offset, fileLength-offset)
+		LoadRDT_MSGStream(lang1MsgReader, fileLength)
+	}
+
 	// Script data
 	// Run once when the level loads
-	offset := int64(offsets.OffsetInitScript)
+	offset = int64(offsets.OffsetInitScript)
 	initSCDReader := io.NewSectionReader(r, offset, fileLength-offset)
-	initSCDOutput, err := LoadRDT_SCDStream(initSCDReader, fileLength, rdtHeader, offsets)
+	initSCDOutput, err := LoadRDT_SCDStream(initSCDReader, fileLength)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +177,7 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 	// Run during the game
 	offset = int64(offsets.OffsetExecuteScript)
 	roomSCDReader := io.NewSectionReader(r, offset, fileLength-offset)
-	roomSCDOutput, err := LoadRDT_SCDStream(roomSCDReader, fileLength, rdtHeader, offsets)
+	roomSCDOutput, err := LoadRDT_SCDStream(roomSCDReader, fileLength)
 	if err != nil {
 		return nil, err
 	}

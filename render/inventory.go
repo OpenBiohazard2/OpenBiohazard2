@@ -3,39 +3,44 @@ package render
 import (
 	"../fileio"
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"math"
 )
 
 const (
-	RENDER_GAME_STATE_INVENTORY = 1
-	ENTITY_INVENTORY_ID         = "INVENTORY_IMAGE"
-	// Original dimensions are 320x240
-	INVENTORY_IMAGE_WIDTH  = 320
-	INVENTORY_IMAGE_HEIGHT = 240
+	ENTITY_INVENTORY_ID = "INVENTORY_IMAGE"
 )
 
-func (renderDef *RenderDef) GenerateInventoryImageEntity(inventoryImages []*fileio.TIMOutput) {
-	z := float32(0.999)
-	vertexBuffer := []float32{
-		// (-1, 1, z)
-		-1.0, 1.0, z, 0.0, 0.0,
-		// (-1, -1, z)
-		-1.0, -1.0, z, 0.0, 1.0,
-		// (1, -1, z)
-		1.0, -1.0, z, 1.0, 1.0,
+func (renderDef *RenderDef) GenerateInventoryImageEntity(
+	inventoryImages []*fileio.TIMOutput,
+	inventoryItemImages []*fileio.TIMOutput) {
+	newImageColors := NewSurface2D()
+	buildBackground(inventoryImages, newImageColors)
+	buildItems(inventoryItemImages, newImageColors)
 
-		// (1, -1, z)
-		1.0, -1.0, z, 1.0, 1.0,
-		// (1, 1, z)
-		1.0, 1.0, z, 1.0, 0.0,
-		// (-1, 1, z)
-		-1.0, 1.0, z, 0.0, 0.0,
-	}
-
-	// Add entity to scene
 	imageEntity := NewSceneEntity()
-	newImageColors := make([]uint16, INVENTORY_IMAGE_WIDTH*INVENTORY_IMAGE_HEIGHT)
+	imageEntity.SetTexture(newImageColors, IMAGE_SURFACE_WIDTH, IMAGE_SURFACE_HEIGHT)
+	imageEntity.SetMesh(buildSurface2DVertexBuffer())
+	renderDef.AddSceneEntity(ENTITY_INVENTORY_ID, imageEntity)
+}
 
+func buildItems(inventoryItemImages []*fileio.TIMOutput, newImageColors []uint16) {
+	// Item in top right corner
+	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 265, 35)
+
+	// Empty inventory slots
+	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 225, 73)
+	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 265, 73)
+	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 225, 103)
+	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 265, 103)
+	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 225, 133)
+	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 265, 133)
+	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 225, 163)
+	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 265, 163)
+
+	// Equipped item
+	copyPixels(inventoryItemImages[2].PixelData, 40, 90, 80, 30, newImageColors, 172, 35)
+}
+
+func buildBackground(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
 	// The inventory image is split up into many small components
 	// Combine them manually back into a single image
 	// source image is 256x256
@@ -109,34 +114,6 @@ func (renderDef *RenderDef) GenerateInventoryImageEntity(inventoryImages []*file
 	copyPixels(inventoryImages[0].PixelData, 56, 178, 35, 7, newImageColors, 226, 215)
 	copyPixels(inventoryImages[0].PixelData, 56, 178, 35, 7, newImageColors, 261, 215)
 	copyPixels(inventoryImages[0].PixelData, 56, 178, 24, 7, newImageColors, 296, 215)
-
-	imageEntity.SetTexture(newImageColors, INVENTORY_IMAGE_WIDTH, INVENTORY_IMAGE_HEIGHT)
-	imageEntity.SetMesh(vertexBuffer)
-	renderDef.AddSceneEntity(ENTITY_INVENTORY_ID, imageEntity)
-}
-
-func copyPixels(pixelData2D [][]uint16, startX int, startY int, width int, height int,
-	newImageColors []uint16, destX int, destY int) {
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			newImageColors[((destY+y)*INVENTORY_IMAGE_WIDTH)+(destX+x)] = pixelData2D[startY+y][startX+x]
-		}
-	}
-}
-
-func fillPixels(newImageColors []uint16, destX int, destY int, width int, height int,
-	r int, g int, b int) {
-	// Convert color to A1R5G5B5 format
-	newR := uint16(math.Round(float64(r) / 8.0))
-	newG := uint16(math.Round(float64(g) / 8.0))
-	newB := uint16(math.Round(float64(b) / 8.0))
-	color := (1 << 15) | (newB << 10) | (newG << 5) | newR
-
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			newImageColors[((destY+y)*INVENTORY_IMAGE_WIDTH)+(destX+x)] = color
-		}
-	}
 }
 
 func (renderDef *RenderDef) RenderInventory() {
@@ -148,7 +125,7 @@ func (renderDef *RenderDef) RenderInventory() {
 	gl.UseProgram(programShader)
 
 	renderGameStateUniform := gl.GetUniformLocation(programShader, gl.Str("gameState\x00"))
-	gl.Uniform1i(renderGameStateUniform, RENDER_GAME_STATE_INVENTORY)
+	gl.Uniform1i(renderGameStateUniform, RENDER_GAME_STATE_BACKGROUND_SOLID)
 
 	renderDef.RenderSceneEntity(renderDef.SceneEntityMap[ENTITY_INVENTORY_ID], RENDER_TYPE_BACKGROUND)
 }
