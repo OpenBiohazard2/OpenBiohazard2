@@ -24,6 +24,7 @@ type RenderDef struct {
 	EnvironmentLight [3]float32
 	WindowWidth      int
 	WindowHeight     int
+	VideoBuffer      *Surface2D
 }
 
 type DebugEntities struct {
@@ -62,6 +63,7 @@ func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 		SceneEntityMap:   make(map[string]*SceneEntity),
 		WindowWidth:      windowWidth,
 		WindowHeight:     windowHeight,
+		VideoBuffer:      NewSurface2D(),
 	}
 	return renderDef
 }
@@ -123,6 +125,20 @@ func (r *RenderDef) SetEnvironmentLight(light fileio.LITCameraLight) {
 func BuildTexture(imagePixels []uint16, imageWidth int32, imageHeight int32) uint32 {
 	var texId uint32
 	gl.GenTextures(1, &texId)
+	gl.BindTexture(gl.TEXTURE_2D, texId)
+
+	// Image is 16 bit in A1R5G5B5 format
+	gl.TexImage2D(uint32(gl.TEXTURE_2D), 0, int32(gl.RGBA), imageWidth, imageHeight,
+		0, uint32(gl.RGBA), uint32(gl.UNSIGNED_SHORT_1_5_5_5_REV), gl.Ptr(imagePixels))
+
+	// Set texture wrapping/filtering options
+	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+
+	return texId
+}
+
+func UpdateTexture(texId uint32, imagePixels []uint16, imageWidth int32, imageHeight int32) uint32 {
 	gl.BindTexture(gl.TEXTURE_2D, texId)
 
 	// Image is 16 bit in A1R5G5B5 format

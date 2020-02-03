@@ -2,25 +2,16 @@ package render
 
 import (
 	"../fileio"
-	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
-const (
-	RENDER_GAME_STATE_MAIN_MENU = 2
-	ENTITY_MAIN_MENU_ID         = "MAIN_MENU_IMAGE"
-)
-
-func (renderDef *RenderDef) GenerateMainMenuImageEntity(
+func (renderDef *RenderDef) GenerateMainMenuImage(
 	menuBackgroundImageOutput *fileio.ADTOutput,
 	menuBackgroundTextOutput []*fileio.TIMOutput) {
-	newImageColors := NewSurface2D()
+	renderDef.VideoBuffer.ClearSurface()
+	newImageColors := renderDef.VideoBuffer.ImagePixels
 	buildMainMenuBackground(menuBackgroundImageOutput, newImageColors)
 	buildMainMenuText(menuBackgroundTextOutput, newImageColors, 0)
-
-	imageEntity := NewSceneEntity()
-	imageEntity.SetTexture(newImageColors, IMAGE_SURFACE_WIDTH, IMAGE_SURFACE_HEIGHT)
-	imageEntity.SetMesh(buildSurface2DVertexBuffer())
-	renderDef.AddSceneEntity(ENTITY_MAIN_MENU_ID, imageEntity)
+	renderDef.VideoBuffer.UpdateSurface(newImageColors)
 }
 
 func buildMainMenuBackground(backgroundImageOutput *fileio.ADTOutput, newImageColors []uint16) {
@@ -41,9 +32,9 @@ func buildTitleText(menuBackgroundTextOutput []*fileio.TIMOutput, newImageColors
 
 func buildMainMenuOptions(menuBackgroundTextOutput []*fileio.TIMOutput, newImageColors []uint16, mainMenuOption int) {
 	selectedOption := 1.0
-	otherOption := 0.2
+	otherOption := 0.3
 
-	optionsBrightness := [3]float64{otherOption, otherOption, otherOption}
+	optionsBrightness := [4]float64{otherOption, otherOption, otherOption, otherOption}
 	optionsBrightness[mainMenuOption] = selectedOption
 
 	// Load Game
@@ -52,29 +43,63 @@ func buildMainMenuOptions(menuBackgroundTextOutput []*fileio.TIMOutput, newImage
 	// New Game
 	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 54, 17, 147, 12, newImageColors, 95, 154, optionsBrightness[1])
 
+	// Special
+	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 94, 96, 74, 14, newImageColors, 130, 174, optionsBrightness[2])
+
 	// Option
-	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 88, 43, 74, 14, newImageColors, 130, 174, optionsBrightness[2])
+	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 88, 43, 74, 14, newImageColors, 125, 194, optionsBrightness[3])
 }
 
 func (renderDef *RenderDef) UpdateMainMenu(
 	menuBackgroundImageOutput *fileio.ADTOutput,
 	menuBackgroundTextOutput []*fileio.TIMOutput,
 	mainMenuOption int) {
-	newImageColors := NewSurface2D()
+	renderDef.VideoBuffer.ClearSurface()
+	newImageColors := renderDef.VideoBuffer.ImagePixels
 	buildMainMenuBackground(menuBackgroundImageOutput, newImageColors)
 	buildMainMenuText(menuBackgroundTextOutput, newImageColors, mainMenuOption)
-	renderDef.SceneEntityMap[ENTITY_MAIN_MENU_ID].SetTexture(newImageColors, IMAGE_SURFACE_WIDTH, IMAGE_SURFACE_HEIGHT)
+	renderDef.VideoBuffer.UpdateSurface(newImageColors)
 }
-func (renderDef *RenderDef) RenderMainMenu() {
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	programShader := renderDef.ProgramShader
+func (renderDef *RenderDef) GenerateSpecialMenuImage(
+	menuBackgroundImageOutput *fileio.ADTOutput,
+	menuBackgroundTextOutput []*fileio.TIMOutput) {
+	renderDef.VideoBuffer.ClearSurface()
+	newImageColors := renderDef.VideoBuffer.ImagePixels
+	buildMainMenuBackground(menuBackgroundImageOutput, newImageColors)
+	buildSpecialMenuText(menuBackgroundTextOutput, newImageColors, 0)
+	renderDef.VideoBuffer.UpdateSurface(newImageColors)
+}
 
-	// Activate shader
-	gl.UseProgram(programShader)
+func buildSpecialMenuText(menuBackgroundTextOutput []*fileio.TIMOutput, newImageColors []uint16, mainMenuOption int) {
+	buildTitleText(menuBackgroundTextOutput, newImageColors)
+	buildSpecialMenuOptions(menuBackgroundTextOutput, newImageColors, mainMenuOption)
+}
 
-	renderGameStateUniform := gl.GetUniformLocation(programShader, gl.Str("gameState\x00"))
-	gl.Uniform1i(renderGameStateUniform, RENDER_GAME_STATE_BACKGROUND_TRANSPARENT)
+func buildSpecialMenuOptions(menuBackgroundTextOutput []*fileio.TIMOutput, newImageColors []uint16, specialMenuOption int) {
+	selectedOption := 1.0
+	otherOption := 0.3
 
-	renderDef.RenderSceneEntity(renderDef.SceneEntityMap[ENTITY_MAIN_MENU_ID], RENDER_TYPE_BACKGROUND)
+	optionsBrightness := [2]float64{otherOption, otherOption}
+	optionsBrightness[specialMenuOption] = selectedOption
+
+	// Special title
+	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 94, 96, 74, 14, newImageColors, 125, 134, otherOption)
+
+	// Gallery
+	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 169, 96, 75, 14, newImageColors, 120, 154, optionsBrightness[0])
+
+	// Exit
+	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 105, 124, 45, 14, newImageColors, 135, 174, optionsBrightness[1])
+}
+
+func (renderDef *RenderDef) UpdateSpecialMenu(
+	menuBackgroundImageOutput *fileio.ADTOutput,
+	menuBackgroundTextOutput []*fileio.TIMOutput,
+	mainMenuOption int) {
+	renderDef.VideoBuffer.ClearSurface()
+	newImageColors := renderDef.VideoBuffer.ImagePixels
+	buildMainMenuBackground(menuBackgroundImageOutput, newImageColors)
+	buildSpecialMenuText(menuBackgroundTextOutput, newImageColors, mainMenuOption)
+	renderDef.VideoBuffer.UpdateSurface(newImageColors)
 }

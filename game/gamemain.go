@@ -11,16 +11,6 @@ const (
 	PLAYER_CLAIRE         = 1
 	PLAYER_FORWARD_SPEED  = 50
 	PLAYER_BACKWARD_SPEED = 25
-	COMMON_BIN_FOLDER     = "data/Common/bin/"
-	ROOMCUT_FILE          = COMMON_BIN_FOLDER + "roomcut.bin"
-	ITEMDATA_FILE         = COMMON_BIN_FOLDER + "itemdata.bin"
-	LEON_MODEL_FILE       = "data/Pl0/PLD/PL00.PLD"
-	RDT_FILE              = "data/Pl%v/Rdu/ROOM%01d%02x%01d.RDT"
-	COMMON_DATA_FOLDER    = "data/Common/DATU/"
-	INVENTORY_FILE        = COMMON_DATA_FOLDER + "st0_pl.tim"
-	MENU_IMAGE_FILE       = COMMON_DATA_FOLDER + "Tit_bg.adt"
-	MENU_TEXT_FILE        = COMMON_DATA_FOLDER + "tmojipal.bin"
-	ITEMALL_FILE          = COMMON_DATA_FOLDER + "itemall.bin"
 	DIFFICULTY_EASY       = 0
 	DIFFICULTY_NORMAL     = 1
 )

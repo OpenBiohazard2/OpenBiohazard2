@@ -2,7 +2,6 @@ package main
 
 import (
 	"./client"
-	"./fileio"
 	"./game"
 	"./render"
 	"fmt"
@@ -40,22 +39,15 @@ func main() {
 	// Set camera id
 	gameDef.SetScriptVariable(26, 0)
 
-	gameStateManager := &GameStateManager{
-		GameState:           GAME_STATE_MAIN_MENU,
-		MainMenuOption:      0,
-		LastTimeChangeState: windowHandler.GetCurrentTime(),
-	}
+	gameStateManager := NewGameStateManager()
 
 	// Initialize main game
 	mainGameStateInput := NewMainGameStateInput(renderDef, gameDef)
 
 	// Initialize main menu
-	mainMenuStateInput := NewMainMenuStateInput(renderDef)
-
-	// Initialize inventory
-	inventoryImages, _ := fileio.LoadTIMImages(game.INVENTORY_FILE)
-	inventoryItemImages, _ := fileio.LoadTIMImages(game.ITEMALL_FILE)
-	renderDef.GenerateInventoryImageEntity(inventoryImages, inventoryItemImages)
+	mainMenuStateInput := &MainMenuStateInput{
+		RenderDef: renderDef,
+	}
 
 	for !windowHandler.ShouldClose() {
 		windowHandler.StartFrame()
@@ -63,10 +55,14 @@ func main() {
 		switch gameStateManager.GameState {
 		case GAME_STATE_MAIN_MENU:
 			handleMainMenu(mainMenuStateInput, gameStateManager)
-		case GAME_STATE_MAIN:
+		case GAME_STATE_MAIN_GAME:
 			handleMainGame(mainGameStateInput, gameStateManager)
 		case GAME_STATE_INVENTORY:
 			handleInventory(renderDef, gameStateManager)
+		case GAME_STATE_LOAD_SAVE:
+			handleLoadSave(renderDef, gameStateManager)
+		case GAME_STATE_SPECIAL_MENU:
+			handleSpecialMenu(mainMenuStateInput, gameStateManager)
 		default:
 			log.Fatal("Invalid game state: ", gameStateManager.GameState)
 		}

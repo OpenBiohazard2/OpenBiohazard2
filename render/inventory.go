@@ -2,24 +2,16 @@ package render
 
 import (
 	"../fileio"
-	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
-const (
-	ENTITY_INVENTORY_ID = "INVENTORY_IMAGE"
-)
-
-func (renderDef *RenderDef) GenerateInventoryImageEntity(
+func (renderDef *RenderDef) GenerateInventoryImage(
 	inventoryImages []*fileio.TIMOutput,
 	inventoryItemImages []*fileio.TIMOutput) {
-	newImageColors := NewSurface2D()
+	renderDef.VideoBuffer.ClearSurface()
+	newImageColors := renderDef.VideoBuffer.ImagePixels
 	buildBackground(inventoryImages, newImageColors)
 	buildItems(inventoryItemImages, newImageColors)
-
-	imageEntity := NewSceneEntity()
-	imageEntity.SetTexture(newImageColors, IMAGE_SURFACE_WIDTH, IMAGE_SURFACE_HEIGHT)
-	imageEntity.SetMesh(buildSurface2DVertexBuffer())
-	renderDef.AddSceneEntity(ENTITY_INVENTORY_ID, imageEntity)
+	renderDef.VideoBuffer.UpdateSurface(newImageColors)
 }
 
 func buildItems(inventoryItemImages []*fileio.TIMOutput, newImageColors []uint16) {
@@ -53,7 +45,7 @@ func buildBackground(inventoryImages []*fileio.TIMOutput, newImageColors []uint1
 	copyPixels(inventoryImages[0].PixelData, 0, 140, 39, 4, newImageColors, 11, 16)   // top
 	copyPixels(inventoryImages[0].PixelData, 109, 152, 4, 60, newImageColors, 49, 16) // right
 	copyPixels(inventoryImages[0].PixelData, 0, 140, 39, 4, newImageColors, 11, 72)   // bottom
-	copyPixels(inventoryImages[1].PixelData, 1, 74, 37, 7, newImageColors, 12, 21)    // player name
+	copyPixels(inventoryImages[1].PixelData, 1, 73, 37, 8, newImageColors, 11, 21)    // player name
 	copyPixels(inventoryImages[1].PixelData, 0, 85, 38, 42, newImageColors, 11, 31)   // player image
 	copyPixels(inventoryImages[0].PixelData, 56, 164, 38, 1, newImageColors, 11, 30)  // line between name and image
 
@@ -114,18 +106,4 @@ func buildBackground(inventoryImages []*fileio.TIMOutput, newImageColors []uint1
 	copyPixels(inventoryImages[0].PixelData, 56, 178, 35, 7, newImageColors, 226, 215)
 	copyPixels(inventoryImages[0].PixelData, 56, 178, 35, 7, newImageColors, 261, 215)
 	copyPixels(inventoryImages[0].PixelData, 56, 178, 24, 7, newImageColors, 296, 215)
-}
-
-func (renderDef *RenderDef) RenderInventory() {
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-
-	programShader := renderDef.ProgramShader
-
-	// Activate shader
-	gl.UseProgram(programShader)
-
-	renderGameStateUniform := gl.GetUniformLocation(programShader, gl.Str("gameState\x00"))
-	gl.Uniform1i(renderGameStateUniform, RENDER_GAME_STATE_BACKGROUND_SOLID)
-
-	renderDef.RenderSceneEntity(renderDef.SceneEntityMap[ENTITY_INVENTORY_ID], RENDER_TYPE_BACKGROUND)
 }
