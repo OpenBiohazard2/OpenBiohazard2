@@ -219,6 +219,14 @@ func NewSlopedSurfacesDebugEntity(collisionEntities []fileio.CollisionEntity) *D
 	vertexBuffer := make([]float32, 0)
 	for _, entity := range collisionEntities {
 		switch entity.Shape {
+		case 9:
+			// Rectangle climb up
+			rect := buildDebugSlopedRectangle(entity)
+			vertexBuffer = append(vertexBuffer, rect...)
+		case 10:
+			// Rectangle jump down
+			rect := buildDebugSlopedRectangle(entity)
+			vertexBuffer = append(vertexBuffer, rect...)
 		case 11:
 			// Ramp
 			rect := buildDebugSlopedRectangle(entity)

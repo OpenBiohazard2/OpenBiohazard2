@@ -113,7 +113,7 @@ func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities
 }
 
 func (gameDef *GameDef) CheckRamp(entity *fileio.CollisionEntity) bool {
-	return entity.Shape == 11 || entity.Shape == 12
+	return entity.Shape == 9 || entity.Shape == 10 || entity.Shape == 11 || entity.Shape == 12
 }
 
 func isPointInTriangle(point mgl32.Vec3, corner1 mgl32.Vec3, corner2 mgl32.Vec3, corner3 mgl32.Vec3) bool {

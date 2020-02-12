@@ -1,5 +1,7 @@
 package fileio
 
+// .scd - Script data
+
 import (
 	"encoding/binary"
 	"fmt"

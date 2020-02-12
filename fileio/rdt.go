@@ -1,5 +1,7 @@
 package fileio
 
+// .rdt - Room data
+
 import (
 	"encoding/binary"
 	"fmt"

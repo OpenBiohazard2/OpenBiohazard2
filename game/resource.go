@@ -13,4 +13,5 @@ const (
 	MENU_TEXT_FILE     = COMMON_DATA_FOLDER + "tmojipal.bin"
 	ITEMALL_FILE       = COMMON_DATA_FOLDER + "itemall.bin"
 	SAVE_SCREEN_FILE   = COMMON_DATA_FOLDER + "type00.adt"
+	COMMON_SOUND_FOLDER  = BASE_FOLDER + "Common/Sound/"
 )
