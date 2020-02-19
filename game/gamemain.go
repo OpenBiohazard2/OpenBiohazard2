@@ -23,11 +23,10 @@ type GameDef struct {
 	IsCameraLoaded   bool
 	IsRoomLoaded     bool
 	GameRoom         GameRoom
-	Doors            []ScriptDoor
-	Items            []ScriptItemAotSet
-	Sprites          []ScriptSprite
+	Doors            []fileio.ScriptDoor
+	Items            []fileio.ScriptItemAotSet
+	Sprites          []fileio.ScriptSprite
 	Player           *Player
-	ScriptMemory     *ScriptMemory
 	ScriptBitArray   map[int]map[int]int
 	ScriptVariable   map[int]int
 }
@@ -54,10 +53,9 @@ func NewGame(stageId int, roomId int, cameraId int) *GameDef {
 		MaxCamerasInRoom: 0,
 		IsCameraLoaded:   false,
 		IsRoomLoaded:     false,
-		Doors:            make([]ScriptDoor, 0),
-		Items:            make([]ScriptItemAotSet, 0),
-		Sprites:          make([]ScriptSprite, 0),
-		ScriptMemory:     NewScriptMemory(),
+		Doors:            make([]fileio.ScriptDoor, 0),
+		Items:            make([]fileio.ScriptItemAotSet, 0),
+		Sprites:          make([]fileio.ScriptSprite, 0),
 		ScriptBitArray:   make(map[int]map[int]int),
 		ScriptVariable:   make(map[int]int),
 	}
@@ -137,8 +135,7 @@ func (gameDef *GameDef) HandleCameraSwitch(position mgl32.Vec3, cameraSwitches [
 
 		if isPointInRectangle(position, corner1, corner2, corner3, corner4) {
 			// Switch to a new camera
-			gameDef.CameraId = int(region.Cam1)
-			gameDef.IsCameraLoaded = false
+			gameDef.ChangeCamera(int(region.Cam1))
 
 			if gameDef.CameraId >= gameDef.MaxCamerasInRoom {
 				gameDef.CameraId = gameDef.MaxCamerasInRoom - 1
@@ -148,6 +145,11 @@ func (gameDef *GameDef) HandleCameraSwitch(position mgl32.Vec3, cameraSwitches [
 			}
 		}
 	}
+}
+
+func (gameDef *GameDef) ChangeCamera(newCamera int) {
+	gameDef.CameraId = newCamera
+	gameDef.IsCameraLoaded = false
 }
 
 func (gameDef *GameDef) HandleRoomSwitch(position mgl32.Vec3) {
@@ -165,10 +167,9 @@ func (gameDef *GameDef) HandleRoomSwitch(position mgl32.Vec3) {
 
 			gameDef.IsRoomLoaded = false
 			gameDef.IsCameraLoaded = false
-			gameDef.Doors = make([]ScriptDoor, 0)
-			gameDef.Items = make([]ScriptItemAotSet, 0)
-			gameDef.Sprites = make([]ScriptSprite, 0)
-			gameDef.ScriptMemory = NewScriptMemory()
+			gameDef.Doors = make([]fileio.ScriptDoor, 0)
+			gameDef.Items = make([]fileio.ScriptItemAotSet, 0)
+			gameDef.Sprites = make([]fileio.ScriptSprite, 0)
 		}
 	}
 }
@@ -189,7 +190,6 @@ func (gameDef *GameDef) LoadNewRoom(rdtOutput *fileio.RDTOutput) {
 	gameDef.GameRoom.ItemTextureData = rdtOutput.ItemTextureData
 	gameDef.GameRoom.ItemModelData = rdtOutput.ItemModelData
 	gameDef.GameRoom.SpriteData = rdtOutput.SpriteOutput.SpriteData
-	gameDef.RunScript(gameDef.GameRoom.InitScriptData, -1, true, 0)
 }
 
 func (gameDef *GameDef) GetBitArray(bitArrayIndex int, bitNumber int) int {

@@ -39,7 +39,7 @@ func (gameDef *GameDef) HandlePlayerInputForward(collisionEntities []fileio.Coll
 		if gameDef.CheckRamp(collidingEntity) {
 			predictPosition := gameDef.PredictPositionForwardSlope(gameDef.Player.Position, gameDef.Player.RotationAngle, collidingEntity)
 			gameDef.Player.Position = predictPosition
-			gameDef.Player.PoseNumber = 1
+			gameDef.Player.PoseNumber = 0
 		} else {
 			gameDef.Player.PoseNumber = -1
 		}

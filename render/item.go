@@ -2,12 +2,11 @@ package render
 
 import (
 	"../fileio"
-	"../game"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-func NewItemEntities(items []game.ScriptItemAotSet,
+func NewItemEntities(items []fileio.ScriptItemAotSet,
 	itemTextureData []*fileio.TIMOutput,
 	itemModelData []*fileio.MD1Output) []SceneMD1Entity {
 	itemEntities := make([]SceneMD1Entity, 0)

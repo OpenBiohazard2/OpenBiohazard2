@@ -2,7 +2,6 @@ package render
 
 import (
 	"../fileio"
-	"../game"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
@@ -165,7 +164,7 @@ func NewCameraSwitchDebugEntity(curCameraId int,
 	}
 }
 
-func NewDoorTriggerDebugEntity(doors []game.ScriptDoor) *DebugEntity {
+func NewDoorTriggerDebugEntity(doors []fileio.ScriptDoor) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
 	for _, door := range doors {
 		vertex1 := mgl32.Vec3{float32(door.X), 0, float32(door.Y)}
@@ -190,7 +189,7 @@ func NewDoorTriggerDebugEntity(doors []game.ScriptDoor) *DebugEntity {
 	}
 }
 
-func NewItemTriggerDebugEntity(items []game.ScriptItemAotSet) *DebugEntity {
+func NewItemTriggerDebugEntity(items []fileio.ScriptItemAotSet) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
 	for _, item := range items {
 		vertex1 := mgl32.Vec3{float32(item.X), 0, float32(item.Y)}

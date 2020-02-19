@@ -5,6 +5,7 @@ import (
 	"./fileio"
 	"./game"
 	"./render"
+	"./script"
 	"fmt"
 	"log"
 )
@@ -36,6 +37,7 @@ type MainMenuStateInput struct {
 type MainGameStateInput struct {
 	RenderDef               *render.RenderDef
 	GameDef                 *game.GameDef
+	ScriptDef               *script.ScriptDef
 	RoomOutput              *fileio.RoomImageOutput
 	RoomcutBinFilename      string
 	RoomcutBinOutput        *fileio.BinOutput
@@ -94,6 +96,7 @@ func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *
 	return &MainGameStateInput{
 		RenderDef:               renderDef,
 		GameDef:                 gameDef,
+		ScriptDef:               script.NewScriptDef(),
 		RoomOutput:              nil,
 		RoomcutBinFilename:      game.ROOMCUT_FILE,
 		RoomcutBinOutput:        fileio.LoadBINFile(game.ROOMCUT_FILE),
@@ -108,6 +111,7 @@ func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *
 func handleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *GameStateManager) {
 	renderDef := mainGameStateInput.RenderDef
 	gameDef := mainGameStateInput.GameDef
+	scriptDef := mainGameStateInput.ScriptDef
 	roomOutput := mainGameStateInput.RoomOutput
 	roomcutBinFilename := mainGameStateInput.RoomcutBinFilename
 	roomcutBinOutput := mainGameStateInput.RoomcutBinOutput
@@ -138,6 +142,17 @@ func handleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *Ga
 		mainGameStateInput.DebugEntities = debugEntities
 
 		mainGameStateInput.ItemEntities = render.NewItemEntities(gameDef.Items, gameDef.GameRoom.ItemTextureData, gameDef.GameRoom.ItemModelData)
+
+		scriptDef.Reset()
+
+		threadNum := 0
+		functionNum := 0
+		scriptDef.InitScript(gameDef.GameRoom.InitScriptData, threadNum, functionNum)
+		scriptDef.RunScript(gameDef.GameRoom.InitScriptData, 10.0, gameDef)
+
+		threadNum = 0
+		functionNum = 0
+		scriptDef.InitScript(gameDef.GameRoom.RoomScriptData, threadNum, functionNum)
 	}
 
 	if !gameDef.IsCameraLoaded {
@@ -182,6 +197,8 @@ func handleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *Ga
 	handleMainGameInput(gameDef, gameDef.GameRoom.CollisionEntities, gameStateManager)
 	gameDef.HandleCameraSwitch(gameDef.Player.Position, gameDef.GameRoom.CameraSwitches, gameDef.GameRoom.CameraSwitchTransitions)
 	gameDef.HandleRoomSwitch(gameDef.Player.Position)
+
+	scriptDef.RunScript(gameDef.GameRoom.RoomScriptData, timeElapsedSeconds, gameDef)
 }
 
 func handleMainGameInput(gameDef *game.GameDef,

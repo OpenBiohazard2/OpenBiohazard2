@@ -2,7 +2,6 @@ package render
 
 import (
 	"../fileio"
-	"../game"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -67,7 +66,7 @@ func BuildSpriteTexture(spriteData fileio.SpriteData) []uint32 {
 	return allFrameTextures
 }
 
-func RenderSprites(programShader uint32, sprites []game.ScriptSprite, textureIds [][]uint32, timeElapsedSeconds float64) {
+func RenderSprites(programShader uint32, sprites []fileio.ScriptSprite, textureIds [][]uint32, timeElapsedSeconds float64) {
 	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
 	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_SPRITE)
 

@@ -19,6 +19,7 @@ const (
 	OP_ELSE_START      = 7
 	OP_END_IF          = 8
 	OP_SLEEP           = 9
+	OP_SLEEPING        = 10
 	OP_WSLEEP          = 11
 	OP_WSLEEPING       = 12
 	OP_FOR             = 13
@@ -29,6 +30,7 @@ const (
 	OP_DO_END          = 18
 	OP_SWITCH          = 19
 	OP_CASE            = 20
+	OP_DEFAULT         = 21
 	OP_END_SWITCH      = 22
 	OP_GOTO            = 23
 	OP_GOSUB           = 24
@@ -110,6 +112,7 @@ var (
 		OP_ELSE_START:      4,
 		OP_END_IF:          1,
 		OP_SLEEP:           4,
+		OP_SLEEPING:        3,
 		OP_WSLEEP:          1,
 		OP_WSLEEPING:       1,
 		OP_FOR:             6,
@@ -120,6 +123,7 @@ var (
 		OP_DO_END:          2,
 		OP_SWITCH:          4,
 		OP_CASE:            6,
+		OP_DEFAULT:         2,
 		OP_END_SWITCH:      2,
 		OP_GOTO:            6,
 		OP_GOSUB:           2,
@@ -191,6 +195,164 @@ var (
 	}
 )
 
+type ScriptInstrEventExec struct {
+	Opcode    uint8 // 0x04
+	ThreadNum uint8
+	ExOpcode  uint8
+	Event     uint8
+}
+
+type ScriptInstrIfElseStart struct {
+	Opcode      uint8 // 0x06
+	Dummy       uint8
+	BlockLength uint16
+}
+
+type ScriptInstrElseStart struct {
+	Opcode      uint8 // 0x07
+	Dummy       uint8
+	BlockLength uint16
+}
+
+type ScriptInstrSleep struct {
+	Opcode uint8 // 0x09
+	Dummy  uint8
+	Count  uint16
+}
+
+type ScriptInstrSwitch struct {
+	Opcode      uint8 // 0x13
+	VarId       uint8
+	BlockLength uint16
+}
+
+type ScriptInstrSwitchCase struct {
+	Opcode      uint8 // 0x14
+	Dummy       uint8
+	BlockLength uint16
+	Value       uint16
+}
+
+type ScriptInstrGoto struct {
+	Opcode        uint8 // 0x17
+	IfElseCounter int8
+	LoopCounter   int8
+	Unknown       uint8
+	Offset        int16
+}
+
+type ScriptInstrGoSub struct {
+	Opcode uint8 // 0x18
+	Event  uint8
+}
+
+type ScriptInstrCheckBitTest struct {
+	Opcode   uint8 // 0x21
+	BitArray uint8 // Index of array of bits to use
+	Number   uint8 // Bit number to check
+	Value    uint8 // Value to compare (0 or 1)
+}
+
+type ScriptInstrSetBit struct {
+	Opcode    uint8 // 0x22
+	BitArray  uint8 // Index of array of bits to use
+	BitNumber uint8 // Bit number to check
+	Operation uint8 // 0x0: clear, 0x1: set, 0x2-0x6: invalid, 0x7: flip bit
+}
+
+type ScriptInstrObjModelSet struct {
+	Opcode   uint8 // 0x2d
+	Id       uint8
+	Unknown0 [6]uint8
+	Unknown1 [2]int16
+	Unknown2 int16
+	Unknown3 [4][3]int16
+}
+
+type ScriptInstrPosSet struct {
+	Opcode uint8 // 0x32
+	Dummy  uint8
+	X      int16
+	Y      int16
+	Z      int16
+}
+
+type ScriptSprite struct {
+	Opcode   uint8
+	Dummy    uint8
+	SpriteId uint8
+	Unknown0 [3]uint8
+	Dir      int16
+	X, Y, Z  int16
+	Unknown1 uint16
+}
+
+type ScriptDoor struct {
+	Opcode                       uint8 // 0x3b
+	Id                           uint8 // Index of item in array of room objects list
+	Unknown0                     [2]uint16
+	X, Y                         int16 // Location of door
+	Width, Height                int16 // Size of door
+	NextX, NextY, NextZ, NextDir int16 // Position and direction of player after door entered
+	Stage, Room, Camera          uint8 // Stage, room, camera after door entered
+	Unknown1                     uint8
+	DoorType                     uint8
+	DoorLock                     uint8
+	Unknown2                     uint8
+	DoorLocked                   uint8
+	DoorKey                      uint8
+	Unknown3                     uint8
+}
+
+type ScriptInstrMemberCompare struct {
+	Opcode   uint8 // 0x3e
+	Unknown0 uint8
+	Unknown1 uint8
+	Compare  uint8
+	Value    int16
+}
+
+type ScriptInstrCutChg struct {
+	Opcode   uint8 // 0x29
+	CameraId uint8
+}
+
+type ScriptInstrAotSet struct {
+	Opcode uint8 // 0x2c
+	Id     uint8
+	Type   uint8
+	Sat    uint8
+	NFloor uint8
+	Super  uint8
+	X, Y   int16
+	W, H   int16
+	Data   [6]uint8
+}
+
+type ScriptInstrAotReset struct {
+	Opcode uint8 // 0x46
+	Id     uint8
+	Type   uint8
+	Sat    uint8
+	Data   [6]uint8
+}
+
+type ScriptItemAotSet struct {
+	Opcode          uint8 // 0x4e
+	Id              uint8
+	Sce             uint8
+	Sat             uint8
+	Floor           uint8
+	Super           uint8
+	X, Y            int16
+	Width, Height   int16
+	ItemId          uint16
+	Amount          uint16
+	ItemPickedIndex uint16 // flag to check if item is picked up
+	Md1ModelId      uint8
+	Act             uint8
+}
+
 type SCDOutput struct {
 	ScriptData ScriptFunction
 }
@@ -244,6 +406,11 @@ func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64) (*SCDOutput, er
 			}
 
 			scriptData.Instructions[programCounter] = generateScriptLine(streamReader, byteSize, opcode)
+			// Sleep contains sleep and sleeping commands
+			if opcode == OP_SLEEP {
+				scriptData.Instructions[programCounter+1] = scriptData.Instructions[programCounter][1:]
+			}
+
 			programCounter += byteSize
 
 			// return

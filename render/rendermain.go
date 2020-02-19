@@ -2,7 +2,6 @@ package render
 
 import (
 	"../fileio"
-	"../game"
 	"fmt"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
@@ -34,7 +33,7 @@ type DebugEntities struct {
 
 type SpriteEntity struct {
 	TextureIds [][]uint32
-	Sprites    []game.ScriptSprite
+	Sprites    []fileio.ScriptSprite
 }
 
 func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
@@ -102,7 +101,7 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 	gl.Uniform3fv(envLightLoc, 1, &r.EnvironmentLight[0])
 	RenderAnimatedEntity(programShader, playerEntity, timeElapsedSeconds)
 
-	RenderSprites(programShader, spriteEntity.Sprites, spriteEntity.TextureIds, timeElapsedSeconds)
+	// RenderSprites(programShader, spriteEntity.Sprites, spriteEntity.TextureIds, timeElapsedSeconds)
 
 	// Only render for debugging
 	RenderCameraSwitches(programShader, debugEntities.CameraSwitchDebugEntity)
