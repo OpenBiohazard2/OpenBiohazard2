@@ -48,6 +48,12 @@ type MainGameStateInput struct {
 	ItemEntities            []render.SceneMD1Entity
 }
 
+type InventoryStateInput struct {
+	RenderDef           *render.RenderDef
+	InventoryImages     []*fileio.TIMOutput
+	InventoryItemImages []*fileio.TIMOutput
+}
+
 type PlayerModel struct {
 	TextureId    uint32
 	VertexBuffer []float32
@@ -105,6 +111,16 @@ func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *
 		DebugEntities:           make([]*render.DebugEntity, 0),
 		CameraSwitchDebugEntity: nil,
 		ItemEntities:            make([]render.SceneMD1Entity, 0),
+	}
+}
+
+func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
+	inventoryImages, _ := fileio.LoadTIMImages(game.INVENTORY_FILE)
+	inventoryItemImages, _ := fileio.LoadTIMImages(game.ITEMALL_FILE)
+	return &InventoryStateInput{
+		RenderDef:           renderDef,
+		InventoryImages:     inventoryImages,
+		InventoryItemImages: inventoryItemImages,
 	}
 }
 
@@ -239,13 +255,12 @@ func handleMainGameInput(gameDef *game.GameDef,
 	}
 }
 
-func handleInventory(renderDef *render.RenderDef, gameStateManager *GameStateManager) {
-	if gameStateManager.ImageResourcesLoaded == false {
-		// Initialize inventory
-		inventoryImages, _ := fileio.LoadTIMImages(game.INVENTORY_FILE)
-		inventoryItemImages, _ := fileio.LoadTIMImages(game.ITEMALL_FILE)
-		renderDef.GenerateInventoryImage(inventoryImages, inventoryItemImages)
+func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager *GameStateManager) {
+	renderDef := inventoryStateInput.RenderDef
+	inventoryImages := inventoryStateInput.InventoryImages
+	inventoryItemImages := inventoryStateInput.InventoryItemImages
 
+	if gameStateManager.ImageResourcesLoaded == false {
 		gameStateManager.ImageResourcesLoaded = true
 		gameStateManager.UpdateLastTimeChangeState()
 	}
@@ -257,6 +272,8 @@ func handleInventory(renderDef *render.RenderDef, gameStateManager *GameStateMan
 		}
 	}
 
+	timeElapsedSeconds := windowHandler.GetTimeSinceLastFrame()
+	renderDef.GenerateInventoryImage(inventoryImages, inventoryItemImages, timeElapsedSeconds)
 	renderDef.RenderSolidVideoBuffer()
 }
 

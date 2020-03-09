@@ -49,6 +49,9 @@ func main() {
 		RenderDef: renderDef,
 	}
 
+	// Initialize inventory
+	inventoryStateInput := NewInventoryStateInput(renderDef)
+
 	for !windowHandler.ShouldClose() {
 		windowHandler.StartFrame()
 
@@ -58,7 +61,7 @@ func main() {
 		case GAME_STATE_MAIN_GAME:
 			handleMainGame(mainGameStateInput, gameStateManager)
 		case GAME_STATE_INVENTORY:
-			handleInventory(renderDef, gameStateManager)
+			handleInventory(inventoryStateInput, gameStateManager)
 		case GAME_STATE_LOAD_SAVE:
 			handleLoadSave(renderDef, gameStateManager)
 		case GAME_STATE_SPECIAL_MENU:

@@ -43,12 +43,12 @@ func NewScriptThread() *ScriptThread {
 	levelState[0].LoopCounter = -1
 
 	return &ScriptThread{
-		RunStatus:      false,
-		ProgramCounter: 0,
-		Stack:          make([]int, 32),
-		StackIndex:     0,
-		SubLevel:       0,
-		LevelState:     levelState,
+		RunStatus:              false,
+		ProgramCounter:         0,
+		Stack:                  make([]int, 32),
+		StackIndex:             0,
+		SubLevel:               0,
+		LevelState:             levelState,
 		OverrideProgramCounter: false,
 	}
 }

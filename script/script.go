@@ -365,7 +365,7 @@ func (scriptDef *ScriptDef) ScriptGoSub(lineData []byte, scriptData fileio.Scrip
 	scriptThread.LevelState[scriptThread.SubLevel].ReturnAddress = scriptThread.ProgramCounter + fileio.InstructionSize[opcode]
 	scriptThread.LevelState[scriptThread.SubLevel+1].IfElseCounter = -1
 	scriptThread.LevelState[scriptThread.SubLevel+1].LoopCounter = -1
-	scriptThread.StackIndex = 8 * scriptThread.SubLevel
+	scriptThread.StackIndex = 8 * (scriptThread.SubLevel + 1)
 	scriptThread.SubLevel++
 
 	scriptThread.ProgramCounter = scriptData.StartProgramCounter[instruction.Event]

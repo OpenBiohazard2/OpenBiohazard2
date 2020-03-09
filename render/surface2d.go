@@ -178,6 +178,15 @@ func fillPixels(newImageColors []uint16, destX int, destY int, width int, height
 	newR := uint16(math.Round(float64(r) / 8.0))
 	newG := uint16(math.Round(float64(g) / 8.0))
 	newB := uint16(math.Round(float64(b) / 8.0))
+	if newR >= 32 {
+		newR = 31
+	}
+	if newG >= 32 {
+		newG = 31
+	}
+	if newB >= 32 {
+		newB = 31
+	}
 	color := (1 << 15) | (newB << 10) | (newG << 5) | newR
 
 	for y := 0; y < height; y++ {
