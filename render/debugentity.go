@@ -2,6 +2,7 @@ package render
 
 import (
 	"../fileio"
+	"../game"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
@@ -64,6 +65,16 @@ func RenderDebugEntities(programShader uint32, debugEntities []*DebugEntity) {
 		// Cleanup
 		gl.DisableVertexAttribArray(0)
 	}
+}
+
+func BuildAllDebugEntities(gameDef *game.GameDef) []*DebugEntity {
+	debugEntities := make([]*DebugEntity, 0)
+	debugEntities = append(debugEntities, NewDoorTriggerDebugEntity(gameDef.AotManager.Doors))
+	debugEntities = append(debugEntities, NewCollisionDebugEntity(gameDef.GameRoom.CollisionEntities))
+	debugEntities = append(debugEntities, NewSlopedSurfacesDebugEntity(gameDef.GameRoom.CollisionEntities))
+	debugEntities = append(debugEntities, NewItemTriggerDebugEntity(gameDef.AotManager.Items))
+	debugEntities = append(debugEntities, NewAotTriggerDebugEntity(gameDef.AotManager.AotTriggers))
+	return debugEntities
 }
 
 func NewCollisionDebugEntity(collisionEntities []fileio.CollisionEntity) *DebugEntity {
@@ -164,7 +175,7 @@ func NewCameraSwitchDebugEntity(curCameraId int,
 	}
 }
 
-func NewDoorTriggerDebugEntity(doors []fileio.ScriptDoor) *DebugEntity {
+func NewDoorTriggerDebugEntity(doors []fileio.ScriptInstrDoorAotSet) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
 	for _, door := range doors {
 		vertex1 := mgl32.Vec3{float32(door.X), 0, float32(door.Y)}
@@ -189,13 +200,38 @@ func NewDoorTriggerDebugEntity(doors []fileio.ScriptDoor) *DebugEntity {
 	}
 }
 
-func NewItemTriggerDebugEntity(items []fileio.ScriptItemAotSet) *DebugEntity {
+func NewItemTriggerDebugEntity(items []fileio.ScriptInstrItemAotSet) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
-	for _, item := range items {
-		vertex1 := mgl32.Vec3{float32(item.X), 0, float32(item.Y)}
-		vertex2 := mgl32.Vec3{float32(item.X), 0, float32(item.Y + item.Height)}
-		vertex3 := mgl32.Vec3{float32(item.X + item.Width), 0, float32(item.Y + item.Height)}
-		vertex4 := mgl32.Vec3{float32(item.X + item.Width), 0, float32(item.Y)}
+	for _, aot := range items {
+		vertex1 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z)}
+		vertex2 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z + aot.Depth)}
+		vertex3 := mgl32.Vec3{float32(aot.X + aot.Width), 0, float32(aot.Z + aot.Depth)}
+		vertex4 := mgl32.Vec3{float32(aot.X + aot.Width), 0, float32(aot.Z)}
+		rect := buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
+		vertexBuffer = append(vertexBuffer, rect...)
+	}
+
+	var vao uint32
+	gl.GenVertexArrays(1, &vao)
+
+	var vbo uint32
+	gl.GenBuffers(1, &vbo)
+
+	return &DebugEntity{
+		Color:              [4]float32{0.0, 1.0, 1.0, 0.3},
+		VertexBuffer:       vertexBuffer,
+		VertexArrayObject:  vao,
+		VertexBufferObject: vbo,
+	}
+}
+
+func NewAotTriggerDebugEntity(aotTriggers []fileio.ScriptInstrAotSet) *DebugEntity {
+	vertexBuffer := make([]float32, 0)
+	for _, aot := range aotTriggers {
+		vertex1 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z)}
+		vertex2 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z + aot.Depth)}
+		vertex3 := mgl32.Vec3{float32(aot.X + aot.Width), 0, float32(aot.Z + aot.Depth)}
+		vertex4 := mgl32.Vec3{float32(aot.X + aot.Width), 0, float32(aot.Z)}
 		rect := buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
 		vertexBuffer = append(vertexBuffer, rect...)
 	}

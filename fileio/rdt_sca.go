@@ -32,6 +32,7 @@ type SCAElement struct {
 }
 
 type CollisionEntity struct {
+	ScaIndex    int
 	X           int
 	Z           int
 	Width       int
@@ -94,6 +95,7 @@ func LoadRDT_SCA(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 		}
 
 		collisionEntities[i] = CollisionEntity{
+			ScaIndex:    i,
 			X:           int(scaElement.X),
 			Z:           int(scaElement.Z),
 			Width:       int(scaElement.Width),

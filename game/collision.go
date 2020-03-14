@@ -2,9 +2,20 @@ package game
 
 import (
 	"../fileio"
+	"fmt"
 	"github.com/go-gl/mathgl/mgl32"
 	"math"
 )
+
+func (gameDef *GameDef) RemoveCollisionEntity(collisionEntities []fileio.CollisionEntity, entityId int) {
+	for i, entity := range collisionEntities {
+		if entity.ScaIndex == entityId {
+			collisionEntities = append(collisionEntities[:i], collisionEntities[i+1:]...)
+			fmt.Println("Removing collision entity id ", entityId)
+			return
+		}
+	}
+}
 
 func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities []fileio.CollisionEntity) *fileio.CollisionEntity {
 	playerFloorNum := int(math.Round(float64(newPosition.Y()) / fileio.FLOOR_HEIGHT_UNIT))

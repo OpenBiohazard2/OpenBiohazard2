@@ -10,30 +10,6 @@ import (
 	"log"
 )
 
-const (
-	GAME_STATE_MAIN_MENU    = 0
-	GAME_STATE_MAIN_GAME    = 1
-	GAME_STATE_INVENTORY    = 2
-	GAME_STATE_LOAD_SAVE    = 3
-	GAME_STATE_SPECIAL_MENU = 4
-
-	STATE_CHANGE_DELAY = 0.5 // in seconds
-)
-
-type GameStateManager struct {
-	GameState            int
-	MainMenuOption       int
-	SpecialMenuOption    int
-	ImageResourcesLoaded bool
-	LastTimeChangeState  float64
-}
-
-type MainMenuStateInput struct {
-	RenderDef                 *render.RenderDef
-	MenuBackgroundImageOutput *fileio.ADTOutput
-	MenuBackgroundTextImages  []*fileio.TIMOutput
-}
-
 type MainGameStateInput struct {
 	RenderDef               *render.RenderDef
 	GameDef                 *game.GameDef
@@ -48,39 +24,10 @@ type MainGameStateInput struct {
 	ItemEntities            []render.SceneMD1Entity
 }
 
-type InventoryStateInput struct {
-	RenderDef           *render.RenderDef
-	InventoryImages     []*fileio.TIMOutput
-	InventoryItemImages []*fileio.TIMOutput
-}
-
 type PlayerModel struct {
 	TextureId    uint32
 	VertexBuffer []float32
 	PLDOutput    *fileio.PLDOutput
-}
-
-func NewGameStateManager() *GameStateManager {
-	return &GameStateManager{
-		GameState:            GAME_STATE_MAIN_MENU,
-		MainMenuOption:       0,
-		SpecialMenuOption:    0,
-		ImageResourcesLoaded: false,
-		LastTimeChangeState:  windowHandler.GetCurrentTime(),
-	}
-}
-
-func (gameStateManager *GameStateManager) CanUpdateGameState() bool {
-	return windowHandler.GetCurrentTime()-gameStateManager.LastTimeChangeState >= STATE_CHANGE_DELAY
-}
-
-func (gameStateManager *GameStateManager) UpdateGameState(newGameState int) {
-	gameStateManager.GameState = newGameState
-	gameStateManager.ImageResourcesLoaded = false
-}
-
-func (gameStateManager *GameStateManager) UpdateLastTimeChangeState() {
-	gameStateManager.LastTimeChangeState = windowHandler.GetCurrentTime()
 }
 
 func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *MainGameStateInput {
@@ -143,32 +90,34 @@ func handleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *Ga
 		fmt.Println("Loaded", roomFilename)
 		gameDef.LoadNewRoom(rdtOutput)
 
+		// Sprite ids for rendering
 		spriteTextureIds = make([][]uint32, 0)
-		for i := 0; i < len(gameDef.GameRoom.SpriteData); i++ {
-			spriteFrames := render.BuildSpriteTexture(gameDef.GameRoom.SpriteData[i])
+		for i := 0; i < len(gameDef.RenderRoom.SpriteData); i++ {
+			spriteFrames := render.BuildSpriteTexture(gameDef.RenderRoom.SpriteData[i])
 			spriteTextureIds = append(spriteTextureIds, spriteFrames)
 		}
 		gameDef.IsRoomLoaded = true
 
-		debugEntities := make([]*render.DebugEntity, 0)
-		debugEntities = append(debugEntities, render.NewDoorTriggerDebugEntity(gameDef.Doors))
-		debugEntities = append(debugEntities, render.NewCollisionDebugEntity(gameDef.GameRoom.CollisionEntities))
-		debugEntities = append(debugEntities, render.NewSlopedSurfacesDebugEntity(gameDef.GameRoom.CollisionEntities))
-		debugEntities = append(debugEntities, render.NewItemTriggerDebugEntity(gameDef.Items))
-		mainGameStateInput.DebugEntities = debugEntities
-
-		mainGameStateInput.ItemEntities = render.NewItemEntities(gameDef.Items, gameDef.GameRoom.ItemTextureData, gameDef.GameRoom.ItemModelData)
-
+    // Initialize scripts
 		scriptDef.Reset()
 
+		// Run initial script once when the room loads
 		threadNum := 0
 		functionNum := 0
 		scriptDef.InitScript(gameDef.GameRoom.InitScriptData, threadNum, functionNum)
 		scriptDef.RunScript(gameDef.GameRoom.InitScriptData, 10.0, gameDef)
 
+		// Run the room script in the game loop
 		threadNum = 0
 		functionNum = 0
 		scriptDef.InitScript(gameDef.GameRoom.RoomScriptData, threadNum, functionNum)
+		threadNum = 1
+		functionNum = 1
+		scriptDef.InitScript(gameDef.GameRoom.RoomScriptData, threadNum, functionNum)
+
+		mainGameStateInput.DebugEntities = render.BuildAllDebugEntities(gameDef)
+
+		mainGameStateInput.ItemEntities = render.NewItemEntities(gameDef.AotManager.Items, gameDef.RenderRoom.ItemTextureData, gameDef.RenderRoom.ItemModelData)
 	}
 
 	if !gameDef.IsCameraLoaded {
@@ -178,7 +127,7 @@ func handleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *Ga
 		renderDef.Camera.CameraTo = cameraPosition.CameraTo
 		renderDef.Camera.CameraFov = cameraPosition.CameraFov
 		renderDef.ViewMatrix = renderDef.Camera.GetViewMatrix()
-		renderDef.SetEnvironmentLight(gameDef.GameRoom.LightData[gameDef.CameraId])
+		renderDef.SetEnvironmentLight(gameDef.RenderRoom.LightData[gameDef.CameraId])
 
 		backgroundImageNumber := gameDef.GetBackgroundImageNumber()
 		roomOutput = fileio.ExtractRoomBackground(roomcutBinFilename, roomcutBinOutput, backgroundImageNumber)
@@ -186,10 +135,12 @@ func handleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *Ga
 		if roomOutput.BackgroundImage != nil {
 			render.GenerateBackgroundImageEntity(renderDef, roomOutput.BackgroundImage.ConvertToRenderData())
 			// Camera image mask depends on updated camera position
-			render.GenerateCameraImageMaskEntity(renderDef, roomOutput, gameDef.GameRoom.CameraMaskData[gameDef.CameraId])
+			render.GenerateCameraImageMaskEntity(renderDef, roomOutput, gameDef.RenderRoom.CameraMaskData[gameDef.CameraId])
 		}
 
-		mainGameStateInput.CameraSwitchDebugEntity = render.NewCameraSwitchDebugEntity(gameDef.CameraId, gameDef.GameRoom.CameraSwitches, gameDef.GameRoom.CameraSwitchTransitions)
+		cameraSwitchHandler := gameDef.GameRoom.CameraSwitchHandler
+		mainGameStateInput.CameraSwitchDebugEntity = render.NewCameraSwitchDebugEntity(gameDef.CameraId,
+			cameraSwitchHandler.CameraSwitches, cameraSwitchHandler.CameraSwitchTransitions)
 
 		gameDef.IsCameraLoaded = true
 	}
@@ -205,27 +156,37 @@ func handleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *Ga
 		gameDef.Player, gameDef.Player.PoseNumber)
 	spriteEntity := render.SpriteEntity{
 		TextureIds: spriteTextureIds,
-		Sprites:    gameDef.Sprites,
+		Sprites:    gameDef.AotManager.Sprites,
 	}
 
 	renderDef.RenderFrame(playerEntity, mainGameStateInput.ItemEntities, debugEntitiesRender, spriteEntity, timeElapsedSeconds)
 
-	handleMainGameInput(gameDef, gameDef.GameRoom.CollisionEntities, gameStateManager)
-	gameDef.HandleCameraSwitch(gameDef.Player.Position, gameDef.GameRoom.CameraSwitches, gameDef.GameRoom.CameraSwitchTransitions)
+	handleMainGameInput(gameDef, timeElapsedSeconds, gameDef.GameRoom.CollisionEntities, gameStateManager)
+	gameDef.HandleCameraSwitch(gameDef.Player.Position)
 	gameDef.HandleRoomSwitch(gameDef.Player.Position)
+	aot := gameDef.AotManager.GetAotTriggerNearPlayer(gameDef.Player.Position)
+	if aot != nil {
+		if aot.Id == game.AOT_EVENT {
+			lineData := []byte{1, aot.Data[0], 0, aot.Data[3]}
+			scriptDef.ScriptEvtExec(lineData, gameDef.GameRoom.RoomScriptData)
+			// Only execute event once
+			gameDef.AotManager.RemoveAotTrigger(int(aot.Aot))
+		}
+	}
 
 	scriptDef.RunScript(gameDef.GameRoom.RoomScriptData, timeElapsedSeconds, gameDef)
 }
 
 func handleMainGameInput(gameDef *game.GameDef,
+	timeElapsedSeconds float64,
 	collisionEntities []fileio.CollisionEntity,
 	gameStateManager *GameStateManager) {
 	if windowHandler.InputHandler.IsActive(client.PLAYER_FORWARD) {
-		gameDef.HandlePlayerInputForward(collisionEntities)
+		gameDef.HandlePlayerInputForward(collisionEntities, timeElapsedSeconds)
 	}
 
 	if windowHandler.InputHandler.IsActive(client.PLAYER_BACKWARD) {
-		gameDef.HandlePlayerInputBackward(collisionEntities)
+		gameDef.HandlePlayerInputBackward(collisionEntities, timeElapsedSeconds)
 	}
 
 	if !windowHandler.InputHandler.IsActive(client.PLAYER_FORWARD) &&
@@ -234,169 +195,16 @@ func handleMainGameInput(gameDef *game.GameDef,
 	}
 
 	if windowHandler.InputHandler.IsActive(client.PLAYER_ROTATE_LEFT) {
-		gameDef.Player.RotationAngle -= 5
-		if gameDef.Player.RotationAngle < 0 {
-			gameDef.Player.RotationAngle += 360
-		}
+		gameDef.RotatePlayerLeft(timeElapsedSeconds)
 	}
 
 	if windowHandler.InputHandler.IsActive(client.PLAYER_ROTATE_RIGHT) {
-		gameDef.Player.RotationAngle += 5
-		if gameDef.Player.RotationAngle > 360 {
-			gameDef.Player.RotationAngle -= 360
-		}
+		gameDef.RotatePlayerRight(timeElapsedSeconds)
 	}
 
 	if windowHandler.InputHandler.IsActive(client.PLAYER_VIEW_INVENTORY) {
 		if gameStateManager.CanUpdateGameState() {
 			gameStateManager.UpdateGameState(GAME_STATE_INVENTORY)
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	}
-}
-
-func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager *GameStateManager) {
-	renderDef := inventoryStateInput.RenderDef
-	inventoryImages := inventoryStateInput.InventoryImages
-	inventoryItemImages := inventoryStateInput.InventoryItemImages
-
-	if gameStateManager.ImageResourcesLoaded == false {
-		gameStateManager.ImageResourcesLoaded = true
-		gameStateManager.UpdateLastTimeChangeState()
-	}
-
-	if windowHandler.InputHandler.IsActive(client.PLAYER_VIEW_INVENTORY) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.UpdateGameState(GAME_STATE_MAIN_GAME)
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	}
-
-	timeElapsedSeconds := windowHandler.GetTimeSinceLastFrame()
-	renderDef.GenerateInventoryImage(inventoryImages, inventoryItemImages, timeElapsedSeconds)
-	renderDef.RenderSolidVideoBuffer()
-}
-
-func handleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *GameStateManager) {
-	maxOptions := 4
-	renderDef := mainMenuStateInput.RenderDef
-	if gameStateManager.ImageResourcesLoaded == false {
-		menuBackgroundImageOutput := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
-		menuBackgroundTextImages, _ := fileio.LoadTIMImages(game.MENU_TEXT_FILE)
-		renderDef.GenerateMainMenuImage(menuBackgroundImageOutput, menuBackgroundTextImages)
-
-		mainMenuStateInput.MenuBackgroundImageOutput = menuBackgroundImageOutput
-		mainMenuStateInput.MenuBackgroundTextImages = menuBackgroundTextImages
-		gameStateManager.ImageResourcesLoaded = true
-		gameStateManager.MainMenuOption = 0
-		gameStateManager.UpdateLastTimeChangeState()
-	}
-
-	renderDef.RenderTransparentVideoBuffer()
-
-	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			if gameStateManager.MainMenuOption == 0 {
-				gameStateManager.UpdateGameState(GAME_STATE_LOAD_SAVE)
-				gameStateManager.UpdateLastTimeChangeState()
-			} else if gameStateManager.MainMenuOption == 1 {
-				gameStateManager.UpdateGameState(GAME_STATE_MAIN_GAME)
-				gameStateManager.UpdateLastTimeChangeState()
-			} else if gameStateManager.MainMenuOption == 2 {
-				gameStateManager.UpdateGameState(GAME_STATE_SPECIAL_MENU)
-				gameStateManager.UpdateLastTimeChangeState()
-			}
-		}
-	}
-
-	if windowHandler.InputHandler.IsActive(client.MENU_UP_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.MainMenuOption--
-			if gameStateManager.MainMenuOption < 0 {
-				gameStateManager.MainMenuOption = 0
-			}
-			renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImageOutput, mainMenuStateInput.MenuBackgroundTextImages, gameStateManager.MainMenuOption)
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	}
-
-	if windowHandler.InputHandler.IsActive(client.MENU_DOWN_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.MainMenuOption++
-			if gameStateManager.MainMenuOption >= maxOptions {
-				gameStateManager.MainMenuOption = maxOptions - 1
-			}
-			renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImageOutput, mainMenuStateInput.MenuBackgroundTextImages, gameStateManager.MainMenuOption)
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	}
-}
-
-func handleLoadSave(renderDef *render.RenderDef, gameStateManager *GameStateManager) {
-	if gameStateManager.ImageResourcesLoaded == false {
-		// Initialize load save screen
-		saveScreenImage := fileio.LoadADTFile(game.SAVE_SCREEN_FILE)
-		renderDef.GenerateSaveScreenImage(saveScreenImage)
-
-		gameStateManager.ImageResourcesLoaded = true
-		gameStateManager.UpdateLastTimeChangeState()
-	}
-
-	renderDef.RenderTransparentVideoBuffer()
-	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.UpdateGameState(GAME_STATE_MAIN_MENU)
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	}
-}
-
-func handleSpecialMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *GameStateManager) {
-	maxOptions := 2
-	renderDef := mainMenuStateInput.RenderDef
-	if gameStateManager.ImageResourcesLoaded == false {
-		menuBackgroundImageOutput := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
-		menuBackgroundTextImages, _ := fileio.LoadTIMImages(game.MENU_TEXT_FILE)
-		renderDef.GenerateSpecialMenuImage(menuBackgroundImageOutput, menuBackgroundTextImages)
-
-		mainMenuStateInput.MenuBackgroundImageOutput = menuBackgroundImageOutput
-		mainMenuStateInput.MenuBackgroundTextImages = menuBackgroundTextImages
-		gameStateManager.ImageResourcesLoaded = true
-		gameStateManager.SpecialMenuOption = 0
-		gameStateManager.UpdateLastTimeChangeState()
-	}
-
-	renderDef.RenderTransparentVideoBuffer()
-	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			if gameStateManager.SpecialMenuOption == 0 {
-
-			} else if gameStateManager.SpecialMenuOption == 1 {
-				// Exit
-				gameStateManager.UpdateGameState(GAME_STATE_MAIN_MENU)
-				gameStateManager.UpdateLastTimeChangeState()
-			}
-		}
-	}
-
-	if windowHandler.InputHandler.IsActive(client.MENU_UP_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.SpecialMenuOption--
-			if gameStateManager.SpecialMenuOption < 0 {
-				gameStateManager.SpecialMenuOption = 0
-			}
-			renderDef.UpdateSpecialMenu(mainMenuStateInput.MenuBackgroundImageOutput, mainMenuStateInput.MenuBackgroundTextImages, gameStateManager.SpecialMenuOption)
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	}
-
-	if windowHandler.InputHandler.IsActive(client.MENU_DOWN_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.SpecialMenuOption++
-			if gameStateManager.SpecialMenuOption >= maxOptions {
-				gameStateManager.SpecialMenuOption = maxOptions - 1
-			}
-			renderDef.UpdateSpecialMenu(mainMenuStateInput.MenuBackgroundImageOutput, mainMenuStateInput.MenuBackgroundTextImages, gameStateManager.SpecialMenuOption)
 			gameStateManager.UpdateLastTimeChangeState()
 		}
 	}

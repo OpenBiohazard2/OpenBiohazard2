@@ -11,7 +11,7 @@ import (
 
 const (
 	OP_NO_OP           = 0
-	OP_RETURN          = 1
+	OP_EVT_END         = 1
 	OP_EVT_NEXT        = 2
 	OP_EVT_EXEC        = 4
 	OP_EVT_KILL        = 5
@@ -90,9 +90,12 @@ const (
 	OP_KEEP_ITEM_CK    = 94
 	OP_XA_VOL          = 95
 	OP_KAGE_SET        = 96
+	OP_CUT_BE_SET      = 97
 	OP_SCE_ITEM_LOST   = 98
 	OP_PLC_STOP        = 102
 	OP_AOT_SET_4P      = 103
+	OP_DOOR_AOT_SET_4P = 104
+	OP_ITEM_AOT_SET_4P = 105
 	OP_LIGHT_KIDO_SET  = 107
 	OP_SCE_SCR_MOVE    = 109
 	OP_PARTS_SET       = 110
@@ -104,7 +107,7 @@ const (
 var (
 	InstructionSize = map[byte]int{
 		OP_NO_OP:           1,
-		OP_RETURN:          1,
+		OP_EVT_END:         1,
 		OP_EVT_NEXT:        1,
 		OP_EVT_EXEC:        4,
 		OP_EVT_KILL:        2,
@@ -183,9 +186,12 @@ var (
 		OP_KEEP_ITEM_CK:    2,
 		OP_XA_VOL:          2,
 		OP_KAGE_SET:        14,
+		OP_CUT_BE_SET:      4,
 		OP_SCE_ITEM_LOST:   2,
 		OP_PLC_STOP:        1,
 		OP_AOT_SET_4P:      28,
+		OP_DOOR_AOT_SET_4P: 40,
+		OP_ITEM_AOT_SET_4P: 30,
 		OP_LIGHT_KIDO_SET:  4,
 		OP_SCE_SCR_MOVE:    4,
 		OP_PARTS_SET:       6,
@@ -277,6 +283,12 @@ type ScriptInstrPosSet struct {
 	Z      int16
 }
 
+type ScriptInstrScaIdSet struct {
+	Opcode uint8 // 0x37
+	Id     uint8
+	Flag   uint16
+}
+
 type ScriptSprite struct {
 	Opcode   uint8
 	Dummy    uint8
@@ -287,21 +299,24 @@ type ScriptSprite struct {
 	Unknown1 uint16
 }
 
-type ScriptDoor struct {
+type ScriptInstrDoorAotSet struct {
 	Opcode                       uint8 // 0x3b
-	Id                           uint8 // Index of item in array of room objects list
-	Unknown0                     [2]uint16
+	Aot                          uint8 // Index of item in array of room objects list
+	Id                           uint8
+	Type                         uint8
+	Floor                        uint8
+	Super                        uint8
 	X, Y                         int16 // Location of door
 	Width, Height                int16 // Size of door
 	NextX, NextY, NextZ, NextDir int16 // Position and direction of player after door entered
 	Stage, Room, Camera          uint8 // Stage, room, camera after door entered
-	Unknown1                     uint8
+	NextFloor                    uint8
+	TextureType                  uint8
 	DoorType                     uint8
-	DoorLock                     uint8
-	Unknown2                     uint8
-	DoorLocked                   uint8
-	DoorKey                      uint8
-	Unknown3                     uint8
+	KnockType                    uint8
+	KeyId                        uint8
+	KeyType                      uint8
+	Free                         uint8
 }
 
 type ScriptInstrMemberCompare struct {
@@ -318,15 +333,15 @@ type ScriptInstrCutChg struct {
 }
 
 type ScriptInstrAotSet struct {
-	Opcode uint8 // 0x2c
-	Id     uint8
-	Type   uint8
-	Sat    uint8
-	NFloor uint8
-	Super  uint8
-	X, Y   int16
-	W, H   int16
-	Data   [6]uint8
+	Opcode       uint8 // 0x2c
+	Aot          uint8
+	Id           uint8
+	Type         uint8
+	Floor        uint8
+	Super        uint8
+	X, Z         int16
+	Width, Depth int16
+	Data         [6]uint8
 }
 
 type ScriptInstrAotReset struct {
@@ -337,15 +352,15 @@ type ScriptInstrAotReset struct {
 	Data   [6]uint8
 }
 
-type ScriptItemAotSet struct {
+type ScriptInstrItemAotSet struct {
 	Opcode          uint8 // 0x4e
+	Aot             uint8
 	Id              uint8
-	Sce             uint8
-	Sat             uint8
+	Type            uint8
 	Floor           uint8
 	Super           uint8
-	X, Y            int16
-	Width, Height   int16
+	X, Z            int16
+	Width, Depth    int16
 	ItemId          uint16
 	Amount          uint16
 	ItemPickedIndex uint16 // flag to check if item is picked up
@@ -414,7 +429,7 @@ func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64) (*SCDOutput, er
 			programCounter += byteSize
 
 			// return
-			if opcode == OP_RETURN {
+			if opcode == OP_EVT_END {
 				break
 			}
 		}

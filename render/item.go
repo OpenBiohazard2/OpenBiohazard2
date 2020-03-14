@@ -6,7 +6,7 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-func NewItemEntities(items []fileio.ScriptItemAotSet,
+func NewItemEntities(items []fileio.ScriptInstrItemAotSet,
 	itemTextureData []*fileio.TIMOutput,
 	itemModelData []*fileio.MD1Output) []SceneMD1Entity {
 	itemEntities := make([]SceneMD1Entity, 0)
@@ -23,7 +23,7 @@ func NewItemEntities(items []fileio.ScriptItemAotSet,
 		itemEntityVertexBuffer := BuildEntityComponentVertices(itemMeshData, itemTextureData)
 
 		// position in the center of the trigger region
-		modelPosition := mgl32.Vec3{float32(item.X) + float32(item.Width)/2.0, 0.0, float32(item.Y) + float32(item.Height)/2.0}
+		modelPosition := mgl32.Vec3{float32(item.X) + float32(item.Width)/2.0, 0.0, float32(item.Z) + float32(item.Depth)/2.0}
 
 		var vao uint32
 		gl.GenVertexArrays(1, &vao)
