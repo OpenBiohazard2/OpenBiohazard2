@@ -7,10 +7,15 @@ import (
 )
 
 const (
-	PLAYER_LEON       = 0
-	PLAYER_CLAIRE     = 1
+	PLAYER_LEON   = 0
+	PLAYER_CLAIRE = 1
+
 	DIFFICULTY_EASY   = 0
 	DIFFICULTY_NORMAL = 1
+
+	GAME_LOAD_ROOM   = 0
+	GAME_LOAD_CAMERA = 1
+	GAME_LOOP        = 2
 )
 
 type GameDef struct {
@@ -18,8 +23,7 @@ type GameDef struct {
 	RoomId           int
 	CameraId         int
 	MaxCamerasInRoom int
-	IsCameraLoaded   bool
-	IsRoomLoaded     bool
+	StateStatus      int
 	GameRoom         GameRoom
 	RenderRoom       RenderRoom
 	AotManager       *AotManager
@@ -34,8 +38,7 @@ func NewGame(stageId int, roomId int, cameraId int) *GameDef {
 		RoomId:           roomId,
 		CameraId:         cameraId,
 		MaxCamerasInRoom: 0,
-		IsCameraLoaded:   false,
-		IsRoomLoaded:     false,
+		StateStatus:      GAME_LOAD_ROOM,
 		AotManager:       NewAotManager(),
 		ScriptBitArray:   make(map[int]map[int]int),
 		ScriptVariable:   make(map[int]int),
@@ -43,7 +46,7 @@ func NewGame(stageId int, roomId int, cameraId int) *GameDef {
 }
 
 func (gameDef *GameDef) ChangeCamera(newCamera int) {
-	gameDef.IsCameraLoaded = false
+	gameDef.StateStatus = GAME_LOAD_CAMERA
 	gameDef.CameraId = newCamera
 	if gameDef.CameraId >= gameDef.MaxCamerasInRoom {
 		gameDef.CameraId = gameDef.MaxCamerasInRoom - 1
@@ -73,8 +76,7 @@ func (gameDef *GameDef) HandleRoomSwitch(position mgl32.Vec3) {
 		gameDef.Player.Position = mgl32.Vec3{float32(door.NextX), float32(door.NextY), float32(door.NextZ)}
 		fmt.Println("New player position = ", gameDef.Player.Position)
 
-		gameDef.IsRoomLoaded = false
-		gameDef.IsCameraLoaded = false
+		gameDef.StateStatus = GAME_LOAD_ROOM
 		gameDef.AotManager = NewAotManager()
 	}
 }

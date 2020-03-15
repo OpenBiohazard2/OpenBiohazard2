@@ -11,9 +11,13 @@ import (
 )
 
 type MainGameStateInput struct {
+	GameDef        *game.GameDef
+	ScriptDef      *script.ScriptDef
+	MainGameRender *MainGameRender
+}
+
+type MainGameRender struct {
 	RenderDef               *render.RenderDef
-	GameDef                 *game.GameDef
-	ScriptDef               *script.ScriptDef
 	RoomOutput              *fileio.RoomImageOutput
 	RoomcutBinFilename      string
 	RoomcutBinOutput        *fileio.BinOutput
@@ -31,6 +35,28 @@ type PlayerModel struct {
 }
 
 func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *MainGameStateInput {
+	return &MainGameStateInput{
+		GameDef:        gameDef,
+		ScriptDef:      script.NewScriptDef(),
+		MainGameRender: NewMainGameRender(renderDef),
+	}
+}
+
+func NewMainGameRender(renderDef *render.RenderDef) *MainGameRender {
+	return &MainGameRender{
+		RenderDef:               renderDef,
+		RoomOutput:              nil,
+		RoomcutBinFilename:      game.ROOMCUT_FILE,
+		RoomcutBinOutput:        fileio.LoadBINFile(game.ROOMCUT_FILE),
+		PlayerModel:             NewPlayerModel(),
+		SpriteTextureIds:        make([][]uint32, 0),
+		DebugEntities:           make([]*render.DebugEntity, 0),
+		CameraSwitchDebugEntity: nil,
+		ItemEntities:            make([]render.SceneMD1Entity, 0),
+	}
+}
+
+func NewPlayerModel() PlayerModel {
 	// Load player model
 	pldOutput, err := fileio.LoadPLDFile(game.LEON_MODEL_FILE)
 	if err != nil {
@@ -40,126 +66,123 @@ func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *
 	playerTextureId := render.BuildTexture(modelTexColors,
 		int32(pldOutput.TextureData.ImageWidth), int32(pldOutput.TextureData.ImageHeight))
 	playerEntityVertexBuffer := render.BuildEntityComponentVertices(pldOutput.MeshData, pldOutput.TextureData)
-	playerModel := PlayerModel{
+	return PlayerModel{
 		TextureId:    playerTextureId,
 		VertexBuffer: playerEntityVertexBuffer,
 		PLDOutput:    pldOutput,
 	}
-
-	return &MainGameStateInput{
-		RenderDef:               renderDef,
-		GameDef:                 gameDef,
-		ScriptDef:               script.NewScriptDef(),
-		RoomOutput:              nil,
-		RoomcutBinFilename:      game.ROOMCUT_FILE,
-		RoomcutBinOutput:        fileio.LoadBINFile(game.ROOMCUT_FILE),
-		PlayerModel:             playerModel,
-		SpriteTextureIds:        make([][]uint32, 0),
-		DebugEntities:           make([]*render.DebugEntity, 0),
-		CameraSwitchDebugEntity: nil,
-		ItemEntities:            make([]render.SceneMD1Entity, 0),
-	}
-}
-
-func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
-	inventoryImages, _ := fileio.LoadTIMImages(game.INVENTORY_FILE)
-	inventoryItemImages, _ := fileio.LoadTIMImages(game.ITEMALL_FILE)
-	return &InventoryStateInput{
-		RenderDef:           renderDef,
-		InventoryImages:     inventoryImages,
-		InventoryItemImages: inventoryItemImages,
-	}
 }
 
 func handleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *GameStateManager) {
-	renderDef := mainGameStateInput.RenderDef
+	gameDef := mainGameStateInput.GameDef
+
+	switch gameDef.StateStatus {
+	case game.GAME_LOAD_ROOM:
+		loadRoomState(mainGameStateInput)
+		gameDef.StateStatus = game.GAME_LOAD_CAMERA
+	case game.GAME_LOAD_CAMERA:
+		loadCameraState(mainGameStateInput)
+		gameDef.StateStatus = game.GAME_LOOP
+	case game.GAME_LOOP:
+		runGameLoop(mainGameStateInput, gameStateManager)
+	}
+}
+
+func loadRoomState(mainGameStateInput *MainGameStateInput) {
 	gameDef := mainGameStateInput.GameDef
 	scriptDef := mainGameStateInput.ScriptDef
-	roomOutput := mainGameStateInput.RoomOutput
-	roomcutBinFilename := mainGameStateInput.RoomcutBinFilename
-	roomcutBinOutput := mainGameStateInput.RoomcutBinOutput
-	playerModel := mainGameStateInput.PlayerModel
-	spriteTextureIds := mainGameStateInput.SpriteTextureIds
+	mainGameRender := mainGameStateInput.MainGameRender
 
-	if !gameDef.IsRoomLoaded {
-		roomFilename := gameDef.GetRoomFilename(game.PLAYER_LEON)
-		rdtOutput, err := fileio.LoadRDTFile(roomFilename)
-		if err != nil {
-			log.Fatal("Error loading RDT file. ", err)
-		}
-		fmt.Println("Loaded", roomFilename)
-		gameDef.LoadNewRoom(rdtOutput)
+	// Load room data from file
+	roomFilename := gameDef.GetRoomFilename(game.PLAYER_LEON)
+	rdtOutput, err := fileio.LoadRDTFile(roomFilename)
+	if err != nil {
+		log.Fatal("Error loading RDT file. ", err)
+	}
+	fmt.Println("Loaded", roomFilename)
+	gameDef.LoadNewRoom(rdtOutput)
 
-		// Sprite ids for rendering
-		spriteTextureIds = make([][]uint32, 0)
-		for i := 0; i < len(gameDef.RenderRoom.SpriteData); i++ {
-			spriteFrames := render.BuildSpriteTexture(gameDef.RenderRoom.SpriteData[i])
-			spriteTextureIds = append(spriteTextureIds, spriteFrames)
-		}
-		gameDef.IsRoomLoaded = true
-
-    // Initialize scripts
-		scriptDef.Reset()
-
-		// Run initial script once when the room loads
-		threadNum := 0
-		functionNum := 0
-		scriptDef.InitScript(gameDef.GameRoom.InitScriptData, threadNum, functionNum)
-		scriptDef.RunScript(gameDef.GameRoom.InitScriptData, 10.0, gameDef)
-
-		// Run the room script in the game loop
-		threadNum = 0
-		functionNum = 0
-		scriptDef.InitScript(gameDef.GameRoom.RoomScriptData, threadNum, functionNum)
-		threadNum = 1
-		functionNum = 1
-		scriptDef.InitScript(gameDef.GameRoom.RoomScriptData, threadNum, functionNum)
-
-		mainGameStateInput.DebugEntities = render.BuildAllDebugEntities(gameDef)
-
-		mainGameStateInput.ItemEntities = render.NewItemEntities(gameDef.AotManager.Items, gameDef.RenderRoom.ItemTextureData, gameDef.RenderRoom.ItemModelData)
+	// Sprite ids for rendering
+	spriteTextureIds := mainGameRender.SpriteTextureIds
+	spriteTextureIds = make([][]uint32, 0)
+	for i := 0; i < len(gameDef.RenderRoom.SpriteData); i++ {
+		spriteFrames := render.BuildSpriteTexture(gameDef.RenderRoom.SpriteData[i])
+		spriteTextureIds = append(spriteTextureIds, spriteFrames)
 	}
 
-	if !gameDef.IsCameraLoaded {
-		// Update camera position
-		cameraPosition := gameDef.GameRoom.CameraPositionData[gameDef.CameraId]
-		renderDef.Camera.CameraFrom = cameraPosition.CameraFrom
-		renderDef.Camera.CameraTo = cameraPosition.CameraTo
-		renderDef.Camera.CameraFov = cameraPosition.CameraFov
-		renderDef.ViewMatrix = renderDef.Camera.GetViewMatrix()
-		renderDef.SetEnvironmentLight(gameDef.RenderRoom.LightData[gameDef.CameraId])
+	// Initialize scripts
+	scriptDef.Reset()
 
-		backgroundImageNumber := gameDef.GetBackgroundImageNumber()
-		roomOutput = fileio.ExtractRoomBackground(roomcutBinFilename, roomcutBinOutput, backgroundImageNumber)
+	// Run initial script once when the room loads
+	threadNum := 0
+	functionNum := 0
+	scriptDef.InitScript(gameDef.GameRoom.InitScriptData, threadNum, functionNum)
+	scriptDef.RunScript(gameDef.GameRoom.InitScriptData, 10.0, gameDef)
 
-		if roomOutput.BackgroundImage != nil {
-			render.GenerateBackgroundImageEntity(renderDef, roomOutput.BackgroundImage.ConvertToRenderData())
-			// Camera image mask depends on updated camera position
-			render.GenerateCameraImageMaskEntity(renderDef, roomOutput, gameDef.RenderRoom.CameraMaskData[gameDef.CameraId])
-		}
+	// Run the room script in the game loop
+	threadNum = 0
+	functionNum = 0
+	scriptDef.InitScript(gameDef.GameRoom.RoomScriptData, threadNum, functionNum)
+	threadNum = 1
+	functionNum = 1
+	scriptDef.InitScript(gameDef.GameRoom.RoomScriptData, threadNum, functionNum)
 
-		cameraSwitchHandler := gameDef.GameRoom.CameraSwitchHandler
-		mainGameStateInput.CameraSwitchDebugEntity = render.NewCameraSwitchDebugEntity(gameDef.CameraId,
-			cameraSwitchHandler.CameraSwitches, cameraSwitchHandler.CameraSwitchTransitions)
+	mainGameRender.DebugEntities = render.BuildAllDebugEntities(gameDef)
+	mainGameRender.ItemEntities = render.NewItemEntities(gameDef.AotManager.Items, gameDef.RenderRoom.ItemTextureData, gameDef.RenderRoom.ItemModelData)
+}
 
-		gameDef.IsCameraLoaded = true
+func loadCameraState(mainGameStateInput *MainGameStateInput) {
+	gameDef := mainGameStateInput.GameDef
+	mainGameRender := mainGameStateInput.MainGameRender
+	renderDef := mainGameRender.RenderDef
+	roomOutput := mainGameRender.RoomOutput
+	roomcutBinFilename := mainGameRender.RoomcutBinFilename
+	roomcutBinOutput := mainGameRender.RoomcutBinOutput
+
+	// Update camera position
+	cameraPosition := gameDef.GameRoom.CameraPositionData[gameDef.CameraId]
+	renderDef.Camera.CameraFrom = cameraPosition.CameraFrom
+	renderDef.Camera.CameraTo = cameraPosition.CameraTo
+	renderDef.Camera.CameraFov = cameraPosition.CameraFov
+	renderDef.ViewMatrix = renderDef.Camera.GetViewMatrix()
+	renderDef.SetEnvironmentLight(gameDef.RenderRoom.LightData[gameDef.CameraId])
+
+	backgroundImageNumber := gameDef.GetBackgroundImageNumber()
+	roomOutput = fileio.ExtractRoomBackground(roomcutBinFilename, roomcutBinOutput, backgroundImageNumber)
+
+	if roomOutput.BackgroundImage != nil {
+		render.GenerateBackgroundImageEntity(renderDef, roomOutput.BackgroundImage.ConvertToRenderData())
+		// Camera image mask depends on updated camera position
+		render.GenerateCameraImageMaskEntity(renderDef, roomOutput, gameDef.RenderRoom.CameraMaskData[gameDef.CameraId])
 	}
+
+	cameraSwitchHandler := gameDef.GameRoom.CameraSwitchHandler
+	mainGameRender.CameraSwitchDebugEntity = render.NewCameraSwitchDebugEntity(gameDef.CameraId,
+		cameraSwitchHandler.CameraSwitches, cameraSwitchHandler.CameraSwitchTransitions)
+}
+
+func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameStateManager) {
+	gameDef := mainGameStateInput.GameDef
+	scriptDef := mainGameStateInput.ScriptDef
+	mainGameRender := mainGameStateInput.MainGameRender
+	renderDef := mainGameRender.RenderDef
+	playerModel := mainGameRender.PlayerModel
 
 	timeElapsedSeconds := windowHandler.GetTimeSinceLastFrame()
 	// Only render these entities for debugging
 	debugEntitiesRender := render.DebugEntities{
-		CameraSwitchDebugEntity: mainGameStateInput.CameraSwitchDebugEntity,
-		DebugEntities:           mainGameStateInput.DebugEntities,
+		CameraSwitchDebugEntity: mainGameRender.CameraSwitchDebugEntity,
+		DebugEntities:           mainGameRender.DebugEntities,
 	}
 	// Update screen
 	playerEntity := render.NewPlayerEntity(playerModel.TextureId, playerModel.VertexBuffer, playerModel.PLDOutput,
 		gameDef.Player, gameDef.Player.PoseNumber)
 	spriteEntity := render.SpriteEntity{
-		TextureIds: spriteTextureIds,
+		TextureIds: mainGameRender.SpriteTextureIds,
 		Sprites:    gameDef.AotManager.Sprites,
 	}
 
-	renderDef.RenderFrame(playerEntity, mainGameStateInput.ItemEntities, debugEntitiesRender, spriteEntity, timeElapsedSeconds)
+	renderDef.RenderFrame(playerEntity, mainGameRender.ItemEntities, debugEntitiesRender, spriteEntity, timeElapsedSeconds)
 
 	handleMainGameInput(gameDef, timeElapsedSeconds, gameDef.GameRoom.CollisionEntities, gameStateManager)
 	gameDef.HandleCameraSwitch(gameDef.Player.Position)

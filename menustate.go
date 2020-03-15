@@ -39,7 +39,7 @@ type InventoryStateInput struct {
 
 func NewGameStateManager() *GameStateManager {
 	return &GameStateManager{
-		GameState:            GAME_STATE_MAIN_GAME,
+		GameState:            GAME_STATE_MAIN_MENU,
 		MainMenuOption:       0,
 		SpecialMenuOption:    0,
 		ImageResourcesLoaded: false,
@@ -58,6 +58,16 @@ func (gameStateManager *GameStateManager) UpdateGameState(newGameState int) {
 
 func (gameStateManager *GameStateManager) UpdateLastTimeChangeState() {
 	gameStateManager.LastTimeChangeState = windowHandler.GetCurrentTime()
+}
+
+func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
+	inventoryImages, _ := fileio.LoadTIMImages(game.INVENTORY_FILE)
+	inventoryItemImages, _ := fileio.LoadTIMImages(game.ITEMALL_FILE)
+	return &InventoryStateInput{
+		RenderDef:           renderDef,
+		InventoryImages:     inventoryImages,
+		InventoryItemImages: inventoryItemImages,
+	}
 }
 
 func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager *GameStateManager) {
