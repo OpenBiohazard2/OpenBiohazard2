@@ -5,12 +5,15 @@ import (
 	"../game"
 	"bytes"
 	"encoding/binary"
+	"github.com/go-gl/mathgl/mgl32"
 	"log"
 	// "sort"
 )
 
 const (
 	SCRIPT_FRAMES_PER_SECOND = 30.0
+
+	WORKSET_PLAYER = 1
 )
 
 var (
@@ -129,8 +132,10 @@ func (scriptDef *ScriptDef) RunScriptThread(
 				returnValue = scriptDef.ScriptAotSet(lineData, gameDef)
 			case fileio.OP_OBJ_MODEL_SET:
 				returnValue = scriptDef.ScriptObjectModelSet(lineData)
+			case fileio.OP_WORK_SET:
+				returnValue = scriptDef.ScriptWorkSet(lineData)
 			case fileio.OP_POS_SET:
-				returnValue = scriptDef.ScriptPositionSet(lineData)
+				returnValue = scriptDef.ScriptPositionSet(lineData, gameDef)
 			case fileio.OP_SCA_ID_SET:
 				returnValue = scriptDef.ScriptScaIdSet(lineData, gameDef)
 			case fileio.OP_SCE_ESPR_ON:
@@ -144,7 +149,7 @@ func (scriptDef *ScriptDef) RunScriptThread(
 			case fileio.OP_SCE_EM_SET:
 				returnValue = scriptDef.ScriptSceEmSet(lineData)
 			case fileio.OP_AOT_RESET:
-				returnValue = scriptDef.ScriptAotReset(lineData)
+				returnValue = scriptDef.ScriptAotReset(lineData, gameDef)
 			case fileio.OP_ITEM_AOT_SET:
 				returnValue = scriptDef.ScriptItemAotSet(lineData, gameDef)
 			case fileio.OP_AOT_SET_4P:
@@ -454,12 +459,27 @@ func (scriptDef *ScriptDef) ScriptObjectModelSet(lineData []byte) int {
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptPositionSet(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptWorkSet(lineData []byte) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrWorkSet{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
+	scriptThread.WorkSetComponent = int(instruction.Component)
+	scriptThread.WorkSetIndex = int(instruction.Index)
+	return 1
+}
+
+func (scriptDef *ScriptDef) ScriptPositionSet(lineData []byte, gameDef *game.GameDef) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrPosSet{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-	// TODO: set position of object
+	if scriptThread.WorkSetComponent == WORKSET_PLAYER {
+		gameDef.Player.Position = mgl32.Vec3{float32(instruction.X), float32(instruction.Y), float32(instruction.Z)}
+	} else {
+		// TODO: set position of object
+	}
+
 	return 1
 }
 
@@ -511,11 +531,12 @@ func (scriptDef *ScriptDef) ScriptSceEmSet(lineData []byte) int {
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptAotReset(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptAotReset(lineData []byte, gameDef *game.GameDef) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrAotReset{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
+	gameDef.AotManager.ResetAotTrigger(instruction)
 	return 1
 }
 

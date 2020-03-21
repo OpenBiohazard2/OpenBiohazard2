@@ -36,6 +36,14 @@ type SpriteEntity struct {
 	Sprites    []fileio.ScriptSprite
 }
 
+type RenderRoom struct {
+	CameraMaskData  [][]fileio.MaskRectangle
+	LightData       []fileio.LITCameraLight
+	ItemTextureData []*fileio.TIMOutput
+	ItemModelData   []*fileio.MD1Output
+	SpriteData      []fileio.SpriteData
+}
+
 func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 	if err := gl.Init(); err != nil {
 		panic(err)
@@ -108,17 +116,23 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 	RenderDebugEntities(programShader, debugEntities.DebugEntities)
 }
 
-func (r *RenderDef) AddSceneEntity(entityId string, entity *SceneEntity) {
-	r.SceneEntityMap[entityId] = entity
+func NewRenderRoom(rdtOutput *fileio.RDTOutput) RenderRoom {
+	return RenderRoom{
+		CameraMaskData:  rdtOutput.RIDOutput.CameraMasks,
+		LightData:       rdtOutput.LightData.Lights,
+		ItemTextureData: rdtOutput.ItemTextureData,
+		ItemModelData:   rdtOutput.ItemModelData,
+		SpriteData:      rdtOutput.SpriteOutput.SpriteData,
+	}
 }
 
-func (r *RenderDef) SetEnvironmentLight(light fileio.LITCameraLight) {
+func BuildEnvironmentLight(light fileio.LITCameraLight) [3]float32 {
 	lightColor := light.AmbientColor
 	// Normalize color rgb values to be between 0.0 and 1.0
 	red := float32(lightColor.R) / float32(255.0)
 	green := float32(lightColor.G) / float32(255.0)
 	blue := float32(lightColor.B) / float32(255.0)
-	r.EnvironmentLight = [3]float32{red, green, blue}
+	return [3]float32{red, green, blue}
 }
 
 func BuildTexture(imagePixels []uint16, imageWidth int32, imageHeight int32) uint32 {
@@ -137,7 +151,7 @@ func BuildTexture(imagePixels []uint16, imageWidth int32, imageHeight int32) uin
 	return texId
 }
 
-func UpdateTexture(texId uint32, imagePixels []uint16, imageWidth int32, imageHeight int32) uint32 {
+func UpdateTexture(texId uint32, imagePixels []uint16, imageWidth int32, imageHeight int32) {
 	gl.BindTexture(gl.TEXTURE_2D, texId)
 
 	// Image is 16 bit in A1R5G5B5 format
@@ -148,7 +162,7 @@ func UpdateTexture(texId uint32, imagePixels []uint16, imageWidth int32, imageHe
 	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 
-	return texId
+	return
 }
 
 func (r *RenderDef) GetPerspectiveMatrix(fovDegrees float32) mgl32.Mat4 {

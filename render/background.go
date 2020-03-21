@@ -7,7 +7,7 @@ const (
 	BACKGROUND_IMAGE_HEIGHT = 240
 )
 
-func GenerateBackgroundImageEntity(renderDef *RenderDef, backgroundImageColors []uint16) {
+func (backgroundImageEntity *SceneEntity) UpdateBackgroundImageEntity(renderDef *RenderDef, backgroundImageColors []uint16) {
 	// The background image is a rectangle that covers the entire screen
 	// It should be drawn in the back
 	z := float32(0.999)
@@ -28,8 +28,7 @@ func GenerateBackgroundImageEntity(renderDef *RenderDef, backgroundImageColors [
 	}
 
 	// Add entity to scene
-	backgroundImageEntity := NewSceneEntity()
 	backgroundImageEntity.SetTexture(backgroundImageColors, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT)
 	backgroundImageEntity.SetMesh(backgroundVertexBuffer)
-	renderDef.AddSceneEntity(ENTITY_BACKGROUND_ID, backgroundImageEntity)
+	return
 }

@@ -46,22 +46,23 @@ func convertToTextureV(v float32) float32 {
 	return v / float32(BACKGROUND_IMAGE_HEIGHT)
 }
 
-func GenerateCameraImageMaskEntity(
+func (cameraMaskImageEntity *SceneEntity) UpdateCameraImageMaskEntity(
 	renderDef *RenderDef,
 	roomOutput *fileio.RoomImageOutput,
 	cameraMasks []fileio.MaskRectangle) {
 	if roomOutput.ImageMask == nil {
-		renderDef.AddSceneEntity(ENTITY_CAMERA_MASK_ID, nil)
+		// Clear previous mask
+		cameraMaskColors := make([]uint16, BACKGROUND_IMAGE_WIDTH*BACKGROUND_IMAGE_HEIGHT)
+		cameraMaskImageEntity.SetTexture(cameraMaskColors, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT)
 		return
 	}
 
 	cameraMaskColors := BuildCameraMaskPixels(roomOutput, cameraMasks)
 	cameraMaskDepthBuffer := BuildCameraMaskDepthBuffer(roomOutput, cameraMasks, renderDef)
 
-	cameraMaskImageEntity := NewSceneEntity()
 	cameraMaskImageEntity.SetTexture(cameraMaskColors, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT)
 	cameraMaskImageEntity.SetMesh(cameraMaskDepthBuffer)
-	renderDef.AddSceneEntity(ENTITY_CAMERA_MASK_ID, cameraMaskImageEntity)
+	return
 }
 
 func BuildCameraMaskPixels(roomImageOutput *fileio.RoomImageOutput, cameraMasks []fileio.MaskRectangle) []uint16 {

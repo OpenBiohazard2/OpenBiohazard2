@@ -275,6 +275,12 @@ type ScriptInstrObjModelSet struct {
 	Unknown3 [4][3]int16
 }
 
+type ScriptInstrWorkSet struct {
+	Opcode    uint8
+	Component uint8
+	Index     uint8
+}
+
 type ScriptInstrPosSet struct {
 	Opcode uint8 // 0x32
 	Dummy  uint8
@@ -346,9 +352,9 @@ type ScriptInstrAotSet struct {
 
 type ScriptInstrAotReset struct {
 	Opcode uint8 // 0x46
+	Aot    uint8
 	Id     uint8
 	Type   uint8
-	Sat    uint8
 	Data   [6]uint8
 }
 

@@ -1,7 +1,6 @@
 package game
 
 import (
-	"../fileio"
 	"fmt"
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -25,7 +24,6 @@ type GameDef struct {
 	MaxCamerasInRoom int
 	StateStatus      int
 	GameRoom         GameRoom
-	RenderRoom       RenderRoom
 	AotManager       *AotManager
 	Player           *Player
 	ScriptBitArray   map[int]map[int]int
@@ -79,14 +77,6 @@ func (gameDef *GameDef) HandleRoomSwitch(position mgl32.Vec3) {
 		gameDef.StateStatus = GAME_LOAD_ROOM
 		gameDef.AotManager = NewAotManager()
 	}
-}
-
-func (gameDef *GameDef) LoadNewRoom(rdtOutput *fileio.RDTOutput) {
-	gameDef.MaxCamerasInRoom = int(rdtOutput.Header.NumCameras)
-	fmt.Println("Max cameras in room = ", gameDef.MaxCamerasInRoom)
-
-	gameDef.GameRoom = gameDef.NewGameRoom(rdtOutput)
-	gameDef.RenderRoom = gameDef.NewRenderRoom(rdtOutput)
 }
 
 func (gameDef *GameDef) GetBitArray(bitArrayIndex int, bitNumber int) int {

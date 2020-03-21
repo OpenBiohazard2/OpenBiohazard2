@@ -13,14 +13,6 @@ type GameRoom struct {
 	RoomScriptData      fileio.ScriptFunction
 }
 
-type RenderRoom struct {
-	CameraMaskData  [][]fileio.MaskRectangle
-	LightData       []fileio.LITCameraLight
-	ItemTextureData []*fileio.TIMOutput
-	ItemModelData   []*fileio.MD1Output
-	SpriteData      []fileio.SpriteData
-}
-
 func (gameDef *GameDef) NewGameRoom(rdtOutput *fileio.RDTOutput) GameRoom {
 	cameraSwitches := rdtOutput.CameraSwitchData.CameraSwitches
 
@@ -30,16 +22,6 @@ func (gameDef *GameDef) NewGameRoom(rdtOutput *fileio.RDTOutput) GameRoom {
 		CollisionEntities:   rdtOutput.CollisionData.CollisionEntities,
 		InitScriptData:      rdtOutput.InitScriptData.ScriptData,
 		RoomScriptData:      rdtOutput.RoomScriptData.ScriptData,
-	}
-}
-
-func (gameDef *GameDef) NewRenderRoom(rdtOutput *fileio.RDTOutput) RenderRoom {
-	return RenderRoom{
-		CameraMaskData:  rdtOutput.RIDOutput.CameraMasks,
-		LightData:       rdtOutput.LightData.Lights,
-		ItemTextureData: rdtOutput.ItemTextureData,
-		ItemModelData:   rdtOutput.ItemModelData,
-		SpriteData:      rdtOutput.SpriteOutput.SpriteData,
 	}
 }
 

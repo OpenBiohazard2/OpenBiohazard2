@@ -36,26 +36,33 @@ type ComponentOffsets struct {
 	EndIndex   int
 }
 
-func NewPlayerEntity(textureId uint32,
-	vertexBuffer []float32,
-	pldOutput *fileio.PLDOutput,
-	player *game.Player,
-	animationPoseNumber int) PlayerEntity {
+func NewPlayerEntity(pldOutput *fileio.PLDOutput) *PlayerEntity {
+	// Generate buffers
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
 
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
 
-	return PlayerEntity{
+	modelTexColors := pldOutput.TextureData.ConvertToRenderData()
+	textureId := BuildTexture(modelTexColors,
+		int32(pldOutput.TextureData.ImageWidth), int32(pldOutput.TextureData.ImageHeight))
+	vertexBuffer := BuildEntityComponentVertices(pldOutput.MeshData, pldOutput.TextureData)
+
+	return &PlayerEntity{
 		TextureId:           textureId,
 		VertexBuffer:        vertexBuffer,
 		PLDOutput:           pldOutput,
-		Player:              player,
-		AnimationPoseNumber: animationPoseNumber,
+		Player:              nil,
+		AnimationPoseNumber: -1,
 		VertexArrayObject:   vao,
 		VertexBufferObject:  vbo,
 	}
+}
+
+func (playerEntity *PlayerEntity) UpdatePlayerEntity(player *game.Player, animationPoseNumber int) {
+	playerEntity.Player = player
+	playerEntity.AnimationPoseNumber = animationPoseNumber
 }
 
 func RenderAnimatedEntity(programShader uint32, playerEntity PlayerEntity, timeElapsedSeconds float64) {

@@ -6,6 +6,8 @@ import (
 
 type ScriptThread struct {
 	RunStatus              bool
+	WorkSetComponent       int
+	WorkSetIndex           int
 	ProgramCounter         int
 	StackIndex             int
 	SubLevel               int

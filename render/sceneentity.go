@@ -86,3 +86,7 @@ func (entity *SceneEntity) SetTexture(imagePixels []uint16, imageWidth int32, im
 func (entity *SceneEntity) SetMesh(vertexBuffer []float32) {
 	entity.VertexBuffer = vertexBuffer
 }
+
+func (entity *SceneEntity) UpdateSurface(newImagePixels []uint16, imageWidth int32, imageHeight int32) {
+	UpdateTexture(entity.TextureId, newImagePixels, imageWidth, imageHeight)
+}

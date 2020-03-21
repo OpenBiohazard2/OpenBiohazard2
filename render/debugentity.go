@@ -225,7 +225,7 @@ func NewItemTriggerDebugEntity(items []fileio.ScriptInstrItemAotSet) *DebugEntit
 	}
 }
 
-func NewAotTriggerDebugEntity(aotTriggers []fileio.ScriptInstrAotSet) *DebugEntity {
+func NewAotTriggerDebugEntity(aotTriggers []game.AotObject) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
 	for _, aot := range aotTriggers {
 		vertex1 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z)}
