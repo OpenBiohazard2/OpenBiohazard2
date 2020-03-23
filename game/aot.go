@@ -9,6 +9,8 @@ import (
 // Handle script doors, items, events
 
 const (
+	AOT_DOOR = 1
+	AOT_ITEM = 2
 	AOT_EVENT = 5
 )
 

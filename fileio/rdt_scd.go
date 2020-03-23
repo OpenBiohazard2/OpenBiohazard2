@@ -87,6 +87,7 @@ const (
 	OP_PLC_ROT         = 88
 	OP_XA_ON           = 89
 	OP_PLC_CNT         = 91
+	OP_MIZU_DIV_SET    = 93
 	OP_KEEP_ITEM_CK    = 94
 	OP_XA_VOL          = 95
 	OP_KAGE_SET        = 96
@@ -183,6 +184,7 @@ var (
 		OP_PLC_ROT:         4,
 		OP_XA_ON:           4,
 		OP_PLC_CNT:         2,
+		OP_MIZU_DIV_SET:    2,
 		OP_KEEP_ITEM_CK:    2,
 		OP_XA_VOL:          2,
 		OP_KAGE_SET:        14,
@@ -267,16 +269,25 @@ type ScriptInstrSetBit struct {
 }
 
 type ScriptInstrObjModelSet struct {
-	Opcode   uint8 // 0x2d
-	Id       uint8
-	Unknown0 [6]uint8
-	Unknown1 [2]int16
-	Unknown2 int16
-	Unknown3 [4][3]int16
+	Opcode     uint8 // 0x2d
+	Id         uint8
+	ObjectId   uint8
+	Counter    uint8
+	Wait       uint8
+	Num        uint8
+	Floor      uint8
+	Flag0      uint8
+	Type       int16
+	Flag1      uint16
+	Attribute  int16
+	Position   [3]int16
+	Direction  [3]int16
+	Offset     [3]int16
+	Dimensions [3]uint16
 }
 
 type ScriptInstrWorkSet struct {
-	Opcode    uint8
+	Opcode    uint8 // 0x2e
 	Component uint8
 	Index     uint8
 }
@@ -325,6 +336,11 @@ type ScriptInstrDoorAotSet struct {
 	Free                         uint8
 }
 
+type ScriptInstrCutAuto struct {
+	Opcode uint8 // 0x3c
+	FlagOn uint8
+}
+
 type ScriptInstrMemberCompare struct {
 	Opcode   uint8 // 0x3e
 	Unknown0 uint8
@@ -350,6 +366,37 @@ type ScriptInstrAotSet struct {
 	Data         [6]uint8
 }
 
+type ScriptInstrPlcMotion struct {
+	Opcode     uint8 // 0x3f
+	Action     uint8
+	MoveNumber uint8
+	SceneFlag  uint8
+}
+
+type ScriptInstrPlcDest struct {
+	Opcode     uint8 // 0x40
+	Dummy      uint8
+	Action     uint8
+	FlagNumber uint8
+	DestX      int16
+	DestZ      int16
+}
+
+type ScriptInstrPlcNeck struct {
+	Opcode    uint8 // 0x41
+	Operation uint8
+	NeckX     int16
+	NeckY     int16
+	NeckZ     int16
+	Unknown   [2]int8
+}
+
+type ScriptInstrPlcFlag struct {
+	Opcode    uint8 // 0x43
+	Operation uint8 // 0: OR, 1: Set, 2: XOR
+	Flag      uint16
+}
+
 type ScriptInstrAotReset struct {
 	Opcode uint8 // 0x46
 	Aot    uint8
@@ -372,6 +419,43 @@ type ScriptInstrItemAotSet struct {
 	ItemPickedIndex uint16 // flag to check if item is picked up
 	Md1ModelId      uint8
 	Act             uint8
+}
+
+type ScriptInstrSceBgmControl struct {
+	Opcode      uint8 // 0x51
+	Id          uint8 // 0: Main, 1: sub0, 2: sub1
+	Operation   uint8 // 0: nop, 1: start, 2: stop, 3: restart, 4: pause, 5: fadeout
+	Type        uint8 // 0: MAIN_VOL, 1: PROG0_VOL, 2: PROG1_VOL, 3: PROG2_VOL
+	LeftVolume  uint8
+	RightVolume uint8
+}
+
+type ScriptInstrPlcRot struct {
+	Opcode uint8 // 0x58
+	Index  uint8 // 0 or 1
+	Value  int16
+}
+
+type ScriptInstrXaOn struct {
+	Opcode  uint8 // 0x59
+	Channel uint8 // channel on which to play sound
+	Id      int16 // ID of sound to play
+}
+
+type ScriptInstrMizuDivSet struct {
+	Opcode     uint8 // 0x5d
+	MizuDivMax uint8
+}
+
+type ScriptInstrKageSet struct {
+	Opcode           uint8 // 0x60
+	WorkSetComponent uint8
+	WorkSetIndex     uint8
+	Color            [3]uint8
+	HalfX            int16
+	HalfZ            int16
+	OffsetX          int16
+	OffsetZ          int16
 }
 
 type SCDOutput struct {

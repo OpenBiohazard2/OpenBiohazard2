@@ -144,9 +144,13 @@ func (scriptDef *ScriptDef) RunScriptThread(
 				returnValue = scriptDef.ScriptDoorAotSet(lineData, gameDef)
 			case fileio.OP_MEMBER_CMP:
 				scriptDef.ScriptMemberCompare(lineData)
-			case fileio.OP_PLC_MOTION:
+			case fileio.OP_PLC_MOTION: // 0x3f
 				returnValue = scriptDef.ScriptPlcMotion(lineData)
-			case fileio.OP_SCE_EM_SET:
+			case fileio.OP_PLC_DEST: // 0x40
+				returnValue = scriptDef.ScriptPlcDest(lineData)
+			case fileio.OP_PLC_NECK: // 0x41
+				returnValue = scriptDef.ScriptPlcNeck(lineData)
+			case fileio.OP_SCE_EM_SET: // 0x44
 				returnValue = scriptDef.ScriptSceEmSet(lineData)
 			case fileio.OP_AOT_RESET:
 				returnValue = scriptDef.ScriptAotReset(lineData, gameDef)
@@ -510,6 +514,10 @@ func (scriptDef *ScriptDef) ScriptDoorAotSet(lineData []byte, gameDef *game.Game
 		log.Fatal("Error loading door")
 	}
 
+	if door.Id != game.AOT_DOOR {
+		log.Fatal("Door has incorrect aot type ", door.Id)
+	}
+
 	gameDef.AotManager.AddDoorAot(door)
 	return 1
 }
@@ -524,6 +532,26 @@ func (scriptDef *ScriptDef) ScriptMemberCompare(lineData []byte) {
 }
 
 func (scriptDef *ScriptDef) ScriptPlcMotion(lineData []byte) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrPlcMotion{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
+	return 1
+}
+
+func (scriptDef *ScriptDef) ScriptPlcDest(lineData []byte) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrPlcDest{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
+	return 1
+}
+
+func (scriptDef *ScriptDef) ScriptPlcNeck(lineData []byte) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrPlcNeck{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
 	return 1
 }
 
@@ -544,6 +572,10 @@ func (scriptDef *ScriptDef) ScriptItemAotSet(lineData []byte, gameDef *game.Game
 	byteArr := bytes.NewBuffer(lineData)
 	item := fileio.ScriptInstrItemAotSet{}
 	binary.Read(byteArr, binary.LittleEndian, &item)
+
+	if item.Id != game.AOT_ITEM {
+		log.Fatal("Item has incorrect aot type ", item.Id)
+	}
 
 	gameDef.AotManager.AddItemAot(item)
 	return 1
