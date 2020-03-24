@@ -1,12 +1,13 @@
 package script
 
 import (
-	"../fileio"
-	"../game"
 	"bytes"
 	"encoding/binary"
-	"github.com/go-gl/mathgl/mgl32"
 	"log"
+
+	"github.com/go-gl/mathgl/mgl32"
+	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/samuelyuan/openbiohazard2/game"
 	// "sort"
 )
 

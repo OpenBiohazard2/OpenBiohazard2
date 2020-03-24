@@ -1,11 +1,12 @@
 package render
 
 import (
-	"../fileio"
-	"../game"
+	"math"
+
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
-	"math"
+	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/samuelyuan/openbiohazard2/game"
 )
 
 const (

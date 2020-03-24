@@ -1,14 +1,15 @@
 package main
 
 import (
-	"./client"
-	"./game"
-	"./render"
 	"fmt"
-	"github.com/go-gl/glfw/v3.2/glfw"
-	"github.com/go-gl/mathgl/mgl32"
 	"log"
 	"runtime"
+
+	"github.com/go-gl/glfw/v3.2/glfw"
+	"github.com/go-gl/mathgl/mgl32"
+	"github.com/samuelyuan/openbiohazard2/client"
+	"github.com/samuelyuan/openbiohazard2/game"
+	"github.com/samuelyuan/openbiohazard2/render"
 )
 
 const (

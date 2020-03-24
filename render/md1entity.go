@@ -1,9 +1,9 @@
 package render
 
 import (
-	"../fileio"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/samuelyuan/openbiohazard2/fileio"
 )
 
 type SceneMD1Entity struct {

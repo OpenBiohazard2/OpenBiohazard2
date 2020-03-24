@@ -1,7 +1,7 @@
 package render
 
 import (
-	"../fileio"
+	"github.com/samuelyuan/openbiohazard2/fileio"
 )
 
 func (renderDef *RenderDef) GenerateSaveScreenImage(saveScreenImageOutput *fileio.ADTOutput) {

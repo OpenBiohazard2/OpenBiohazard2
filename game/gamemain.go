@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+
 	"github.com/go-gl/mathgl/mgl32"
 )
 

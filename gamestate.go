@@ -1,13 +1,14 @@
 package main
 
 import (
-	"./client"
-	"./fileio"
-	"./game"
-	"./render"
-	"./script"
 	"fmt"
 	"log"
+
+	"github.com/samuelyuan/openbiohazard2/client"
+	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/samuelyuan/openbiohazard2/game"
+	"github.com/samuelyuan/openbiohazard2/render"
+	"github.com/samuelyuan/openbiohazard2/script"
 )
 
 type MainGameStateInput struct {

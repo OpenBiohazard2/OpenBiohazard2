@@ -1,8 +1,9 @@
 package render
 
 import (
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"math"
+
+	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
 const (

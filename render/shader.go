@@ -3,10 +3,11 @@ package render
 import (
 	"bufio"
 	"fmt"
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
 type Shader struct {

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"./client"
-	"./fileio"
-	"./game"
-	"./render"
+	"github.com/samuelyuan/openbiohazard2/client"
+	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/samuelyuan/openbiohazard2/game"
+	"github.com/samuelyuan/openbiohazard2/render"
 )
 
 const (
