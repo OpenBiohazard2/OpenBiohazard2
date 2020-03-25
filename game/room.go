@@ -1,8 +1,9 @@
 package game
 
 import (
-	"../fileio"
 	"fmt"
+
+	"github.com/samuelyuan/openbiohazard2/fileio"
 )
 
 type GameRoom struct {

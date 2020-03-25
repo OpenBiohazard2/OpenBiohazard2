@@ -1,7 +1,7 @@
 package script
 
 import (
-	"../fileio"
+	"github.com/samuelyuan/openbiohazard2/fileio"
 )
 
 type ScriptThread struct {

@@ -1,8 +1,8 @@
 package game
 
 import (
-	"../fileio"
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/samuelyuan/openbiohazard2/fileio"
 )
 
 type CameraSwitchHandler struct {

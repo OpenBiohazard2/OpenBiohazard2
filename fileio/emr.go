@@ -4,9 +4,10 @@ package fileio
 
 import (
 	"encoding/binary"
-	"github.com/go-gl/mathgl/mgl32"
 	"io"
 	"math"
+
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 type EMRHeader struct {

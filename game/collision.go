@@ -1,10 +1,11 @@
 package game
 
 import (
-	"../fileio"
 	"fmt"
-	"github.com/go-gl/mathgl/mgl32"
 	"math"
+
+	"github.com/go-gl/mathgl/mgl32"
+	"github.com/samuelyuan/openbiohazard2/fileio"
 )
 
 func (gameDef *GameDef) RemoveCollisionEntity(collisionEntities []fileio.CollisionEntity, entityId int) {

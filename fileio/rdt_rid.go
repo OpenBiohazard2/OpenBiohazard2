@@ -4,8 +4,9 @@ package fileio
 
 import (
 	"encoding/binary"
-	"github.com/go-gl/mathgl/mgl32"
 	"io"
+
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 type RIDHeader struct {

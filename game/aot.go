@@ -1,16 +1,17 @@
 package game
 
 import (
-	"../fileio"
 	"fmt"
+
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/samuelyuan/openbiohazard2/fileio"
 )
 
 // Handle script doors, items, events
 
 const (
-	AOT_DOOR = 1
-	AOT_ITEM = 2
+	AOT_DOOR  = 1
+	AOT_ITEM  = 2
 	AOT_EVENT = 5
 )
 
