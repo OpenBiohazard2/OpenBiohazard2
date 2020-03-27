@@ -129,8 +129,8 @@ func buildHealthECG(inventoryImages []*fileio.TIMOutput, newImageColors []uint16
 		totalInventoryTime = 0
 	}
 
-	for i := 0; i < 32; i++ {
-		startX := ecgOffsetX - i
+	for columnNum := 0; columnNum < 32; columnNum++ {
+		startX := ecgOffsetX - columnNum
 		if startX < 0 || startX >= len(ecgView.Lines) {
 			continue
 		}
@@ -143,15 +143,15 @@ func buildHealthECG(inventoryImages []*fileio.TIMOutput, newImageColors []uint16
 		// lines to the left will have a darker color
 		lineColor := ecgView.Color
 		gradientColor := ecgView.Gradient
-		red := lineColor[0] - (gradientColor[0] * i)
+		red := lineColor[0] - (gradientColor[0] * columnNum)
 		if red < 0 {
 			red = 0
 		}
-		green := lineColor[1] - (gradientColor[1] * i)
+		green := lineColor[1] - (gradientColor[1] * columnNum)
 		if green < 0 {
 			green = 0
 		}
-		blue := lineColor[2] - (gradientColor[2] * i)
+		blue := lineColor[2] - (gradientColor[2] * columnNum)
 		if blue < 0 {
 			blue = 0
 		}

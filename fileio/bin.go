@@ -29,7 +29,7 @@ func LoadBINFile(inputFilename string) *BinOutput {
 	defer binFile.Close()
 
 	if binFile == nil {
-		log.Fatal("File doesn't exist")
+		log.Fatal("BIN file doesn't exist: ", inputFilename)
 		return nil
 	}
 

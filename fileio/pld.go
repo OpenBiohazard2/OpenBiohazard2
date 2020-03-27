@@ -33,8 +33,8 @@ func LoadPLDFile(filename string) (*PLDOutput, error) {
 	file, _ := os.Open(filename)
 	defer file.Close()
 	if file == nil {
-		log.Fatal("File doesn't exist:", filename)
-		return nil, fmt.Errorf("File doesn't exist:", filename)
+		log.Fatal("PLD file doesn't exist:", filename)
+		return nil, fmt.Errorf("PLD file doesn't exist:", filename)
 	}
 	fi, err := file.Stat()
 	if err != nil {

@@ -9,12 +9,12 @@ import (
 )
 
 func main() {
-  if len(os.Args) < 4 {
+	if len(os.Args) < 4 {
 		log.Fatal("You only entered ", len(os.Args), " arguments. Command format is invalid.")
-		log.Fatal("The syntax of this command is: fileconv.exe [toolName] [inputFilename] [outputFilename]")
+		log.Fatal("The syntax of this command is: fileconv [toolName] [inputFilename] [outputFilename]")
 		log.Fatal("Tool names supported: tim2png, adt2png, sap2wav")
 		log.Fatal("Example command: fileconv tim2png test.tim test.png")
-  }
+	}
 
 	toolName := os.Args[1]
 	inputFilename := os.Args[2]

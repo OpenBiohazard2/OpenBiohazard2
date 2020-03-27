@@ -269,21 +269,21 @@ type ScriptInstrSetBit struct {
 }
 
 type ScriptInstrObjModelSet struct {
-	Opcode     uint8 // 0x2d
-	Id         uint8
-	ObjectId   uint8
-	Counter    uint8
-	Wait       uint8
-	Num        uint8
-	Floor      uint8
-	Flag0      uint8
-	Type       int16
-	Flag1      uint16
-	Attribute  int16
-	Position   [3]int16
-	Direction  [3]int16
-	Offset     [3]int16
-	Dimensions [3]uint16
+	Opcode      uint8 // 0x2d
+	ObjectIndex uint8
+	ObjectId    uint8
+	Counter     uint8
+	Wait        uint8
+	Num         uint8
+	Floor       uint8
+	Flag0       uint8
+	Type        uint16
+	Flag1       uint16
+	Attribute   int16
+	Position    [3]int16
+	Direction   [3]int16
+	Offset      [3]int16
+	Dimensions  [3]uint16
 }
 
 type ScriptInstrWorkSet struct {

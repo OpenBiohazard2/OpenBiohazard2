@@ -46,7 +46,6 @@ func NewMainGameRender(renderDef *render.RenderDef) *MainGameRender {
 	}
 
 	renderDef.SceneEntityMap[render.ENTITY_BACKGROUND_ID] = render.NewSceneEntity()
-	// Camera image mask depends on updated camera position
 	renderDef.SceneEntityMap[render.ENTITY_CAMERA_MASK_ID] = render.NewSceneEntity()
 
 	return &MainGameRender{

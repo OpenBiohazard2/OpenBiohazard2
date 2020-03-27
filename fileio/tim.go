@@ -1,5 +1,7 @@
 package fileio
 
+// .tim - Playstation 1 Texture format
+
 import (
 	"encoding/binary"
 	"fmt"
@@ -50,7 +52,7 @@ func LoadTIMFile(filename string) *TIMOutput {
 	timFile, _ := os.Open(filename)
 	defer timFile.Close()
 	if timFile == nil {
-		log.Fatal("File doesn't exist")
+		log.Fatal("TIM file doesn't exist:", filename)
 		return nil
 	}
 	fi, err := timFile.Stat()

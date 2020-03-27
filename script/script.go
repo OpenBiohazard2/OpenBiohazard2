@@ -444,7 +444,7 @@ func (scriptDef *ScriptDef) ScriptCameraChange(lineData []byte, gameDef *game.Ga
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
 	gameDef.ChangeCamera(int(instruction.CameraId))
-	return 2
+	return 1
 }
 
 func (scriptDef *ScriptDef) ScriptAotSet(lineData []byte, gameDef *game.GameDef) int {

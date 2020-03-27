@@ -190,6 +190,12 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		return nil, err
 	}
 
+	// Audio
+	_, err = LoadRDT_VABStream(r, fileLength, offsets)
+	if err != nil {
+		return nil, err
+	}
+
 	output := &RDTOutput{
 		Header:           rdtHeader,
 		RIDOutput:        ridOutput,
