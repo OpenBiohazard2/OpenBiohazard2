@@ -5,21 +5,21 @@ package fileio
 import (
 	"encoding/binary"
 	"io"
+	"math"
 
 	"github.com/go-gl/mathgl/mgl32"
 )
 
 type RIDHeader struct {
-	Flag        uint16
-	Unknown     uint8
-	FOV         uint8
-	CameraFromX int32
-	CameraFromY int32
-	CameraFromZ int32
-	CameraToX   int32
-	CameraToY   int32
-	CameraToZ   int32
-	MaskOffset  uint32
+	Flag             uint16
+	DistanceToScreen uint16
+	CameraFromX      int32
+	CameraFromY      int32
+	CameraFromZ      int32
+	CameraToX        int32
+	CameraToY        int32
+	CameraToZ        int32
+	MaskOffset       uint32
 }
 
 type CameraInfo struct {
@@ -51,7 +51,7 @@ func LoadRDT_RID(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 		cameraInfos[i] = CameraInfo{
 			CameraFrom: cameraFrom,
 			CameraTo:   cameraTo,
-			CameraFov:  CalculateFOVDegrees(cameraPosition.FOV),
+			CameraFov:  CalculateFOVDegrees(int(cameraPosition.DistanceToScreen) >> 7),
 		}
 	}
 
@@ -84,17 +84,9 @@ func LoadRDT_RID(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 	return output, nil
 }
 
-// TODO: Find a more precise formula
-func CalculateFOVDegrees(fovByte uint8) float32 {
-	if fovByte > 200 {
-		return 35.0
-	} else if fovByte > 150 {
-		return 45.0
-	} else if fovByte > 110 {
-		return 50.0
-	} else if fovByte > 80 {
-		return 60.0
-	} else {
-		return 80.0
-	}
+func CalculateFOVDegrees(distanceToScreen int) float32 {
+	halfScreenHeight := 120.0 // assumes screen dimensions is 320x240
+	// tan(fov / 2) = ((screen height) / 2) / distanceToScreen
+	fovAngleRadians := 2.0 * math.Atan(halfScreenHeight/float64(distanceToScreen))
+	return mgl32.RadToDeg(float32(fovAngleRadians))
 }
