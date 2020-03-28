@@ -115,7 +115,7 @@ func ExtractItemImage(inputFilename string, binOutput *BinOutput, imageId int) *
 	defer binFile.Close()
 
 	if binFile == nil {
-		log.Fatal("File doesn't exist")
+		log.Fatal("Item BIN file doesn't exist: ", inputFilename)
 		return nil
 	}
 	binReader := io.NewSectionReader(binFile, int64(0), binOutput.FileLength)
@@ -146,7 +146,7 @@ func ExtractRoomBackground(inputFilename string, binOutput *BinOutput, roomId in
 	defer binFile.Close()
 
 	if binFile == nil {
-		log.Fatal("File doesn't exist")
+		log.Fatal("Room BIN file doesn't exist: ", inputFilename)
 		return nil
 	}
 	binReader := io.NewSectionReader(binFile, int64(0), binOutput.FileLength)

@@ -20,18 +20,33 @@ type AnimBlockHeader struct {
 }
 
 type AnimFrame struct {
-	SpriteId uint8
-	Unknown  [7]uint8
+	SpriteId   uint8
+	Count      uint8
+	Time       uint8
+	SquareSide uint8 // length and width are the same
+	X          int16
+	Y          int16
 }
 
-// x and y are top-left position of sprite in TIM image
-// Offset x and y are the distance to the center of the sprite
-// The total width is 2 * -OffsetX and total height is 2 * -OffsetY
+// x and y are top-left position of sprite in TIM sprite sheet
+// Offset is used to shift sprite frame to align it with other frames with different dimensions
 type AnimSprite struct {
-	X       uint8
-	Y       uint8
+	ImageX  uint8
+	ImageY  uint8
 	OffsetX int8
 	OffsetY int8
+}
+
+type AnimMovement struct {
+	FunctionId0  uint8
+	FunctionId1  uint8
+	Unknown0     [2]uint8
+	TranslateX   uint16
+	TranslateY   uint16
+	Acceleration [3]uint8
+	Unknown1     uint8
+	Speed        [3]int16
+	Unknown2     [3]uint16
 }
 
 type ESPOutput struct {
@@ -39,10 +54,11 @@ type ESPOutput struct {
 }
 
 type SpriteData struct {
-	Id        int
-	Frames    []AnimFrame
-	Positions []AnimSprite
-	ImageData *TIMOutput
+	Id             int
+	FrameData      []AnimFrame
+	FramePositions []AnimSprite
+	AnimMovements  []AnimMovement
+	ImageData      *TIMOutput
 }
 
 func LoadRDT_ESP(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets RDTOffsets) (*ESPOutput, error) {
@@ -100,13 +116,46 @@ func LoadRDT_ESP(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 			}
 			positions[j] = animSprite
 		}
-		spriteData[i] = SpriteData{
-			Id:        int(espHeader.Ids[i]),
-			Frames:    frames,
-			Positions: positions,
+
+		// Read animation movement
+		movementDataOffsets := make([]uint16, 8)
+		if err := binary.Read(reader, binary.LittleEndian, &movementDataOffsets); err != nil {
+			return nil, err
 		}
 
-		// TODO: Figure out the remaining offsets of the block
+		animBlockHeaderSize := 8
+		frameBlockSize := 8 * int(animBlockHeader.NumFrames)
+		spriteBlockSize := 4 * int(animBlockHeader.NumSprites)
+		movementReaderOffset := animationDataOffset + int64(animBlockHeaderSize+frameBlockSize+spriteBlockSize)
+
+		animMovements := make([]AnimMovement, 0)
+		for j := 0; j < 8; j++ {
+			if movementDataOffsets[j] == 0 {
+				break
+			}
+			newOffset := movementReaderOffset + int64(movementDataOffsets[j]*4)
+			movementReader := io.NewSectionReader(r, newOffset, fileLength-newOffset)
+
+			movementCounts := make([]uint16, 2)
+			if err := binary.Read(movementReader, binary.LittleEndian, &movementCounts); err != nil {
+				return nil, err
+			}
+
+			movementData := AnimMovement{}
+			if err := binary.Read(movementReader, binary.LittleEndian, &movementData); err != nil {
+				return nil, err
+			}
+			animMovements = append(animMovements, movementData)
+
+			// TODO: Figure out the remaining offsets of the block
+		}
+
+		spriteData[i] = SpriteData{
+			Id:             int(espHeader.Ids[i]),
+			FrameData:      frames,
+			FramePositions: positions,
+			AnimMovements:  animMovements,
+		}
 	}
 
 	// Read Sprite TIM image

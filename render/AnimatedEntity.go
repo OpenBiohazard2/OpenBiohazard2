@@ -42,7 +42,6 @@ func NewPlayerEntity(pldOutput *fileio.PLDOutput) *PlayerEntity {
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
 
-
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
 
@@ -83,10 +82,10 @@ func RenderAnimatedEntity(programShader uint32, playerEntity PlayerEntity, timeE
 
 	// The root of the skeleton is component 0
 	transforms := make([]mgl32.Mat4, len(pldOutput.MeshData.Components))
-	buildComponentTransforms(pldOutput, 0, -1, transforms)
+	buildComponentTransforms(pldOutput.SkeletonData, 0, -1, transforms)
 
 	// Build vertex and texture data
-	componentOffsets := calculateComponentOffsets(pldOutput)
+	componentOffsets := calculateComponentOffsets(pldOutput.MeshData)
 	floatSize := 4
 
 	// 3 floats for vertex, 2 floats for texture UV, 3 float for normals
@@ -143,12 +142,14 @@ func updateAnimationFrame(playerEntity PlayerEntity, timeElapsedSeconds float64)
 	pldOutput := playerEntity.PLDOutput
 	poseNumber := playerEntity.AnimationPoseNumber
 
+	// Only keep track of time if an animation is playing
 	if curPose != -1 {
 		totalTime += timeElapsedSeconds * 1000
 	} else {
 		totalTime = 0
 	}
 
+	// Switch to a different pose
 	if curPose != poseNumber {
 		frameIndex = 0
 		if poseNumber != -1 {
@@ -158,6 +159,7 @@ func updateAnimationFrame(playerEntity PlayerEntity, timeElapsedSeconds float64)
 		curPose = poseNumber
 	}
 
+	// Loop animation data
 	if totalTime >= FRAME_TIME && curPose != -1 {
 		totalTime = 0
 		frameIndex++
@@ -171,13 +173,13 @@ func updateAnimationFrame(playerEntity PlayerEntity, timeElapsedSeconds float64)
 	}
 }
 
-func buildComponentTransforms(pldOutput *fileio.PLDOutput, curId int, parentId int, transforms []mgl32.Mat4) {
+func buildComponentTransforms(skeletonData *fileio.EMROutput, curId int, parentId int, transforms []mgl32.Mat4) {
 	transformMatrix := mgl32.Ident4()
 	if parentId != -1 {
 		transformMatrix = transforms[parentId]
 	}
 
-	offsetFromParent := pldOutput.SkeletonData.RelativePositionData[curId]
+	offsetFromParent := skeletonData.RelativePositionData[curId]
 
 	// Translate from parent offset
 	translate := mgl32.Translate3D(float32(offsetFromParent.X), float32(offsetFromParent.Y), float32(offsetFromParent.Z))
@@ -186,7 +188,7 @@ func buildComponentTransforms(pldOutput *fileio.PLDOutput, curId int, parentId i
 	// Rotate if there is an animation pose
 	if curPose != -1 {
 		quat := mgl32.QuatIdent()
-		frameRotation := pldOutput.SkeletonData.FrameData[frameNumber].RotationAngles[curId]
+		frameRotation := skeletonData.FrameData[frameNumber].RotationAngles[curId]
 		quat = quat.Mul(mgl32.QuatRotate(frameRotation.X(), mgl32.Vec3{1.0, 0.0, 0.0}))
 		quat = quat.Mul(mgl32.QuatRotate(frameRotation.Y(), mgl32.Vec3{0.0, 1.0, 0.0}))
 		quat = quat.Mul(mgl32.QuatRotate(frameRotation.Z(), mgl32.Vec3{0.0, 0.0, 1.0}))
@@ -195,18 +197,18 @@ func buildComponentTransforms(pldOutput *fileio.PLDOutput, curId int, parentId i
 
 	transforms[curId] = transformMatrix
 
-	for i := 0; i < len(pldOutput.SkeletonData.ArmatureChildren[curId]); i++ {
+	for i := 0; i < len(skeletonData.ArmatureChildren[curId]); i++ {
 		newParent := curId
-		newChild := int(pldOutput.SkeletonData.ArmatureChildren[curId][i])
-		buildComponentTransforms(pldOutput, newChild, newParent, transforms)
+		newChild := int(skeletonData.ArmatureChildren[curId][i])
+		buildComponentTransforms(skeletonData, newChild, newParent, transforms)
 	}
 }
 
-func calculateComponentOffsets(pldOutput *fileio.PLDOutput) []ComponentOffsets {
-	componentOffsets := make([]ComponentOffsets, len(pldOutput.MeshData.Components))
+func calculateComponentOffsets(meshData *fileio.MD1Output) []ComponentOffsets {
+	componentOffsets := make([]ComponentOffsets, len(meshData.Components))
 	startIndex := 0
 	endIndex := 0
-	for i, entityModel := range pldOutput.MeshData.Components {
+	for i, entityModel := range meshData.Components {
 		startIndex = endIndex
 		triangleBufferCount := len(entityModel.TriangleIndices) * 3 * VERTEX_LEN
 		quadBufferCount := len(entityModel.QuadIndices) * 3 * 2 * VERTEX_LEN

@@ -18,7 +18,7 @@ const (
 type AotManager struct {
 	Doors       []fileio.ScriptInstrDoorAotSet
 	Items       []fileio.ScriptInstrItemAotSet
-	Sprites     []fileio.ScriptSprite
+	Sprites     []fileio.ScriptInstrSceEsprOn
 	AotTriggers []AotObject
 }
 
@@ -37,7 +37,7 @@ func NewAotManager() *AotManager {
 	return &AotManager{
 		Doors:       make([]fileio.ScriptInstrDoorAotSet, 0),
 		Items:       make([]fileio.ScriptInstrItemAotSet, 0),
-		Sprites:     make([]fileio.ScriptSprite, 0),
+		Sprites:     make([]fileio.ScriptInstrSceEsprOn, 0),
 		AotTriggers: make([]AotObject, 0),
 	}
 }
@@ -76,7 +76,7 @@ func (aotManager *AotManager) AddItemAot(item fileio.ScriptInstrItemAotSet) {
 	aotManager.Items = append(aotManager.Items, item)
 }
 
-func (aotManager *AotManager) AddScriptSprite(sprite fileio.ScriptSprite) {
+func (aotManager *AotManager) AddScriptSprite(sprite fileio.ScriptInstrSceEsprOn) {
 	aotManager.Sprites = append(aotManager.Sprites, sprite)
 }
 

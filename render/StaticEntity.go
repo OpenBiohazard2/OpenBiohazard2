@@ -13,7 +13,7 @@ type SceneMD1Entity struct {
 	VertexBufferObject uint32
 }
 
-func (r *RenderDef) RenderMD1Entity(entity SceneMD1Entity, renderType int32) {
+func (r *RenderDef) RenderStaticEntity(entity SceneMD1Entity, renderType int32) {
 	vertexBuffer := entity.VertexBuffer
 	textureId := entity.TextureId
 	modelPosition := entity.ModelPosition

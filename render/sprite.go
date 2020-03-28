@@ -4,6 +4,7 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/samuelyuan/openbiohazard2/geometry"
 )
 
 const (
@@ -16,33 +17,59 @@ var (
 	curSpriteFrame     = 0
 )
 
+type SpriteGroupEntity struct {
+	SpriteTextureIndexMap map[int]int
+	TextureIdPool         [][]uint32
+	VertexBuffer          []float32
+	VertexArrayObject     uint32
+	VertexBufferObject    uint32
+}
+
+func NewSpriteGroupEntity(spriteData []fileio.SpriteData) *SpriteGroupEntity {
+	spriteTextureIds := make([][]uint32, 0)
+	for i := 0; i < len(spriteData); i++ {
+		spriteFrames := BuildSpriteTexture(spriteData[i])
+		spriteTextureIds = append(spriteTextureIds, spriteFrames)
+	}
+
+	spriteTextureIndexMap := make(map[int]int)
+	for i := 0; i < len(spriteData); i++ {
+		spriteTextureIndexMap[spriteData[i].Id] = i
+	}
+
+	var vao uint32
+	gl.GenVertexArrays(1, &vao)
+
+	var vbo uint32
+	gl.GenBuffers(1, &vbo)
+
+	return &SpriteGroupEntity{
+		SpriteTextureIndexMap: spriteTextureIndexMap,
+		TextureIdPool:         spriteTextureIds,
+		VertexBuffer:          make([]float32, 0),
+		VertexArrayObject:     vao,
+		VertexBufferObject:    vbo,
+	}
+}
+
 // Each sprite id has its own texture
 // Build a texture for each frame
 func BuildSpriteTexture(spriteData fileio.SpriteData) []uint32 {
 	allFrameTextures := make([]uint32, 0)
 
-	for i := 0; i < len(spriteData.Positions); i++ {
-		position := spriteData.Positions[i]
+	for _, frameData := range spriteData.FrameData {
+		spriteId := frameData.SpriteId
+		framePosition := spriteData.FramePositions[spriteId]
 
-		// offset is from center and a negative value
-		frameHeight := (-2) * int(position.OffsetY)
-		frameWidth := (-2) * int(position.OffsetX)
+		frameHeight := int(frameData.SquareSide)
+		frameWidth := int(frameData.SquareSide)
 
-		if frameWidth == 0 || frameHeight == 0 {
+		if frameHeight == 0 || frameWidth == 0 {
 			continue
 		}
 
-		startX := int(position.X)
-		startY := int(position.Y)
-
-		// If the sprite center is at the edge of the image, the dimensions should be halved
-		if startX+frameWidth > spriteData.ImageData.ImageWidth {
-			frameWidth = (-1) * int(position.OffsetX)
-		}
-
-		if startY+frameHeight > spriteData.ImageData.ImageHeight {
-			frameHeight = (-1) * int(position.OffsetY)
-		}
+		startX := int(framePosition.ImageX)
+		startY := int(framePosition.ImageY)
 
 		frameImageColors := make([]uint16, 0)
 		for y := startY; y < startY+frameHeight; y++ {
@@ -66,22 +93,39 @@ func BuildSpriteTexture(spriteData fileio.SpriteData) []uint32 {
 	return allFrameTextures
 }
 
-func RenderSprites(programShader uint32, sprites []fileio.ScriptSprite, textureIds [][]uint32, timeElapsedSeconds float64) {
+func (renderDef *RenderDef) AddSprite(sprite fileio.ScriptInstrSceEsprOn) {
+	spriteWidth := float32(1024 * 2)
+
+	// Generate billboard sprite
+	spriteCenter := mgl32.Vec3{float32(sprite.X), float32(sprite.Y), float32(sprite.Z)}
+	squareVertex1 := mgl32.Vec3{0, 1, 0}
+	squareVertex2 := mgl32.Vec3{1, 1, 0}
+	squareVertex3 := mgl32.Vec3{1, 0, 0}
+	squareVertex4 := mgl32.Vec3{0, 0, 0}
+
+	viewMatrix := renderDef.Camera.BuildViewMatrix()
+	cameraRight := mgl32.Vec3{viewMatrix.At(0, 0), viewMatrix.At(1, 0), viewMatrix.At(2, 0)}
+	cameraUp := mgl32.Vec3{viewMatrix.At(0, 1), viewMatrix.At(1, 1), viewMatrix.At(2, 1)}
+
+	vertex1 := spriteCenter.Add(cameraRight.Mul(squareVertex1.X() * spriteWidth)).Add(cameraUp.Mul(squareVertex1.Y() * spriteWidth))
+	vertex2 := spriteCenter.Add(cameraRight.Mul(squareVertex2.X() * spriteWidth)).Add(cameraUp.Mul(squareVertex2.Y() * spriteWidth))
+	vertex3 := spriteCenter.Add(cameraRight.Mul(squareVertex3.X() * spriteWidth)).Add(cameraUp.Mul(squareVertex3.Y() * spriteWidth))
+	vertex4 := spriteCenter.Add(cameraRight.Mul(squareVertex4.X() * spriteWidth)).Add(cameraUp.Mul(squareVertex4.Y() * spriteWidth))
+	rect := geometry.NewTexturedRectangle(vertex1, vertex2, vertex3, vertex4)
+
+	renderDef.SpriteGroupEntity.VertexBuffer = append(renderDef.SpriteGroupEntity.VertexBuffer, rect.VertexBuffer...)
+}
+
+func RenderSprites(programShader uint32, spriteGroupEntity *SpriteGroupEntity, timeElapsedSeconds float64) {
 	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
 	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_SPRITE)
 
-	vertexBuffer := make([]float32, 0)
-	spriteWidth := float32(1024 * 2)
-	for _, sprite := range sprites {
-		vertex1 := mgl32.Vec3{float32(sprite.X), float32(sprite.Y) - spriteWidth, float32(sprite.Z)}
-		vertex2 := mgl32.Vec3{float32(sprite.X), float32(sprite.Y) - spriteWidth, float32(sprite.Z) + float32(spriteWidth)}
-		vertex3 := mgl32.Vec3{float32(sprite.X) + float32(spriteWidth), float32(sprite.Y), float32(sprite.Z) + float32(spriteWidth)}
-		vertex4 := mgl32.Vec3{float32(sprite.X) + float32(spriteWidth), float32(sprite.Y), float32(sprite.Z)}
-		rect := buildTexturedRectangle(vertex1, vertex2, vertex3, vertex4)
-		vertexBuffer = append(vertexBuffer, rect...)
-	}
-
+	vertexBuffer := spriteGroupEntity.VertexBuffer
 	if len(vertexBuffer) == 0 {
+		return
+	}
+	textureIds := spriteGroupEntity.TextureIdPool
+	if len(textureIds) == 0 {
 		return
 	}
 
@@ -103,12 +147,10 @@ func RenderSprites(programShader uint32, sprites []fileio.ScriptSprite, textureI
 	// 3 floats for vertex, 2 floats for texture UV
 	stride := int32(5 * floatSize)
 
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
+	vao := spriteGroupEntity.VertexArrayObject
 	gl.BindVertexArray(vao)
 
-	var vbo uint32
-	gl.GenBuffers(1, &vbo)
+	vbo := spriteGroupEntity.VertexBufferObject
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(gl.ARRAY_BUFFER, len(vertexBuffer)*floatSize, gl.Ptr(vertexBuffer), gl.STATIC_DRAW)
 
@@ -131,27 +173,4 @@ func RenderSprites(programShader uint32, sprites []fileio.ScriptSprite, textureI
 	// Cleanup
 	gl.DisableVertexAttribArray(0)
 	gl.DisableVertexAttribArray(1)
-}
-
-func buildTexturedRectangle(corner1 mgl32.Vec3, corner2 mgl32.Vec3, corner3 mgl32.Vec3, corner4 mgl32.Vec3) []float32 {
-	rectBuffer := make([]float32, 0)
-	vertex1 := []float32{corner1.X(), corner1.Y(), corner1.Z()}
-	vertex2 := []float32{corner2.X(), corner2.Y(), corner2.Z()}
-	vertex3 := []float32{corner3.X(), corner3.Y(), corner3.Z()}
-	vertex4 := []float32{corner4.X(), corner4.Y(), corner4.Z()}
-
-	rectBuffer = append(rectBuffer, vertex1...)
-	rectBuffer = append(rectBuffer, 0.0, 0.0)
-	rectBuffer = append(rectBuffer, vertex2...)
-	rectBuffer = append(rectBuffer, 1.0, 0.0)
-	rectBuffer = append(rectBuffer, vertex3...)
-	rectBuffer = append(rectBuffer, 1.0, 1.0)
-
-	rectBuffer = append(rectBuffer, vertex1...)
-	rectBuffer = append(rectBuffer, 0.0, 0.0)
-	rectBuffer = append(rectBuffer, vertex4...)
-	rectBuffer = append(rectBuffer, 0.0, 1.0)
-	rectBuffer = append(rectBuffer, vertex3...)
-	rectBuffer = append(rectBuffer, 1.0, 1.0)
-	return rectBuffer
 }

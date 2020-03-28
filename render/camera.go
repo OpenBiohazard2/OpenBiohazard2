@@ -20,7 +20,7 @@ func NewCamera(cameraFrom mgl32.Vec3, cameraTo mgl32.Vec3, cameraUp mgl32.Vec3, 
 	}
 }
 
-func (c *Camera) GetViewMatrix() mgl32.Mat4 {
+func (c *Camera) BuildViewMatrix() mgl32.Mat4 {
 	cameraFrom := c.CameraFrom
 	cameraTo := c.CameraTo
 	cameraUp := c.CameraUp

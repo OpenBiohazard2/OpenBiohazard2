@@ -25,16 +25,13 @@ type RenderDef struct {
 	WindowWidth      int
 	WindowHeight     int
 	VideoBuffer      *Surface2D
+
+	SpriteGroupEntity *SpriteGroupEntity
 }
 
 type DebugEntities struct {
 	CameraSwitchDebugEntity *DebugEntity
 	DebugEntities           []*DebugEntity
-}
-
-type SpriteEntity struct {
-	TextureIds [][]uint32
-	Sprites    []fileio.ScriptSprite
 }
 
 type RenderRoom struct {
@@ -79,7 +76,6 @@ func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 	itemEntities []SceneMD1Entity,
 	debugEntities DebugEntities,
-	spriteEntity SpriteEntity,
 	timeElapsedSeconds float64) {
 	programShader := r.ProgramShader
 
@@ -100,21 +96,25 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 	gl.UniformMatrix4fv(viewLoc, 1, false, &r.ViewMatrix[0])
 	gl.UniformMatrix4fv(projectionLoc, 1, false, &r.ProjectionMatrix[0])
 
-	r.RenderSceneEntity(r.SceneEntityMap[ENTITY_BACKGROUND_ID], RENDER_TYPE_BACKGROUND)
-	r.RenderSceneEntity(r.SceneEntityMap[ENTITY_CAMERA_MASK_ID], RENDER_TYPE_CAMERA_MASK)
+	r.RenderBackground()
 	for _, itemEntity := range itemEntities {
-		r.RenderMD1Entity(itemEntity, RENDER_TYPE_ITEM)
+		r.RenderStaticEntity(itemEntity, RENDER_TYPE_ITEM)
 	}
 
 	envLightLoc := gl.GetUniformLocation(r.ProgramShader, gl.Str("envLight\x00"))
 	gl.Uniform3fv(envLightLoc, 1, &r.EnvironmentLight[0])
 	RenderAnimatedEntity(programShader, playerEntity, timeElapsedSeconds)
 
-	// RenderSprites(programShader, spriteEntity.Sprites, spriteEntity.TextureIds, timeElapsedSeconds)
+	// RenderSprites(programShader, r.SpriteGroupEntity, timeElapsedSeconds)
 
 	// Only render for debugging
 	RenderCameraSwitches(programShader, debugEntities.CameraSwitchDebugEntity)
 	RenderDebugEntities(programShader, debugEntities.DebugEntities)
+}
+
+func (r *RenderDef) RenderBackground() {
+	r.RenderSceneEntity(r.SceneEntityMap[ENTITY_BACKGROUND_ID], RENDER_TYPE_BACKGROUND)
+	r.RenderSceneEntity(r.SceneEntityMap[ENTITY_CAMERA_MASK_ID], RENDER_TYPE_CAMERA_MASK)
 }
 
 func NewRenderRoom(rdtOutput *fileio.RDTOutput) RenderRoom {

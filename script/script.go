@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"log"
+	// "sort"
 
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
 	"github.com/samuelyuan/openbiohazard2/game"
-	// "sort"
+	"github.com/samuelyuan/openbiohazard2/render"
 )
 
 const (
@@ -54,9 +55,10 @@ func (scriptDef *ScriptDef) InitScript(
 func (scriptDef *ScriptDef) RunScript(
 	scriptData fileio.ScriptFunction,
 	timeElapsedSeconds float64,
-	gameDef *game.GameDef) {
+	gameDef *game.GameDef,
+	renderDef *render.RenderDef) {
 	for i := 0; i < len(scriptDef.ScriptThreads); i++ {
-		scriptDef.RunScriptThread(scriptDef.ScriptThreads[i], scriptData, timeElapsedSeconds, gameDef)
+		scriptDef.RunScriptThread(scriptDef.ScriptThreads[i], scriptData, timeElapsedSeconds, gameDef, renderDef)
 	}
 }
 
@@ -64,7 +66,8 @@ func (scriptDef *ScriptDef) RunScriptThread(
 	curScriptThread *ScriptThread,
 	scriptData fileio.ScriptFunction,
 	timeElapsedSeconds float64,
-	gameDef *game.GameDef) {
+	gameDef *game.GameDef,
+	renderDef *render.RenderDef) {
 	/*programCounters := make([]int, 0)
 	for counter, _ := range scriptData.Instructions {
 		programCounters = append(programCounters, counter)
@@ -140,7 +143,7 @@ func (scriptDef *ScriptDef) RunScriptThread(
 			case fileio.OP_SCA_ID_SET:
 				returnValue = scriptDef.ScriptScaIdSet(lineData, gameDef)
 			case fileio.OP_SCE_ESPR_ON:
-				scriptDef.ScriptSpriteOn(lineData, gameDef)
+				returnValue = scriptDef.ScriptSceEsprOn(lineData, gameDef, renderDef)
 			case fileio.OP_DOOR_AOT_SET:
 				returnValue = scriptDef.ScriptDoorAotSet(lineData, gameDef)
 			case fileio.OP_MEMBER_CMP:
@@ -153,9 +156,11 @@ func (scriptDef *ScriptDef) RunScriptThread(
 				returnValue = scriptDef.ScriptPlcNeck(lineData)
 			case fileio.OP_SCE_EM_SET: // 0x44
 				returnValue = scriptDef.ScriptSceEmSet(lineData)
-			case fileio.OP_AOT_RESET:
+			case fileio.OP_AOT_RESET: // 0x46
 				returnValue = scriptDef.ScriptAotReset(lineData, gameDef)
-			case fileio.OP_ITEM_AOT_SET:
+			case fileio.OP_SCE_ESPR_KILL: // 0x4c
+				returnValue = scriptDef.ScriptSceEsprKill(lineData)
+			case fileio.OP_ITEM_AOT_SET: // 0x4e
 				returnValue = scriptDef.ScriptItemAotSet(lineData, gameDef)
 			case fileio.OP_AOT_SET_4P:
 				returnValue = scriptDef.ScriptAotSet4p(lineData)
@@ -499,12 +504,14 @@ func (scriptDef *ScriptDef) ScriptScaIdSet(lineData []byte, gameDef *game.GameDe
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptSpriteOn(lineData []byte, gameDef *game.GameDef) {
+func (scriptDef *ScriptDef) ScriptSceEsprOn(lineData []byte, gameDef *game.GameDef, renderDef *render.RenderDef) int {
 	byteArr := bytes.NewBuffer(lineData)
-	scriptSprite := fileio.ScriptSprite{}
+	scriptSprite := fileio.ScriptInstrSceEsprOn{}
 	binary.Read(byteArr, binary.LittleEndian, &scriptSprite)
 
 	gameDef.AotManager.AddScriptSprite(scriptSprite)
+	renderDef.AddSprite(scriptSprite)
+	return 1
 }
 
 func (scriptDef *ScriptDef) ScriptDoorAotSet(lineData []byte, gameDef *game.GameDef) int {
@@ -566,6 +573,14 @@ func (scriptDef *ScriptDef) ScriptAotReset(lineData []byte, gameDef *game.GameDe
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
 	gameDef.AotManager.ResetAotTrigger(instruction)
+	return 1
+}
+
+func (scriptDef *ScriptDef) ScriptSceEsprKill(lineData []byte) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrSceEsprKill{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
 	return 1
 }
 
