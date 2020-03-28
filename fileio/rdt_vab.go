@@ -4,6 +4,9 @@ import (
 	"io"
 )
 
+type VABOutput struct {
+}
+
 func LoadRDT_VABStream(r io.ReaderAt, fileLength int64, offsets RDTOffsets) (*VABOutput, error) {
 	offset := int64(offsets.OffsetRoomVABHeader)
 	vabHeaderReader := io.NewSectionReader(r, offset, fileLength-offset)

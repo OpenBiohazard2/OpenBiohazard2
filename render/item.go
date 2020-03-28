@@ -4,6 +4,7 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/samuelyuan/openbiohazard2/geometry"
 )
 
 func NewItemEntities(items []fileio.ScriptInstrItemAotSet,
@@ -20,7 +21,7 @@ func NewItemEntities(items []fileio.ScriptInstrItemAotSet,
 		itemMeshData := itemModelData[item.Md1ModelId]
 		itemTexColors := itemTextureData.ConvertToRenderData()
 		itemTextureId := BuildTexture(itemTexColors, int32(itemTextureData.ImageWidth), int32(itemTextureData.ImageHeight))
-		itemEntityVertexBuffer := BuildEntityComponentVertices(itemMeshData, itemTextureData)
+		itemEntityVertexBuffer := geometry.NewMD1Geometry(itemMeshData, itemTextureData)
 
 		// position in the center of the trigger region
 		modelPosition := mgl32.Vec3{float32(item.X) + float32(item.Width)/2.0, 0.0, float32(item.Z) + float32(item.Depth)/2.0}

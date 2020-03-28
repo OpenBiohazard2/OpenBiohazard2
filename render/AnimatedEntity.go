@@ -5,6 +5,7 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
 	"github.com/samuelyuan/openbiohazard2/game"
+	"github.com/samuelyuan/openbiohazard2/geometry"
 )
 
 const (
@@ -41,13 +42,14 @@ func NewPlayerEntity(pldOutput *fileio.PLDOutput) *PlayerEntity {
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
 
+
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
 
 	modelTexColors := pldOutput.TextureData.ConvertToRenderData()
 	textureId := BuildTexture(modelTexColors,
 		int32(pldOutput.TextureData.ImageWidth), int32(pldOutput.TextureData.ImageHeight))
-	vertexBuffer := BuildEntityComponentVertices(pldOutput.MeshData, pldOutput.TextureData)
+	vertexBuffer := geometry.NewMD1Geometry(pldOutput.MeshData, pldOutput.TextureData)
 
 	return &PlayerEntity{
 		TextureId:           textureId,

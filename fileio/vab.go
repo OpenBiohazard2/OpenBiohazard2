@@ -68,9 +68,6 @@ type VABDataOutput struct {
 	RawADPCMData [][]uint8
 }
 
-type VABOutput struct {
-}
-
 func LoadVABHeaderStream(r io.ReaderAt, fileLength int64) (*VABHeaderOutput, error) {
 	vabHeaderReader := io.NewSectionReader(r, int64(0), fileLength)
 
