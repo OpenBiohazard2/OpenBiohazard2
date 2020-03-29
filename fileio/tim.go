@@ -52,7 +52,7 @@ func LoadTIMFile(filename string) *TIMOutput {
 	timFile, _ := os.Open(filename)
 	defer timFile.Close()
 	if timFile == nil {
-		log.Fatal("TIM file doesn't exist:", filename)
+		log.Fatal("TIM file doesn't exist: ", filename)
 		return nil
 	}
 	fi, err := timFile.Stat()
@@ -63,7 +63,7 @@ func LoadTIMFile(filename string) *TIMOutput {
 	fileLength := fi.Size()
 	timOutput, err := LoadTIMStream(timFile, fileLength)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to load TIM file: ", err)
 		return nil
 	}
 	return timOutput

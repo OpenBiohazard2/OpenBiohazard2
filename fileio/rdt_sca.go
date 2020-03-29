@@ -11,7 +11,7 @@ import (
 const (
 	FLOOR_HEIGHT_UNIT = -1800
 
-	SCA_TYPE_SLOPE = 11
+	SCA_TYPE_SLOPE  = 11
 	SCA_TYPE_STAIRS = 12
 )
 
@@ -76,7 +76,7 @@ func LoadRDT_SCA(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 		if shape == SCA_TYPE_SLOPE || shape == SCA_TYPE_STAIRS {
 			elevationType := int(scaElement.Type>>4) & 3
 			slopeType = elevationType
-			switch slopeType{
+			switch slopeType {
 			case 0:
 				rampBottom = float32(scaElement.X)
 			case 1:

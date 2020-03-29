@@ -47,6 +47,10 @@ func NewMainGameRender(renderDef *render.RenderDef) *MainGameRender {
 	renderDef.SceneEntityMap[render.ENTITY_BACKGROUND_ID] = render.NewSceneEntity()
 	renderDef.SceneEntityMap[render.ENTITY_CAMERA_MASK_ID] = render.NewSceneEntity()
 
+	// Core sprite file has sprite ids 0-7
+	// All other sprites are loaded based on the room
+	fileio.LoadESPFile(game.CORE_SPRITE_FILE)
+
 	return &MainGameRender{
 		RenderDef:               renderDef,
 		RoomOutput:              nil,

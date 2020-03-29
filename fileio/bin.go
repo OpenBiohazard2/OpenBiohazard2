@@ -58,24 +58,36 @@ func LoadBIN(r io.ReaderAt, archiveLength int64) ([]ImageFile, error) {
 	}
 
 	numImages := firstOffset / 4
+	imagesIndex := make([]ImageFile, 0)
 
-	imagesIndex := make([]ImageFile, numImages)
-
-	// Offsets
-	imagesIndex[0].Offset = firstOffset
+	// Read offsets to each image
+	imageFile := ImageFile{
+		Offset: firstOffset,
+		Length: 0,
+	}
+	imagesIndex = append(imagesIndex, imageFile)
 	for i := 1; i < int(numImages); i++ {
-		Offset := uint32(0)
-		if err := binary.Read(reader, binary.LittleEndian, &Offset); err != nil {
+		offset := uint32(0)
+		if err := binary.Read(reader, binary.LittleEndian, &offset); err != nil {
 			return []ImageFile{}, err
 		}
-		imagesIndex[i].Offset = Offset
+
+		// Zero offset is invalid
+		if offset == 0 {
+			continue
+		}
+		imageFile := ImageFile{
+			Offset: offset,
+			Length: 0,
+		}
+		imagesIndex = append(imagesIndex, imageFile)
 	}
 
 	// calculate length of image data
-	for i := 0; i < int(numImages)-1; i++ {
+	for i := 0; i < len(imagesIndex)-1; i++ {
 		imagesIndex[i].Length = imagesIndex[i+1].Offset - imagesIndex[i].Offset
 	}
-	imagesIndex[numImages-1].Length = uint32(int(archiveLength) - int(imagesIndex[numImages-1].Offset))
+	imagesIndex[len(imagesIndex)-1].Length = uint32(int(archiveLength) - int(imagesIndex[len(imagesIndex)-1].Offset))
 	return imagesIndex, nil
 }
 
@@ -126,7 +138,12 @@ func ExtractItemImage(inputFilename string, binOutput *BinOutput, imageId int) *
 		return nil
 	}
 
-	adtReader := io.NewSectionReader(binReader, int64(imageBlock.Offset), int64(imageBlock.Length))
+	blockLength := int(imageBlock.Length)
+	if blockLength > int(binOutput.FileLength) {
+		blockLength = int(binOutput.FileLength)
+	}
+
+	adtReader := io.NewSectionReader(binReader, int64(imageBlock.Offset), int64(blockLength))
 	adtOutput := LoadADTStream(adtReader)
 	timReader := bytes.NewReader(adtOutput.RawData)
 	timOutput, err := LoadTIMStream(timReader, int64(len(adtOutput.RawData)))
