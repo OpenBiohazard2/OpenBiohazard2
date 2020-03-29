@@ -18,21 +18,38 @@ type ScriptThread struct {
 
 type LevelState struct {
 	IfElseCounter int
-	LoopCounter   int
+	LoopLevel     int
 	ReturnAddress int
-	SleepCounter  []int
-	LoopBreak     []int
-	LoopIfCounter []int
+	LoopState     []*LoopState
+}
+
+type LoopState struct {
+	Counter   int
+	Break     int
+	IfCounter int
+	Stack     int
 }
 
 func NewLevelState() *LevelState {
+	loopState := make([]*LoopState, 4)
+	for i := 0; i < len(loopState); i++ {
+		loopState[i] = NewLoopState()
+	}
+
 	return &LevelState{
 		IfElseCounter: 0,
-		LoopCounter:   0,
+		LoopLevel:     0,
 		ReturnAddress: 0,
-		LoopBreak:     make([]int, 4),
-		SleepCounter:  make([]int, 4),
-		LoopIfCounter: make([]int, 4),
+		LoopState:     loopState,
+	}
+}
+
+func NewLoopState() *LoopState {
+	return &LoopState{
+		Counter:   0,
+		Break:     0,
+		IfCounter: 0,
+		Stack:     0,
 	}
 }
 
@@ -42,7 +59,7 @@ func NewScriptThread() *ScriptThread {
 		levelState[i] = NewLevelState()
 	}
 	levelState[0].IfElseCounter = -1
-	levelState[0].LoopCounter = -1
+	levelState[0].LoopLevel = -1
 
 	return &ScriptThread{
 		RunStatus:              false,
@@ -66,21 +83,18 @@ func (thread *ScriptThread) Reset() {
 
 	for i := 0; i < len(thread.LevelState); i++ {
 		thread.LevelState[i].IfElseCounter = 0
-		thread.LevelState[i].LoopCounter = 0
+		thread.LevelState[i].LoopLevel = 0
 		thread.LevelState[i].ReturnAddress = 0
 
-		for j := 0; j < len(thread.LevelState[i].LoopBreak); j++ {
-			thread.LevelState[i].LoopBreak[j] = 0
-		}
-		for j := 0; j < len(thread.LevelState[i].SleepCounter); j++ {
-			thread.LevelState[i].SleepCounter[j] = 0
-		}
-		for j := 0; j < len(thread.LevelState[i].LoopIfCounter); j++ {
-			thread.LevelState[i].LoopIfCounter[j] = 0
+		for j := 0; j < len(thread.LevelState[i].LoopState); j++ {
+			thread.LevelState[i].LoopState[j].Counter = 0
+			thread.LevelState[i].LoopState[j].Break = 0
+			thread.LevelState[i].LoopState[j].IfCounter = 0
+			thread.LevelState[i].LoopState[j].Stack = 0
 		}
 	}
 	thread.LevelState[0].IfElseCounter = -1
-	thread.LevelState[0].LoopCounter = -1
+	thread.LevelState[0].LoopLevel = -1
 
 	thread.OverrideProgramCounter = false
 }

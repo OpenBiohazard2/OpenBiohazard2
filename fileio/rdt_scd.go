@@ -230,6 +230,13 @@ type ScriptInstrSleep struct {
 	Count  uint16
 }
 
+type ScriptInstrForStart struct {
+	Opcode      uint8 // 0x0d
+	Dummy       uint8
+	BlockLength uint16
+	Count       uint16
+}
+
 type ScriptInstrSwitch struct {
 	Opcode      uint8 // 0x13
 	VarId       uint8
