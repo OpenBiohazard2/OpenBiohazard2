@@ -101,8 +101,7 @@ func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities
 			if isPointInRectangle(newPosition, corner1, corner2, corner3, corner4) {
 				return &entity
 			}
-		case 11:
-			// Ramp
+		case fileio.SCA_TYPE_SLOPE: // 11
 			corner1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
 			corner2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z) + float32(entity.Density)}
 			corner3 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z) + float32(entity.Density)}
@@ -110,8 +109,7 @@ func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities
 			if isPointInRectangle(newPosition, corner1, corner2, corner3, corner4) {
 				return &entity
 			}
-		case 12:
-			// Stairs
+		case fileio.SCA_TYPE_STAIRS: // 12
 			corner1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
 			corner2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z) + float32(entity.Density)}
 			corner3 := mgl32.Vec3{float32(entity.X) + float32(entity.Width), 0, float32(entity.Z) + float32(entity.Density)}
@@ -125,8 +123,44 @@ func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities
 }
 
 func (gameDef *GameDef) CheckRamp(entity *fileio.CollisionEntity) bool {
-	return entity.Shape == 9 || entity.Shape == 10 || entity.Shape == 11 || entity.Shape == 12
+	return entity.Shape == fileio.SCA_TYPE_SLOPE || entity.Shape == fileio.SCA_TYPE_STAIRS
 }
+
+func (gameDef *GameDef) CheckNearbyBoxClimb(playerPosition mgl32.Vec3, collisionEntities []fileio.CollisionEntity) bool {
+	for _, entity := range collisionEntities {
+			switch entity.Shape {
+			case 9:
+				// Rectangle climb up
+				rectMinX := math.Min(float64(entity.X), float64(entity.X) + float64(entity.Width))
+				rectMaxX := math.Max(float64(entity.X), float64(entity.X) + float64(entity.Width))
+				rectMinZ := math.Min(float64(entity.Z), float64(entity.Z) + float64(entity.Density))
+				rectMaxZ := math.Max(float64(entity.Z), float64(entity.Z) + float64(entity.Density))
+
+				dx := math.Max(rectMinX - float64(playerPosition.X()), float64(playerPosition.X()) - rectMaxX)
+  			dz := math.Max(rectMinZ - float64(playerPosition.Z()), float64(playerPosition.Z()) - rectMaxZ)
+				dist := math.Sqrt(dx*dx + dz*dz)
+				if dist <= 1000 {
+					return true
+				}
+			case 10:
+				// Rectangle climb down
+				rectMinX := math.Min(float64(entity.X), float64(entity.X) + float64(entity.Width))
+				rectMaxX := math.Max(float64(entity.X), float64(entity.X) + float64(entity.Width))
+				rectMinZ := math.Min(float64(entity.Z), float64(entity.Z) + float64(entity.Density))
+				rectMaxZ := math.Max(float64(entity.Z), float64(entity.Z) + float64(entity.Density))
+
+				dx := math.Max(rectMinX - float64(playerPosition.X()), float64(playerPosition.X()) - rectMaxX)
+				dz := math.Max(rectMinZ - float64(playerPosition.Z()), float64(playerPosition.Z()) - rectMaxZ)
+				dist := math.Sqrt(dx*dx + dz*dz)
+				if dist <= 1000 {
+					return true
+				}
+			}
+	}
+
+	return false
+}
+
 
 func isPointInTriangle(point mgl32.Vec3, corner1 mgl32.Vec3, corner2 mgl32.Vec3, corner3 mgl32.Vec3) bool {
 	// area of triangle ABC

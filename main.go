@@ -6,7 +6,6 @@ import (
 	"runtime"
 
 	"github.com/go-gl/glfw/v3.2/glfw"
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/client"
 	"github.com/samuelyuan/openbiohazard2/game"
 	"github.com/samuelyuan/openbiohazard2/render"
@@ -33,7 +32,7 @@ func main() {
 	renderDef := render.InitRenderer(WINDOW_WIDTH, WINDOW_HEIGHT)
 
 	gameDef := game.NewGame(1, 0, 0)
-	gameDef.Player = game.NewPlayer(mgl32.Vec3{18781, 0, -2664}, 180)
+	gameDef.Player = game.NewPlayer(game.DebugLocations[game.RoomMapKey{gameDef.StageId, gameDef.RoomId}], 180)
 
 	// Set game difficulty (0 is easy, 1 is normal)
 	gameDef.SetBitArray(0, 25, game.DIFFICULTY_EASY)

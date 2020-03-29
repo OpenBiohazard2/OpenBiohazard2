@@ -212,6 +212,13 @@ func handleMainGameInput(gameDef *game.GameDef,
 		gameDef.RotatePlayerRight(timeElapsedSeconds)
 	}
 
+	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
+		if gameStateManager.CanUpdateGameState() {
+			gameDef.HandlePlayerActionButton(collisionEntities)
+			gameStateManager.UpdateLastTimeChangeState()
+		}
+	}
+
 	if windowHandler.InputHandler.IsActive(client.PLAYER_VIEW_INVENTORY) {
 		if gameStateManager.CanUpdateGameState() {
 			gameStateManager.UpdateGameState(GAME_STATE_INVENTORY)

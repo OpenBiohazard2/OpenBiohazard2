@@ -46,6 +46,24 @@ func (gameDef *GameDef) HandlePlayerInputForward(collisionEntities []fileio.Coll
 			predictPosition := gameDef.PredictPositionForwardSlope(gameDef.Player.Position, gameDef.Player.RotationAngle, collidingEntity, timeElapsedSeconds)
 			gameDef.Player.Position = predictPosition
 			gameDef.Player.PoseNumber = 0
+		} else if collidingEntity.Shape == 9 {
+			playerFloorNum := int(math.Round(float64(gameDef.Player.Position.Y()) / fileio.FLOOR_HEIGHT_UNIT))
+			if playerFloorNum == 0 {
+				// climb up
+				gameDef.Player.Position = mgl32.Vec3{gameDef.Player.Position.X(), fileio.FLOOR_HEIGHT_UNIT, gameDef.Player.Position.Z()}
+			} else if playerFloorNum == 1 {
+				// climb down
+				gameDef.Player.Position = mgl32.Vec3{gameDef.Player.Position.X(), 0.0, gameDef.Player.Position.Z()}
+			}
+		} else if collidingEntity.Shape == 10 {
+			playerFloorNum := int(math.Round(float64(gameDef.Player.Position.Y()) / fileio.FLOOR_HEIGHT_UNIT))
+			if playerFloorNum == 0 {
+				// climb up
+				gameDef.Player.Position = mgl32.Vec3{gameDef.Player.Position.X(), fileio.FLOOR_HEIGHT_UNIT, gameDef.Player.Position.Z()}
+			} else if playerFloorNum == 1 {
+				// climb down
+				gameDef.Player.Position = mgl32.Vec3{gameDef.Player.Position.X(), 0.0, gameDef.Player.Position.Z()}
+			}
 		} else {
 			gameDef.Player.PoseNumber = -1
 		}
@@ -138,4 +156,7 @@ func (g *GameDef) PredictPositionBackwardSlope(
 	}
 	predictPositionY := float64(slopedEntity.SlopeHeight) * distanceFromRampBottom
 	return mgl32.Vec3{predictPositionFlat.X(), float32(predictPositionY), predictPositionFlat.Z()}
+}
+
+func (gameDef *GameDef) HandlePlayerActionButton(collisionEntities []fileio.CollisionEntity) {
 }

@@ -1,6 +1,8 @@
 package game
 
 import (
+	"math"
+
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
 )
@@ -46,12 +48,19 @@ func NewCameraSwitchHandler(cameraSwitches []fileio.RVDHeader, maxCamerasInRoom 
 }
 
 func (cameraSwitchHandler *CameraSwitchHandler) GetCameraSwitchNewRegion(position mgl32.Vec3, curCameraId int) *fileio.RVDHeader {
+	playerFloorNum := int(math.Round(float64(position.Y()) / fileio.FLOOR_HEIGHT_UNIT))
+
 	for _, regionIndex := range cameraSwitchHandler.CameraSwitchTransitions[curCameraId] {
 		region := cameraSwitchHandler.CameraSwitches[regionIndex]
 		corner1 := mgl32.Vec3{float32(region.X1), 0, float32(region.Z1)}
 		corner2 := mgl32.Vec3{float32(region.X2), 0, float32(region.Z2)}
 		corner3 := mgl32.Vec3{float32(region.X3), 0, float32(region.Z3)}
 		corner4 := mgl32.Vec3{float32(region.X4), 0, float32(region.Z4)}
+
+		// Check region floor for rooms with multiple floor heights
+		if region.Floor != 255 && int(region.Floor) != playerFloorNum {
+			continue
+		}
 
 		if isPointInRectangle(position, corner1, corner2, corner3, corner4) {
 			return &region

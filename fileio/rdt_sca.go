@@ -10,6 +10,9 @@ import (
 
 const (
 	FLOOR_HEIGHT_UNIT = -1800
+
+	SCA_TYPE_SLOPE = 11
+	SCA_TYPE_STAIRS = 12
 )
 
 type SCAHeader struct {
@@ -66,19 +69,23 @@ func LoadRDT_SCA(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets R
 
 		shape := scaElement.Flag & 0x000F
 
-		elevationType := int(scaElement.Type>>4) & 3
-		floorHeightMultiplier := int(scaElement.Type>>6) & 0x3F
+		floorHeightMultiplier := int(scaElement.Type>>6) & 0x1F
 
 		rampBottom := float32(0.0)
-		slopeType := elevationType
-		if slopeType == 0 {
-			rampBottom = float32(scaElement.X)
-		} else if slopeType == 1 {
-			rampBottom = float32(scaElement.X) + float32(scaElement.Width)
-		} else if slopeType == 2 {
-			rampBottom = float32(scaElement.Z)
-		} else if slopeType == 3 {
-			rampBottom = float32(scaElement.Z) + float32(scaElement.Density)
+		slopeType := -1
+		if shape == SCA_TYPE_SLOPE || shape == SCA_TYPE_STAIRS {
+			elevationType := int(scaElement.Type>>4) & 3
+			slopeType = elevationType
+			switch slopeType{
+			case 0:
+				rampBottom = float32(scaElement.X)
+			case 1:
+				rampBottom = float32(scaElement.X) + float32(scaElement.Width)
+			case 2:
+				rampBottom = float32(scaElement.Z)
+			case 3:
+				rampBottom = float32(scaElement.Z) + float32(scaElement.Density)
+			}
 		}
 
 		// Check if this floor has a collision entity
