@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/samuelyuan/openbiohazard2/geometry"
 )
 
 const (
@@ -199,19 +200,17 @@ func fillPixels(newImageColors []uint16, destX int, destY int, width int, height
 
 func buildSurface2DVertexBuffer() []float32 {
 	z := float32(0.999)
-	return []float32{
-		// (-1, 1, z)
-		-1.0, 1.0, z, 0.0, 0.0,
-		// (-1, -1, z)
-		-1.0, -1.0, z, 0.0, 1.0,
-		// (1, -1, z)
-		1.0, -1.0, z, 1.0, 1.0,
-
-		// (1, -1, z)
-		1.0, -1.0, z, 1.0, 1.0,
-		// (1, 1, z)
-		1.0, 1.0, z, 1.0, 0.0,
-		// (-1, 1, z)
-		-1.0, 1.0, z, 0.0, 0.0,
+	vertices := [4][]float32{
+		{-1.0, 1.0, z},
+		{-1.0, -1.0, z},
+		{1.0, -1.0, z},
+		{1.0, 1.0, z},
 	}
+	uvs := [4][]float32{
+		{0.0, 0.0},
+		{0.0, 1.0},
+		{1.0, 1.0},
+		{1.0, 0.0},
+	}
+	return geometry.NewTexturedRectangle(vertices, uvs).VertexBuffer
 }

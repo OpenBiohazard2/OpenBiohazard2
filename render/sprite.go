@@ -98,21 +98,31 @@ func (renderDef *RenderDef) AddSprite(sprite fileio.ScriptInstrSceEsprOn) {
 
 	// Generate billboard sprite
 	spriteCenter := mgl32.Vec3{float32(sprite.X), float32(sprite.Y), float32(sprite.Z)}
-	squareVertex1 := mgl32.Vec3{0, 1, 0}
-	squareVertex2 := mgl32.Vec3{1, 1, 0}
-	squareVertex3 := mgl32.Vec3{1, 0, 0}
-	squareVertex4 := mgl32.Vec3{0, 0, 0}
+	squareVertices := [4]mgl32.Vec3{
+		mgl32.Vec3{0, 1, 0},
+		mgl32.Vec3{1, 1, 0},
+		mgl32.Vec3{1, 0, 0},
+		mgl32.Vec3{0, 0, 0},
+	}
 
 	viewMatrix := renderDef.Camera.BuildViewMatrix()
 	cameraRight := mgl32.Vec3{viewMatrix.At(0, 0), viewMatrix.At(1, 0), viewMatrix.At(2, 0)}
 	cameraUp := mgl32.Vec3{viewMatrix.At(0, 1), viewMatrix.At(1, 1), viewMatrix.At(2, 1)}
 
-	vertex1 := spriteCenter.Add(cameraRight.Mul(squareVertex1.X() * spriteWidth)).Add(cameraUp.Mul(squareVertex1.Y() * spriteWidth))
-	vertex2 := spriteCenter.Add(cameraRight.Mul(squareVertex2.X() * spriteWidth)).Add(cameraUp.Mul(squareVertex2.Y() * spriteWidth))
-	vertex3 := spriteCenter.Add(cameraRight.Mul(squareVertex3.X() * spriteWidth)).Add(cameraUp.Mul(squareVertex3.Y() * spriteWidth))
-	vertex4 := spriteCenter.Add(cameraRight.Mul(squareVertex4.X() * spriteWidth)).Add(cameraUp.Mul(squareVertex4.Y() * spriteWidth))
-	rect := geometry.NewTexturedRectangle(vertex1, vertex2, vertex3, vertex4)
-
+	renderVertices := [4][]float32{}
+	for i := 0; i < 4; i++ {
+		x := squareVertices[i].X()
+		y := squareVertices[i].Y()
+		worldspacePosition := spriteCenter.Add(cameraRight.Mul(x * spriteWidth)).Add(cameraUp.Mul(y * spriteWidth))
+		renderVertices[i] = []float32{worldspacePosition.X(), worldspacePosition.Y(), worldspacePosition.Z()}
+	}
+	uvs := [4][]float32{
+		{0.0, 0.0},
+		{1.0, 0.0},
+		{1.0, 1.0},
+		{0.0, 1.0},
+	}
+	rect := geometry.NewTexturedRectangle(renderVertices, uvs)
 	renderDef.SpriteGroupEntity.VertexBuffer = append(renderDef.SpriteGroupEntity.VertexBuffer, rect.VertexBuffer...)
 }
 

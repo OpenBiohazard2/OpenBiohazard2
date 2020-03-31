@@ -18,8 +18,11 @@ func NewSceneEntity() *SceneEntity {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
 
+	var texId uint32
+	gl.GenTextures(1, &texId)
+
 	return &SceneEntity{
-		TextureId:          0xFFFFFFFF,
+		TextureId:          texId,
 		VertexBuffer:       []float32{},
 		VertexArrayObject:  vao,
 		VertexBufferObject: vbo,
@@ -80,7 +83,7 @@ func (entity *SceneEntity) DeleteSceneEntity() {
 }
 
 func (entity *SceneEntity) SetTexture(imagePixels []uint16, imageWidth int32, imageHeight int32) {
-	entity.TextureId = BuildTexture(imagePixels, imageWidth, imageHeight)
+	UpdateTexture(entity.TextureId, imagePixels, imageWidth, imageHeight)
 }
 
 func (entity *SceneEntity) SetMesh(vertexBuffer []float32) {

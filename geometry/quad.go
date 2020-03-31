@@ -30,29 +30,24 @@ func NewQuad(corners [4]mgl32.Vec3) *Quad {
 	}
 }
 
-func NewTexturedRectangle(corner1 mgl32.Vec3, corner2 mgl32.Vec3, corner3 mgl32.Vec3, corner4 mgl32.Vec3) *Quad {
-	rectBuffer := make([]float32, 0)
-	vertex1 := []float32{corner1.X(), corner1.Y(), corner1.Z()}
-	vertex2 := []float32{corner2.X(), corner2.Y(), corner2.Z()}
-	vertex3 := []float32{corner3.X(), corner3.Y(), corner3.Z()}
-	vertex4 := []float32{corner4.X(), corner4.Y(), corner4.Z()}
+func NewTexturedRectangle(vertices [4][]float32, uvs [4][]float32) *Quad {
+	vertexBuffer := make([]float32, 0)
 
-	rectBuffer = append(rectBuffer, vertex1...)
-	rectBuffer = append(rectBuffer, 0.0, 0.0)
-	rectBuffer = append(rectBuffer, vertex2...)
-	rectBuffer = append(rectBuffer, 1.0, 0.0)
-	rectBuffer = append(rectBuffer, vertex3...)
-	rectBuffer = append(rectBuffer, 1.0, 1.0)
-
-	rectBuffer = append(rectBuffer, vertex1...)
-	rectBuffer = append(rectBuffer, 0.0, 0.0)
-	rectBuffer = append(rectBuffer, vertex4...)
-	rectBuffer = append(rectBuffer, 0.0, 1.0)
-	rectBuffer = append(rectBuffer, vertex3...)
-	rectBuffer = append(rectBuffer, 1.0, 1.0)
+	// v0, v1, v2
+	tri1Indices := [3]int{0, 1, 2}
+	for _, index := range tri1Indices {
+		vertexBuffer = append(vertexBuffer, vertices[index]...)
+		vertexBuffer = append(vertexBuffer, uvs[index]...)
+	}
+	// v0, v3, v2
+	tri2Indices := [3]int{0, 3, 2}
+	for _, index := range tri2Indices {
+		vertexBuffer = append(vertexBuffer, vertices[index]...)
+		vertexBuffer = append(vertexBuffer, uvs[index]...)
+	}
 
 	return &Quad{
-		VertexBuffer: rectBuffer,
+		VertexBuffer: vertexBuffer,
 	}
 }
 

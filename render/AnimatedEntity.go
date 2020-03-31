@@ -45,9 +45,7 @@ func NewPlayerEntity(pldOutput *fileio.PLDOutput) *PlayerEntity {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
 
-	modelTexColors := pldOutput.TextureData.ConvertToRenderData()
-	textureId := BuildTexture(modelTexColors,
-		int32(pldOutput.TextureData.ImageWidth), int32(pldOutput.TextureData.ImageHeight))
+	textureId := NewTextureTIM(pldOutput.TextureData)
 	vertexBuffer := geometry.NewMD1Geometry(pldOutput.MeshData, pldOutput.TextureData)
 
 	return &PlayerEntity{

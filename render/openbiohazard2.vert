@@ -20,11 +20,6 @@ void renderBackground2D() {
   fragTexCoord = vertTexCoord;
 }
 
-void renderCameraMask() {
-  gl_Position = vec4(position, 1.0);
-  fragTexCoord = vertTexCoord;
-}
-
 void renderEntity() {
   vec4 modelPos = model * boneOffset * vec4(position, 1.0);
   gl_Position = projection * view * modelPos;
@@ -57,7 +52,7 @@ void renderMainGame() {
       renderBackground2D();
       break;
     case 2:
-      renderCameraMask();
+      renderBackground2D();
       break;
     case 3:
       renderEntity();

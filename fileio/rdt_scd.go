@@ -253,7 +253,7 @@ type ScriptInstrSwitchCase struct {
 type ScriptInstrGoto struct {
 	Opcode        uint8 // 0x17
 	IfElseCounter int8
-	LoopCounter   int8
+	LoopLevel     int8
 	Unknown       uint8
 	Offset        int16
 }
@@ -326,6 +326,12 @@ type ScriptInstrPosSet struct {
 	Z      int16
 }
 
+type ScriptInstrMemberSet struct {
+	Opcode      uint8 // 0x34
+	MemberIndex uint8
+	Value       uint16
+}
+
 type ScriptInstrScaIdSet struct {
 	Opcode uint8 // 0x37
 	Id     uint8
@@ -369,11 +375,11 @@ type ScriptInstrCutAuto struct {
 }
 
 type ScriptInstrMemberCompare struct {
-	Opcode   uint8 // 0x3e
-	Unknown0 uint8
-	Unknown1 uint8
-	Compare  uint8
-	Value    int16
+	Opcode           uint8 // 0x3e
+	Unknown0         uint8
+	MemberIndex      uint8
+	CompareOperation uint8 // 0 - 6
+	Value            int16
 }
 
 type ScriptInstrPlcMotion struct {

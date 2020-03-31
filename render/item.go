@@ -19,8 +19,7 @@ func NewItemEntities(items []fileio.ScriptInstrItemAotSet,
 
 		itemTextureData := itemTextureData[item.Md1ModelId]
 		itemMeshData := itemModelData[item.Md1ModelId]
-		itemTexColors := itemTextureData.ConvertToRenderData()
-		itemTextureId := BuildTexture(itemTexColors, int32(itemTextureData.ImageWidth), int32(itemTextureData.ImageHeight))
+		itemTextureId := NewTextureTIM(itemTextureData)
 		itemEntityVertexBuffer := geometry.NewMD1Geometry(itemMeshData, itemTextureData)
 
 		// position in the center of the trigger region

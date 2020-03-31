@@ -29,35 +29,11 @@ void renderBackgroundTransparent() {
   }
 }
 
-void renderCameraMask() {
-  vec4 diffuseColor = texture(diffuse, fragTexCoord.st);
-  fragColor = diffuseColor;
-
-  if (fragColor.a == 0) {
-    // Hide transparent pixels
-    gl_FragDepth = 1;
-  } else {
-    gl_FragDepth = gl_FragCoord.z;
-  }
-}
-
 void renderEntity() {
   vec4 diffuseColor = texture(diffuse, fragTexCoord.st);
   vec3 lightColor = envLight;
   fragColor = vec4(vec3(diffuseColor) * lightColor, 1.0);
   gl_FragDepth = gl_FragCoord.z;
-}
-
-void renderSprite() {
-  vec4 diffuseColor = texture(diffuse, fragTexCoord.st);
-  fragColor = diffuseColor;
-
-  if (fragColor.a == 0) {
-    // Hide transparent pixels
-    gl_FragDepth = 1;
-  } else {
-    gl_FragDepth = gl_FragCoord.z;
-  }
 }
 
 void renderItem() {
@@ -80,13 +56,13 @@ void renderMainGame() {
       renderBackgroundSolid();
       break;
     case 2:
-      renderCameraMask();
+      renderBackgroundTransparent();
       break;
     case 3:
       renderEntity();
       break;
     case 4:
-      renderSprite();
+      renderBackgroundTransparent();
       break;
     case 5:
       renderItem();

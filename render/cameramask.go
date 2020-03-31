@@ -3,13 +3,15 @@ package render
 import (
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/samuelyuan/openbiohazard2/geometry"
 )
 
 const (
-	RENDER_TYPE_CAMERA_MASK = 2
-	ENTITY_CAMERA_MASK_ID   = "ENTITY_CAMERA_MASK"
-	CAMERA_MASK_WIDTH       = 256
-	CAMERA_MASK_HEIGHT      = 256
+	CAMERA_MASK_WIDTH  = 256
+	CAMERA_MASK_HEIGHT = 256
+
+	BACKGROUND_IMAGE_WIDTH  = 320
+	BACKGROUND_IMAGE_HEIGHT = 240
 )
 
 // Normalize the z coordinate to be between 0 and 1
@@ -66,11 +68,6 @@ func (cameraMaskImageEntity *SceneEntity) UpdateCameraImageMaskEntity(
 }
 
 func BuildCameraMaskPixels(roomImageOutput *fileio.RoomImageOutput, cameraMasks []fileio.MaskRectangle) []uint16 {
-	// Check if background mask exists
-	if roomImageOutput.ImageMask == nil {
-		return []uint16{}
-	}
-
 	// Combine original background image with mask data
 	backgroundImageColors := roomImageOutput.BackgroundImage.PixelData
 	imageMaskColors := roomImageOutput.ImageMask.PixelData
@@ -100,11 +97,6 @@ func BuildCameraMaskPixels(roomImageOutput *fileio.RoomImageOutput, cameraMasks 
 }
 
 func BuildCameraMaskDepthBuffer(roomImageOutput *fileio.RoomImageOutput, cameraMasks []fileio.MaskRectangle, renderDef *RenderDef) []float32 {
-	// Check if background mask exists
-	if roomImageOutput.ImageMask == nil {
-		return []float32{}
-	}
-
 	maskBuffer := make([]float32, 0)
 	for _, cameraMask := range cameraMasks {
 		destX := float32(cameraMask.DestX)
@@ -118,47 +110,23 @@ func BuildCameraMaskDepthBuffer(roomImageOutput *fileio.RoomImageOutput, cameraM
 		// z is normalized depth
 		// u, v are texture coordinates
 
-		// corner 1
-		v1 := make([]float32, 0)
-		rectX := convertToScreenX(destX)
-		rectY := convertToScreenY(destY)
-		textureU := convertToTextureU(destX)
-		textureV := convertToTextureV(destY)
-		v1 = append(v1, rectX, rectY, depth, textureU, textureV)
+		corners := [4][]float32{
+			{destX, destY},
+			{destX + maskWidth, destY},
+			{destX + maskWidth, destY + maskHeight},
+			{destX, destY + maskHeight},
+		}
 
-		// corner 2
-		v2 := make([]float32, 0)
-		rectX = convertToScreenX(destX + maskWidth)
-		rectY = convertToScreenY(destY)
-		textureU = convertToTextureU(destX + maskWidth)
-		textureV = convertToTextureV(destY)
-		v2 = append(v2, rectX, rectY, depth, textureU, textureV)
-
-		// corner 3
-		v3 := make([]float32, 0)
-		rectX = convertToScreenX(destX + maskWidth)
-		rectY = convertToScreenY(destY + maskHeight)
-		textureU = convertToTextureU(destX + maskWidth)
-		textureV = convertToTextureV(destY + maskHeight)
-		v3 = append(v3, rectX, rectY, depth, textureU, textureV)
-
-		// corner 4
-		v4 := make([]float32, 0)
-		rectX = convertToScreenX(destX)
-		rectY = convertToScreenY(destY + maskHeight)
-		textureU = convertToTextureU(destX)
-		textureV = convertToTextureV(destY + maskHeight)
-		v4 = append(v4, rectX, rectY, depth, textureU, textureV)
-
-		// Triangle 1
-		maskBuffer = append(maskBuffer, v1...)
-		maskBuffer = append(maskBuffer, v2...)
-		maskBuffer = append(maskBuffer, v3...)
-
-		// Triangle 2
-		maskBuffer = append(maskBuffer, v1...)
-		maskBuffer = append(maskBuffer, v4...)
-		maskBuffer = append(maskBuffer, v3...)
+		vertices := [4][]float32{}
+		uvs := [4][]float32{}
+		for i, corner := range corners {
+			x := corner[0]
+			y := corner[1]
+			vertices[i] = []float32{convertToScreenX(x), convertToScreenY(y), depth}
+			uvs[i] = []float32{convertToTextureU(x), convertToTextureV(y)}
+		}
+		bufferRect := geometry.NewTexturedRectangle(vertices, uvs)
+		maskBuffer = append(maskBuffer, bufferRect.VertexBuffer...)
 	}
 	return maskBuffer
 }

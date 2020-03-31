@@ -1,34 +1,29 @@
 package render
 
-const (
-	RENDER_TYPE_BACKGROUND  = 1
-	ENTITY_BACKGROUND_ID    = "ENTITY_BACKGROUND"
-	BACKGROUND_IMAGE_WIDTH  = 320
-	BACKGROUND_IMAGE_HEIGHT = 240
+import (
+	"github.com/samuelyuan/openbiohazard2/geometry"
 )
 
-func (backgroundImageEntity *SceneEntity) UpdateBackgroundImageEntity(renderDef *RenderDef, backgroundImageColors []uint16) {
+func NewBackgroundImageEntity() *SceneEntity {
+	backgroundImageEntity := NewSceneEntity()
+
 	// The background image is a rectangle that covers the entire screen
 	// It should be drawn in the back
 	z := float32(0.999)
-	backgroundVertexBuffer := []float32{
-		// (-1, 1, z)
-		-1.0, 1.0, z, 0.0, 0.0,
-		// (-1, -1, z)
-		-1.0, -1.0, z, 0.0, 1.0,
-		// (1, -1, z)
-		1.0, -1.0, z, 1.0, 1.0,
 
-		// (1, -1, z)
-		1.0, -1.0, z, 1.0, 1.0,
-		// (1, 1, z)
-		1.0, 1.0, z, 1.0, 0.0,
-		// (-1, 1, z)
-		-1.0, 1.0, z, 0.0, 0.0,
+	vertices := [4][]float32{
+		[]float32{-1.0, 1.0, z},
+		[]float32{-1.0, -1.0, z},
+		[]float32{1.0, -1.0, z},
+		[]float32{1.0, 1.0, z},
 	}
-
-	// Add entity to scene
-	backgroundImageEntity.SetTexture(backgroundImageColors, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT)
-	backgroundImageEntity.SetMesh(backgroundVertexBuffer)
-	return
+	uvs := [4][]float32{
+		[]float32{0.0, 0.0},
+		[]float32{0.0, 1.0},
+		[]float32{1.0, 1.0},
+		[]float32{1.0, 0.0},
+	}
+	rect := geometry.NewTexturedRectangle(vertices, uvs)
+	backgroundImageEntity.SetMesh(rect.VertexBuffer)
+	return backgroundImageEntity
 }

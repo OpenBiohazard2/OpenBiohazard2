@@ -144,6 +144,8 @@ func (scriptDef *ScriptDef) RunScriptThread(
 				returnValue = scriptDef.ScriptWorkSet(lineData)
 			case fileio.OP_POS_SET:
 				returnValue = scriptDef.ScriptPositionSet(lineData, gameDef)
+			case fileio.OP_MEMBER_SET:
+				returnValue = scriptDef.ScriptMemberSet(lineData, gameDef)
 			case fileio.OP_SCA_ID_SET:
 				returnValue = scriptDef.ScriptScaIdSet(lineData, gameDef)
 			case fileio.OP_SCE_ESPR_ON:
@@ -151,7 +153,7 @@ func (scriptDef *ScriptDef) RunScriptThread(
 			case fileio.OP_DOOR_AOT_SET:
 				returnValue = scriptDef.ScriptDoorAotSet(lineData, gameDef)
 			case fileio.OP_MEMBER_CMP:
-				scriptDef.ScriptMemberCompare(lineData)
+				returnValue = scriptDef.ScriptMemberCompare(lineData)
 			case fileio.OP_PLC_MOTION: // 0x3f
 				returnValue = scriptDef.ScriptPlcMotion(lineData)
 			case fileio.OP_PLC_DEST: // 0x40
@@ -195,7 +197,7 @@ func (scriptDef *ScriptDef) RunScriptThread(
 
 		// pop stack
 		scriptThread.StackIndex--
-		stackTop := scriptThread.Stack[scriptThread.StackIndex]
+		stackTop := scriptThread.LevelState[scriptThread.SubLevel].Stack[scriptThread.StackIndex]
 		scriptThread.ProgramCounter = stackTop
 		scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter--
 	}
@@ -208,7 +210,7 @@ func (scriptDef *ScriptDef) ScriptEvtEnd(lineData []byte) int {
 		scriptThread.SubLevel--
 		scriptThread.ProgramCounter = scriptThread.LevelState[scriptThread.SubLevel].ReturnAddress
 		scriptThread.OverrideProgramCounter = true
-		scriptThread.StackIndex = (8 * scriptThread.SubLevel) + ifElseCounter + 1
+		scriptThread.StackIndex = ifElseCounter + 1
 		return 1
 	}
 
@@ -252,7 +254,7 @@ func (scriptDef *ScriptDef) ScriptIfBlockStart(lineData []byte) int {
 	opcode := lineData[0]
 	scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter++
 	newPosition := (scriptThread.ProgramCounter + fileio.InstructionSize[opcode]) + int(conditional.BlockLength)
-	scriptThread.Stack[scriptThread.StackIndex] = newPosition
+	scriptThread.LevelState[scriptThread.SubLevel].Stack[scriptThread.StackIndex] = newPosition
 	scriptThread.StackIndex++
 
 	return 1
@@ -426,7 +428,7 @@ func (scriptDef *ScriptDef) ScriptGoto(lineData []byte) int {
 
 	// Disable due to infinite loop
 	/*scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter = int(instruction.IfElseCounter)
-	scriptThread.StackIndex = (8 * scriptThread.SubLevel) + int(instruction.IfElseCounter) + 1
+	scriptThread.StackIndex = int(instruction.IfElseCounter) + 1
 	scriptThread.LevelState[scriptThread.SubLevel].LoopLevel = int(instruction.LoopLevel)
 	scriptThread.ProgramCounter += int(instruction.Offset)
 	scriptThread.OverrideProgramCounter = true*/
@@ -443,7 +445,7 @@ func (scriptDef *ScriptDef) ScriptGoSub(lineData []byte, scriptData fileio.Scrip
 	scriptThread.LevelState[scriptThread.SubLevel].ReturnAddress = scriptThread.ProgramCounter + fileio.InstructionSize[opcode]
 	scriptThread.LevelState[scriptThread.SubLevel+1].IfElseCounter = -1
 	scriptThread.LevelState[scriptThread.SubLevel+1].LoopLevel = -1
-	scriptThread.StackIndex = 8 * (scriptThread.SubLevel + 1)
+	scriptThread.StackIndex = 0
 	scriptThread.SubLevel++
 
 	scriptThread.ProgramCounter = scriptData.StartProgramCounter[instruction.Event]
@@ -556,6 +558,23 @@ func (scriptDef *ScriptDef) ScriptPositionSet(lineData []byte, gameDef *game.Gam
 	return 1
 }
 
+func (scriptDef *ScriptDef) ScriptMemberSet(lineData []byte, gameDef *game.GameDef) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrMemberSet{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
+	if scriptThread.WorkSetComponent == WORKSET_PLAYER {
+		switch int(instruction.MemberIndex) {
+		case 15:
+			// convert to angle in degrees
+			gameDef.Player.RotationAngle = (float32(instruction.Value) / 4096.0) * 360.0
+		}
+	} else {
+		// TODO: set attribute of object
+	}
+	return 1
+}
+
 func (scriptDef *ScriptDef) ScriptScaIdSet(lineData []byte, gameDef *game.GameDef) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrScaIdSet{}
@@ -593,13 +612,12 @@ func (scriptDef *ScriptDef) ScriptDoorAotSet(lineData []byte, gameDef *game.Game
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptMemberCompare(lineData []byte) {
+func (scriptDef *ScriptDef) ScriptMemberCompare(lineData []byte) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrMemberCompare{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-	// TODO: Evaluate to true or false
-	// Assumes the statement is false
+	return 1
 }
 
 func (scriptDef *ScriptDef) ScriptPlcMotion(lineData []byte) int {

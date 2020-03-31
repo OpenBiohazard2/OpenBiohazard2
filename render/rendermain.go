@@ -20,13 +20,14 @@ type RenderDef struct {
 	Camera           *Camera
 	ProjectionMatrix mgl32.Mat4
 	ViewMatrix       mgl32.Mat4
-	SceneEntityMap   map[string]*SceneEntity
 	EnvironmentLight [3]float32
 	WindowWidth      int
 	WindowHeight     int
 	VideoBuffer      *Surface2D
 
-	SpriteGroupEntity *SpriteGroupEntity
+	SpriteGroupEntity     *SpriteGroupEntity
+	BackgroundImageEntity *SceneEntity
+	CameraMaskEntity      *SceneEntity
 }
 
 type DebugEntities struct {
@@ -65,10 +66,12 @@ func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 		Camera:           camera,
 		ProjectionMatrix: mgl32.Perspective(mgl32.DegToRad(60.0), float32(4/3), 16, 45000),
 		ViewMatrix:       mgl32.Ident4(),
-		SceneEntityMap:   make(map[string]*SceneEntity),
 		WindowWidth:      windowWidth,
 		WindowHeight:     windowHeight,
 		VideoBuffer:      NewSurface2D(),
+
+		BackgroundImageEntity: NewBackgroundImageEntity(),
+		CameraMaskEntity:      NewSceneEntity(),
 	}
 	return renderDef
 }
@@ -113,8 +116,8 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 }
 
 func (r *RenderDef) RenderBackground() {
-	r.RenderSceneEntity(r.SceneEntityMap[ENTITY_BACKGROUND_ID], RENDER_TYPE_BACKGROUND)
-	r.RenderSceneEntity(r.SceneEntityMap[ENTITY_CAMERA_MASK_ID], RENDER_TYPE_CAMERA_MASK)
+	r.RenderSceneEntity(r.BackgroundImageEntity, RENDER_GAME_STATE_BACKGROUND_SOLID)
+	r.RenderSceneEntity(r.CameraMaskEntity, RENDER_GAME_STATE_BACKGROUND_TRANSPARENT)
 }
 
 func NewRenderRoom(rdtOutput *fileio.RDTOutput) RenderRoom {
@@ -134,36 +137,6 @@ func BuildEnvironmentLight(light fileio.LITCameraLight) [3]float32 {
 	green := float32(lightColor.G) / float32(255.0)
 	blue := float32(lightColor.B) / float32(255.0)
 	return [3]float32{red, green, blue}
-}
-
-func BuildTexture(imagePixels []uint16, imageWidth int32, imageHeight int32) uint32 {
-	var texId uint32
-	gl.GenTextures(1, &texId)
-	gl.BindTexture(gl.TEXTURE_2D, texId)
-
-	// Image is 16 bit in A1R5G5B5 format
-	gl.TexImage2D(uint32(gl.TEXTURE_2D), 0, int32(gl.RGBA), imageWidth, imageHeight,
-		0, uint32(gl.RGBA), uint32(gl.UNSIGNED_SHORT_1_5_5_5_REV), gl.Ptr(imagePixels))
-
-	// Set texture wrapping/filtering options
-	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-
-	return texId
-}
-
-func UpdateTexture(texId uint32, imagePixels []uint16, imageWidth int32, imageHeight int32) {
-	gl.BindTexture(gl.TEXTURE_2D, texId)
-
-	// Image is 16 bit in A1R5G5B5 format
-	gl.TexImage2D(uint32(gl.TEXTURE_2D), 0, int32(gl.RGBA), imageWidth, imageHeight,
-		0, uint32(gl.RGBA), uint32(gl.UNSIGNED_SHORT_1_5_5_5_REV), gl.Ptr(imagePixels))
-
-	// Set texture wrapping/filtering options
-	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-
-	return
 }
 
 func (r *RenderDef) GetPerspectiveMatrix(fovDegrees float32) mgl32.Mat4 {

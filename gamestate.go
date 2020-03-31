@@ -44,9 +44,6 @@ func NewMainGameRender(renderDef *render.RenderDef) *MainGameRender {
 		log.Fatal("Error loading player model: ", err)
 	}
 
-	renderDef.SceneEntityMap[render.ENTITY_BACKGROUND_ID] = render.NewSceneEntity()
-	renderDef.SceneEntityMap[render.ENTITY_CAMERA_MASK_ID] = render.NewSceneEntity()
-
 	// Core sprite file has sprite ids 0-7
 	// All other sprites are loaded based on the room
 	fileio.LoadESPFile(game.CORE_SPRITE_FILE)
@@ -142,11 +139,10 @@ func loadCameraState(mainGameStateInput *MainGameStateInput) {
 	roomOutput = fileio.ExtractRoomBackground(roomcutBinFilename, roomcutBinOutput, backgroundImageNumber)
 
 	if roomOutput.BackgroundImage != nil {
-		backgroundColors := roomOutput.BackgroundImage.ConvertToRenderData()
-		renderDef.SceneEntityMap[render.ENTITY_BACKGROUND_ID].UpdateBackgroundImageEntity(renderDef, backgroundColors)
+		render.UpdateTextureADT(renderDef.BackgroundImageEntity.TextureId, roomOutput.BackgroundImage)
 		// Camera image mask depends on updated camera position
 		cameraMasks := mainGameRender.RenderRoom.CameraMaskData[gameDef.CameraId]
-		renderDef.SceneEntityMap[render.ENTITY_CAMERA_MASK_ID].UpdateCameraImageMaskEntity(renderDef, roomOutput, cameraMasks)
+		renderDef.CameraMaskEntity.UpdateCameraImageMaskEntity(renderDef, roomOutput, cameraMasks)
 	}
 
 	// Update camera switch zones
