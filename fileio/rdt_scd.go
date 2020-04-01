@@ -13,6 +13,7 @@ const (
 	OP_NO_OP            = 0
 	OP_EVT_END          = 1
 	OP_EVT_NEXT         = 2
+	OP_EVT_CHAIN        = 3
 	OP_EVT_EXEC         = 4
 	OP_EVT_KILL         = 5
 	OP_IF_START         = 6
@@ -87,18 +88,25 @@ const (
 	OP_SCE_BGMTBL_SET   = 87
 	OP_PLC_ROT          = 88
 	OP_XA_ON            = 89
+	OP_WEAPON_CHG       = 90
 	OP_PLC_CNT          = 91
+	OP_SCE_SHAKE_ON     = 92
 	OP_MIZU_DIV_SET     = 93
 	OP_KEEP_ITEM_CK     = 94
 	OP_XA_VOL           = 95
 	OP_KAGE_SET         = 96
 	OP_CUT_BE_SET       = 97
 	OP_SCE_ITEM_LOST    = 98
+	OP_PLC_GUN_EFF      = 99
+	OP_SCE_ESPR_ON2     = 100
+	OP_SCE_ESPR_KILL2   = 101
 	OP_PLC_STOP         = 102
 	OP_AOT_SET_4P       = 103
 	OP_DOOR_AOT_SET_4P  = 104
 	OP_ITEM_AOT_SET_4P  = 105
+	OP_LIGHT_POS_SET    = 106
 	OP_LIGHT_KIDO_SET   = 107
+	OP_RBJ_RESET        = 108
 	OP_SCE_SCR_MOVE     = 109
 	OP_PARTS_SET        = 110
 	OP_MOVIE_ON         = 111
@@ -111,6 +119,7 @@ var (
 		OP_NO_OP:            1,
 		OP_EVT_END:          1,
 		OP_EVT_NEXT:         1,
+		OP_EVT_CHAIN:        4,
 		OP_EVT_EXEC:         4,
 		OP_EVT_KILL:         2,
 		OP_IF_START:         4,
@@ -185,18 +194,25 @@ var (
 		OP_SCE_BGMTBL_SET:   8,
 		OP_PLC_ROT:          4,
 		OP_XA_ON:            4,
+		OP_WEAPON_CHG:       2,
 		OP_PLC_CNT:          2,
+		OP_SCE_SHAKE_ON:     3,
 		OP_MIZU_DIV_SET:     2,
 		OP_KEEP_ITEM_CK:     2,
 		OP_XA_VOL:           2,
 		OP_KAGE_SET:         14,
 		OP_CUT_BE_SET:       4,
 		OP_SCE_ITEM_LOST:    2,
+		OP_PLC_GUN_EFF:      1,
+		OP_SCE_ESPR_ON2:     16,
+		OP_SCE_ESPR_KILL2:   2,
 		OP_PLC_STOP:         1,
 		OP_AOT_SET_4P:       28,
 		OP_DOOR_AOT_SET_4P:  40,
 		OP_ITEM_AOT_SET_4P:  30,
+		OP_LIGHT_POS_SET:    6,
 		OP_LIGHT_KIDO_SET:   4,
+		OP_RBJ_RESET:        1,
 		OP_SCE_SCR_MOVE:     4,
 		OP_PARTS_SET:        6,
 		OP_MOVIE_ON:         2,

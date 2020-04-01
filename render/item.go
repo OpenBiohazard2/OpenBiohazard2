@@ -7,39 +7,59 @@ import (
 	"github.com/samuelyuan/openbiohazard2/geometry"
 )
 
-func NewItemEntities(items []fileio.ScriptInstrItemAotSet,
-	itemTextureData []*fileio.TIMOutput,
-	itemModelData []*fileio.MD1Output) []SceneMD1Entity {
-	itemEntities := make([]SceneMD1Entity, 0)
-	for _, item := range items {
-		// skip rendering
-		if item.Md1ModelId == 255 {
-			continue
-		}
+type ItemGroupEntity struct {
+	ItemTextureData []*fileio.TIMOutput
+	ItemModelData   []*fileio.MD1Output
+	ModelObjectData []*SceneMD1Entity
+}
 
-		itemTextureData := itemTextureData[item.Md1ModelId]
-		itemMeshData := itemModelData[item.Md1ModelId]
-		itemTextureId := NewTextureTIM(itemTextureData)
-		itemEntityVertexBuffer := geometry.NewMD1Geometry(itemMeshData, itemTextureData)
-
-		// position in the center of the trigger region
-		modelPosition := mgl32.Vec3{float32(item.X) + float32(item.Width)/2.0, 0.0, float32(item.Z) + float32(item.Depth)/2.0}
-
+func NewItemGroupEntity() *ItemGroupEntity {
+	modelObjectData := make([]*SceneMD1Entity, 32)
+	for i := 0; i < len(modelObjectData); i++ {
 		var vao uint32
 		gl.GenVertexArrays(1, &vao)
 
 		var vbo uint32
 		gl.GenBuffers(1, &vbo)
 
-		sceneEntity := SceneMD1Entity{
-			TextureId:          itemTextureId,
-			VertexBuffer:       itemEntityVertexBuffer,
-			ModelPosition:      modelPosition,
+		modelObjectData[i] = &SceneMD1Entity{
 			VertexArrayObject:  vao,
 			VertexBufferObject: vbo,
+			TextureId:          0,
+			VertexBuffer:       []float32{},
+			ModelPosition:      mgl32.Vec3{},
+			RotationAngle:      0,
 		}
-		itemEntities = append(itemEntities, sceneEntity)
 	}
 
-	return itemEntities
+	return &ItemGroupEntity{
+		ItemTextureData: make([]*fileio.TIMOutput, 0),
+		ItemModelData:   make([]*fileio.MD1Output, 0),
+		ModelObjectData: modelObjectData,
+	}
+}
+
+func (renderDef *RenderDef) SetItemEntity(instruction fileio.ScriptInstrObjModelSet) {
+	modelIndex := int(int(instruction.ObjectIndex))
+	position := mgl32.Vec3{float32(instruction.Position[0]), float32(instruction.Position[1]), float32(instruction.Position[2])}
+	rotationAngle := (float32(instruction.Direction[1]) / 4096.0) * 360.0
+
+	// skip rendering
+	if modelIndex == 255 {
+		return
+	}
+
+	itemTextureData := renderDef.ItemGroupEntity.ItemTextureData[modelIndex]
+	itemMeshData := renderDef.ItemGroupEntity.ItemModelData[modelIndex]
+
+	itemTextureId := NewTextureTIM(itemTextureData)
+	itemEntityVertexBuffer := geometry.NewMD1Geometry(itemMeshData, itemTextureData)
+
+	// Update model object
+	itemEntity := renderDef.ItemGroupEntity.ModelObjectData[modelIndex]
+	itemEntity.TextureId = itemTextureId
+	itemEntity.VertexBuffer = itemEntityVertexBuffer
+	itemEntity.ModelPosition = position
+	itemEntity.RotationAngle = rotationAngle
+	renderDef.ItemGroupEntity.ModelObjectData[modelIndex] = itemEntity
 }

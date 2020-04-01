@@ -16,6 +16,8 @@ const (
 	SCRIPT_FRAMES_PER_SECOND = 30.0
 
 	WORKSET_PLAYER = 1
+	WORKSET_ENEMY  = 3
+	WORKSET_OBJECT = 4
 )
 
 var (
@@ -139,13 +141,13 @@ func (scriptDef *ScriptDef) RunScriptThread(
 			case fileio.OP_AOT_SET:
 				returnValue = scriptDef.ScriptAotSet(lineData, gameDef)
 			case fileio.OP_OBJ_MODEL_SET:
-				returnValue = scriptDef.ScriptObjectModelSet(lineData)
+				returnValue = scriptDef.ScriptObjectModelSet(lineData, renderDef)
 			case fileio.OP_WORK_SET:
 				returnValue = scriptDef.ScriptWorkSet(lineData)
 			case fileio.OP_POS_SET:
 				returnValue = scriptDef.ScriptPositionSet(lineData, gameDef)
 			case fileio.OP_MEMBER_SET:
-				returnValue = scriptDef.ScriptMemberSet(lineData, gameDef)
+				returnValue = scriptDef.ScriptMemberSet(lineData, gameDef, renderDef)
 			case fileio.OP_SCA_ID_SET:
 				returnValue = scriptDef.ScriptScaIdSet(lineData, gameDef)
 			case fileio.OP_SCE_ESPR_ON:
@@ -298,10 +300,10 @@ func (scriptDef *ScriptDef) ScriptSleep(lineData []byte) int {
 func (scriptDef *ScriptDef) ScriptSleeping(lineData []byte) int {
 	opcode := lineData[0]
 	curLevelState := scriptThread.LevelState[scriptThread.SubLevel]
-	loopLevel := curLevelState.LoopLevel
-	curLevelState.LoopState[loopLevel].Counter--
+	curLoopState := curLevelState.LoopState[curLevelState.LoopLevel]
 
-	if curLevelState.LoopState[loopLevel].Counter == 0 {
+	curLoopState.Counter--
+	if curLoopState.Counter == 0 {
 		scriptThread.ProgramCounter += fileio.InstructionSize[opcode]
 		curLevelState.LoopLevel--
 	}
@@ -327,8 +329,8 @@ func (scriptDef *ScriptDef) ScriptForLoopBegin(lineData []byte) int {
 		newLoopState := curLevelState.LoopState[curLevelState.LoopLevel]
 		newLoopState.Counter = int(instruction.Count)
 		newLoopState.Break = newProgramCounter + int(instruction.BlockLength)
-		newLoopState.Stack = newProgramCounter
-		newLoopState.IfCounter = curLevelState.IfElseCounter
+		newLoopState.StackValue = newProgramCounter
+		newLoopState.LevelIfCounter = curLevelState.IfElseCounter
 
 		scriptThread.ProgramCounter = newProgramCounter
 		scriptThread.OverrideProgramCounter = true
@@ -351,7 +353,7 @@ func (scriptDef *ScriptDef) ScriptForLoopEnd(lineData []byte) int {
 
 	if curLoopState.Counter != 0 {
 		// Go back to beginning of for loop
-		scriptThread.ProgramCounter = curLoopState.Stack
+		scriptThread.ProgramCounter = curLoopState.StackValue
 		scriptThread.OverrideProgramCounter = true
 		return 1
 	}
@@ -367,6 +369,7 @@ func (scriptDef *ScriptDef) ScriptSwitchBegin(
 	lineData []byte,
 	instructions map[int][]byte,
 	gameDef *game.GameDef) int {
+
 	byteArr := bytes.NewBuffer(lineData)
 	switchConditional := fileio.ScriptInstrSwitch{}
 	binary.Read(byteArr, binary.LittleEndian, &switchConditional)
@@ -378,7 +381,7 @@ func (scriptDef *ScriptDef) ScriptSwitchBegin(
 	newLoopLevel := curLevelState.LoopLevel
 	newProgramCounter := scriptThread.ProgramCounter + fileio.InstructionSize[opcode]
 	curLevelState.LoopState[newLoopLevel].Break = newProgramCounter + int(switchConditional.BlockLength)
-	curLevelState.LoopState[newLoopLevel].IfCounter = curLevelState.IfElseCounter
+	curLevelState.LoopState[newLoopLevel].LevelIfCounter = curLevelState.IfElseCounter
 
 	for true {
 		newLineData := instructions[newProgramCounter]
@@ -404,7 +407,7 @@ func (scriptDef *ScriptDef) ScriptSwitchBegin(
 			scriptThread.OverrideProgramCounter = true
 			return 1
 		} else if newOpcode == fileio.OP_END_SWITCH {
-			scriptThread.LevelState[scriptThread.SubLevel].LoopLevel--
+			curLevelState.LoopLevel--
 			scriptThread.ProgramCounter = newProgramCounter + fileio.InstructionSize[newOpcode]
 			scriptThread.OverrideProgramCounter = true
 			return 1
@@ -455,11 +458,11 @@ func (scriptDef *ScriptDef) ScriptGoSub(lineData []byte, scriptData fileio.Scrip
 
 func (scriptDef *ScriptDef) ScriptBreak(lineData []byte) int {
 	curLevelState := scriptThread.LevelState[scriptThread.SubLevel]
-	loopLevel := curLevelState.LoopLevel
+	curLoopState := curLevelState.LoopState[curLevelState.LoopLevel]
 
 	scriptThread.OverrideProgramCounter = true
-	scriptThread.ProgramCounter = curLevelState.LoopState[loopLevel].Break
-	curLevelState.IfElseCounter = curLevelState.LoopState[loopLevel].IfCounter
+	scriptThread.ProgramCounter = curLoopState.Break
+	curLevelState.IfElseCounter = curLoopState.LevelIfCounter
 	curLevelState.LoopLevel--
 	return 1
 }
@@ -526,11 +529,14 @@ func (scriptDef *ScriptDef) ScriptAotSet(lineData []byte, gameDef *game.GameDef)
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptObjectModelSet(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptObjectModelSet(lineData []byte,
+	renderDef *render.RenderDef) int {
+
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrObjModelSet{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
+	renderDef.SetItemEntity(instruction)
 	return 1
 }
 
@@ -558,7 +564,7 @@ func (scriptDef *ScriptDef) ScriptPositionSet(lineData []byte, gameDef *game.Gam
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptMemberSet(lineData []byte, gameDef *game.GameDef) int {
+func (scriptDef *ScriptDef) ScriptMemberSet(lineData []byte, gameDef *game.GameDef, renderDef *render.RenderDef) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrMemberSet{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
@@ -568,6 +574,13 @@ func (scriptDef *ScriptDef) ScriptMemberSet(lineData []byte, gameDef *game.GameD
 		case 15:
 			// convert to angle in degrees
 			gameDef.Player.RotationAngle = (float32(instruction.Value) / 4096.0) * 360.0
+		}
+	} else if scriptThread.WorkSetComponent == WORKSET_OBJECT {
+		modelObject := renderDef.ItemGroupEntity.ModelObjectData[int(scriptThread.WorkSetIndex)]
+		switch int(instruction.MemberIndex) {
+		case 15:
+			// convert to angle in degrees
+			modelObject.RotationAngle = (float32(instruction.Value) / 4096.0) * 360.0
 		}
 	} else {
 		// TODO: set attribute of object
@@ -665,7 +678,9 @@ func (scriptDef *ScriptDef) ScriptSceEsprKill(lineData []byte) int {
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptItemAotSet(lineData []byte, gameDef *game.GameDef) int {
+func (scriptDef *ScriptDef) ScriptItemAotSet(lineData []byte,
+	gameDef *game.GameDef) int {
+
 	byteArr := bytes.NewBuffer(lineData)
 	item := fileio.ScriptInstrItemAotSet{}
 	binary.Read(byteArr, binary.LittleEndian, &item)

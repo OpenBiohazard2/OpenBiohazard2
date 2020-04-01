@@ -24,10 +24,10 @@ type LevelState struct {
 }
 
 type LoopState struct {
-	Counter   int
-	Break     int
-	IfCounter int
-	Stack     int
+	Counter        int
+	Break          int
+	LevelIfCounter int
+	StackValue     int
 }
 
 func NewLevelState() *LevelState {
@@ -47,10 +47,10 @@ func NewLevelState() *LevelState {
 
 func NewLoopState() *LoopState {
 	return &LoopState{
-		Counter:   0,
-		Break:     0,
-		IfCounter: 0,
-		Stack:     0,
+		Counter:        0,
+		Break:          0,
+		LevelIfCounter: 0,
+		StackValue:     0,
 	}
 }
 
@@ -89,8 +89,8 @@ func (thread *ScriptThread) Reset() {
 		for j := 0; j < len(thread.LevelState[i].LoopState); j++ {
 			thread.LevelState[i].LoopState[j].Counter = 0
 			thread.LevelState[i].LoopState[j].Break = 0
-			thread.LevelState[i].LoopState[j].IfCounter = 0
-			thread.LevelState[i].LoopState[j].Stack = 0
+			thread.LevelState[i].LoopState[j].LevelIfCounter = 0
+			thread.LevelState[i].LoopState[j].StackValue = 0
 		}
 	}
 	thread.LevelState[0].IfElseCounter = -1

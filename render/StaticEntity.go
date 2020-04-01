@@ -9,6 +9,7 @@ type SceneMD1Entity struct {
 	TextureId          uint32     // texture id in OpenGL
 	VertexBuffer       []float32  // 3 elements for x,y,z, 2 elements for texture u,v, and 3 elements for normal x,y,z
 	ModelPosition      mgl32.Vec3 // Position in world space
+	RotationAngle      float32
 	VertexArrayObject  uint32
 	VertexBufferObject uint32
 }
@@ -20,6 +21,7 @@ func (r *RenderDef) RenderStaticEntity(entity SceneMD1Entity, renderType int32) 
 
 	modelMatrix := mgl32.Ident4()
 	modelMatrix = modelMatrix.Mul4(mgl32.Translate3D(modelPosition.X(), modelPosition.Y(), modelPosition.Z()))
+	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(float32(entity.RotationAngle))))
 
 	if len(vertexBuffer) == 0 {
 		return

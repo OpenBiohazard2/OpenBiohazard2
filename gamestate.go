@@ -19,14 +19,11 @@ type MainGameStateInput struct {
 
 type MainGameRender struct {
 	RenderDef               *render.RenderDef
-	RoomOutput              *fileio.RoomImageOutput
-	RoomcutBinFilename      string
 	RoomcutBinOutput        *fileio.BinOutput
 	RenderRoom              render.RenderRoom
 	PlayerEntity            *render.PlayerEntity
 	DebugEntities           []*render.DebugEntity
 	CameraSwitchDebugEntity *render.DebugEntity
-	ItemEntities            []render.SceneMD1Entity
 }
 
 func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *MainGameStateInput {
@@ -50,13 +47,10 @@ func NewMainGameRender(renderDef *render.RenderDef) *MainGameRender {
 
 	return &MainGameRender{
 		RenderDef:               renderDef,
-		RoomOutput:              nil,
-		RoomcutBinFilename:      game.ROOMCUT_FILE,
 		RoomcutBinOutput:        fileio.LoadBINFile(game.ROOMCUT_FILE),
 		PlayerEntity:            render.NewPlayerEntity(pldOutput),
 		DebugEntities:           make([]*render.DebugEntity, 0),
 		CameraSwitchDebugEntity: nil,
-		ItemEntities:            make([]render.SceneMD1Entity, 0),
 	}
 }
 
@@ -93,6 +87,10 @@ func loadRoomState(mainGameStateInput *MainGameStateInput) {
 	gameDef.GameRoom = gameDef.NewGameRoom(rdtOutput)
 	mainGameRender.RenderRoom = render.NewRenderRoom(rdtOutput)
 
+	// Initialize room model objects
+	renderDef.ItemGroupEntity.ItemTextureData = mainGameRender.RenderRoom.ItemTextureData
+	renderDef.ItemGroupEntity.ItemModelData = mainGameRender.RenderRoom.ItemModelData
+
 	// Initialize sprite textures
 	renderDef.SpriteGroupEntity = render.NewSpriteGroupEntity(mainGameRender.RenderRoom.SpriteData)
 
@@ -114,16 +112,12 @@ func loadRoomState(mainGameStateInput *MainGameStateInput) {
 	scriptDef.InitScript(gameDef.GameRoom.RoomScriptData, threadNum, functionNum)
 
 	mainGameRender.DebugEntities = render.BuildAllDebugEntities(gameDef)
-	mainGameRender.ItemEntities = render.NewItemEntities(gameDef.AotManager.Items,
-		mainGameRender.RenderRoom.ItemTextureData, mainGameRender.RenderRoom.ItemModelData)
 }
 
 func loadCameraState(mainGameStateInput *MainGameStateInput) {
 	gameDef := mainGameStateInput.GameDef
 	mainGameRender := mainGameStateInput.MainGameRender
 	renderDef := mainGameRender.RenderDef
-	roomOutput := mainGameRender.RoomOutput
-	roomcutBinFilename := mainGameRender.RoomcutBinFilename
 	roomcutBinOutput := mainGameRender.RoomcutBinOutput
 
 	// Update camera position
@@ -136,7 +130,7 @@ func loadCameraState(mainGameStateInput *MainGameStateInput) {
 
 	// Update background image
 	backgroundImageNumber := gameDef.GetBackgroundImageNumber()
-	roomOutput = fileio.ExtractRoomBackground(roomcutBinFilename, roomcutBinOutput, backgroundImageNumber)
+	roomOutput := fileio.ExtractRoomBackground(game.ROOMCUT_FILE, roomcutBinOutput, backgroundImageNumber)
 
 	if roomOutput.BackgroundImage != nil {
 		render.UpdateTextureADT(renderDef.BackgroundImageEntity.TextureId, roomOutput.BackgroundImage)
@@ -167,7 +161,7 @@ func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameS
 	// Update screen
 	playerEntity.UpdatePlayerEntity(gameDef.Player, gameDef.Player.PoseNumber)
 
-	renderDef.RenderFrame(*playerEntity, mainGameRender.ItemEntities, debugEntitiesRender, timeElapsedSeconds)
+	renderDef.RenderFrame(*playerEntity, debugEntitiesRender, timeElapsedSeconds)
 
 	handleMainGameInput(gameDef, timeElapsedSeconds, gameDef.GameRoom.CollisionEntities, gameStateManager)
 	gameDef.HandleCameraSwitch(gameDef.Player.Position)

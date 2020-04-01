@@ -38,7 +38,8 @@ void renderEntity() {
 
 void renderItem() {
   vec4 diffuseColor = texture(diffuse, fragTexCoord.st);
-  fragColor = vec4(diffuseColor.rgb, 1.0);
+  vec3 lightColor = envLight;
+  fragColor = vec4(vec3(diffuseColor) * lightColor, 1.0);
   gl_FragDepth = gl_FragCoord.z;
 }
 

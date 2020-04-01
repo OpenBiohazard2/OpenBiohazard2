@@ -28,6 +28,7 @@ type RenderDef struct {
 	SpriteGroupEntity     *SpriteGroupEntity
 	BackgroundImageEntity *SceneEntity
 	CameraMaskEntity      *SceneEntity
+	ItemGroupEntity       *ItemGroupEntity
 }
 
 type DebugEntities struct {
@@ -72,14 +73,15 @@ func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 
 		BackgroundImageEntity: NewBackgroundImageEntity(),
 		CameraMaskEntity:      NewSceneEntity(),
+		ItemGroupEntity:       NewItemGroupEntity(),
 	}
 	return renderDef
 }
 
 func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
-	itemEntities []SceneMD1Entity,
 	debugEntities DebugEntities,
 	timeElapsedSeconds float64) {
+
 	programShader := r.ProgramShader
 
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -100,8 +102,8 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 	gl.UniformMatrix4fv(projectionLoc, 1, false, &r.ProjectionMatrix[0])
 
 	r.RenderBackground()
-	for _, itemEntity := range itemEntities {
-		r.RenderStaticEntity(itemEntity, RENDER_TYPE_ITEM)
+	for _, itemEntity := range r.ItemGroupEntity.ModelObjectData {
+		r.RenderStaticEntity(*itemEntity, RENDER_TYPE_ITEM)
 	}
 
 	envLightLoc := gl.GetUniformLocation(r.ProgramShader, gl.Str("envLight\x00"))
