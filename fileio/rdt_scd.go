@@ -372,8 +372,8 @@ type ScriptInstrDoorAotSet struct {
 	Type                         uint8
 	Floor                        uint8
 	Super                        uint8
-	X, Y                         int16 // Location of door
-	Width, Height                int16 // Size of door
+	X, Z                         int16 // Location of door
+	Width, Depth                 int16 // Size of door
 	NextX, NextY, NextZ, NextDir int16 // Position and direction of player after door entered
 	Stage, Room, Camera          uint8 // Stage, room, camera after door entered
 	NextFloor                    uint8
@@ -512,10 +512,62 @@ type ScriptInstrKageSet struct {
 	WorkSetComponent uint8
 	WorkSetIndex     uint8
 	Color            [3]uint8
-	HalfX            int16
-	HalfZ            int16
-	OffsetX          int16
-	OffsetZ          int16
+	HalfX, HalfZ     int16
+	OffsetX, OffsetZ int16
+}
+
+type ScriptInstrAotSet4p struct {
+	Opcode uint8 // 0x67
+	Aot    uint8
+	Id     uint8
+	Type   uint8
+	Floor  uint8
+	Super  uint8
+	X1, Z1 int16
+	X2, Z2 int16
+	X3, Z3 int16
+	X4, Z4 int16
+	Data   [6]uint8
+}
+
+type ScriptInstrDoorAotSet4p struct {
+	Opcode                       uint8 // 0x3b
+	Aot                          uint8 // Index of item in array of room objects list
+	Id                           uint8
+	Type                         uint8
+	Floor                        uint8
+	Super                        uint8
+	X1, Z1                       int16
+	X2, Z2                       int16
+	X3, Z3                       int16
+	X4, Z4                       int16
+	NextX, NextY, NextZ, NextDir int16 // Position and direction of player after door entered
+	Stage, Room, Camera          uint8 // Stage, room, camera after door entered
+	NextFloor                    uint8
+	TextureType                  uint8
+	DoorType                     uint8
+	KnockType                    uint8
+	KeyId                        uint8
+	KeyType                      uint8
+	Free                         uint8
+}
+
+type ScriptInstrItemAotSet4p struct {
+	Opcode          uint8 // 0x4e
+	Aot             uint8
+	Id              uint8
+	Type            uint8
+	Floor           uint8
+	Super           uint8
+	X1, Z1          int16
+	X2, Z2          int16
+	X3, Z3          int16
+	X4, Z4          int16
+	ItemId          uint16
+	Amount          uint16
+	ItemPickedIndex uint16 // flag to check if item is picked up
+	Md1ModelId      uint8
+	Act             uint8
 }
 
 type SCDOutput struct {

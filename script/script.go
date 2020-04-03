@@ -170,8 +170,14 @@ func (scriptDef *ScriptDef) RunScriptThread(
 				returnValue = scriptDef.ScriptSceEsprKill(lineData)
 			case fileio.OP_ITEM_AOT_SET: // 0x4e
 				returnValue = scriptDef.ScriptItemAotSet(lineData, gameDef)
+			case fileio.OP_SCE_BGM_CONTROL: // 0x51
+				returnValue = scriptDef.ScriptSceBgmControl(lineData)
 			case fileio.OP_AOT_SET_4P:
-				returnValue = scriptDef.ScriptAotSet4p(lineData)
+				returnValue = scriptDef.ScriptAotSet4p(lineData, gameDef)
+			case fileio.OP_DOOR_AOT_SET_4P:
+				returnValue = scriptDef.ScriptDoorAotSet4p(lineData, gameDef)
+			case fileio.OP_ITEM_AOT_SET_4P:
+				returnValue = scriptDef.ScriptItemAotSet4p(lineData, gameDef)
 			default:
 				returnValue = 1
 			}
@@ -520,15 +526,6 @@ func (scriptDef *ScriptDef) ScriptCameraChange(lineData []byte, gameDef *game.Ga
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptAotSet(lineData []byte, gameDef *game.GameDef) int {
-	byteArr := bytes.NewBuffer(lineData)
-	instruction := fileio.ScriptInstrAotSet{}
-	binary.Read(byteArr, binary.LittleEndian, &instruction)
-
-	gameDef.AotManager.AddAotTrigger(instruction)
-	return 1
-}
-
 func (scriptDef *ScriptDef) ScriptObjectModelSet(lineData []byte,
 	renderDef *render.RenderDef) int {
 
@@ -609,22 +606,6 @@ func (scriptDef *ScriptDef) ScriptSceEsprOn(lineData []byte, gameDef *game.GameD
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptDoorAotSet(lineData []byte, gameDef *game.GameDef) int {
-	byteArr := bytes.NewBuffer(lineData)
-	door := fileio.ScriptInstrDoorAotSet{}
-	err := binary.Read(byteArr, binary.LittleEndian, &door)
-	if err != nil {
-		log.Fatal("Error loading door")
-	}
-
-	if door.Id != game.AOT_DOOR {
-		log.Fatal("Door has incorrect aot type ", door.Id)
-	}
-
-	gameDef.AotManager.AddDoorAot(door)
-	return 1
-}
-
 func (scriptDef *ScriptDef) ScriptMemberCompare(lineData []byte) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrMemberCompare{}
@@ -661,15 +642,6 @@ func (scriptDef *ScriptDef) ScriptSceEmSet(lineData []byte) int {
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptAotReset(lineData []byte, gameDef *game.GameDef) int {
-	byteArr := bytes.NewBuffer(lineData)
-	instruction := fileio.ScriptInstrAotReset{}
-	binary.Read(byteArr, binary.LittleEndian, &instruction)
-
-	gameDef.AotManager.ResetAotTrigger(instruction)
-	return 1
-}
-
 func (scriptDef *ScriptDef) ScriptSceEsprKill(lineData []byte) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrSceEsprKill{}
@@ -693,6 +665,10 @@ func (scriptDef *ScriptDef) ScriptItemAotSet(lineData []byte,
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptAotSet4p(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptSceBgmControl(lineData []byte) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrSceBgmControl{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
 	return 1
 }

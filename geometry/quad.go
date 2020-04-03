@@ -5,6 +5,7 @@ import (
 )
 
 type Quad struct {
+	Vertices     [4]mgl32.Vec3
 	VertexBuffer []float32
 }
 
@@ -26,8 +27,27 @@ func NewQuad(corners [4]mgl32.Vec3) *Quad {
 		vertexBuffer = append(vertexBuffer, vertices[index]...)
 	}
 	return &Quad{
+		Vertices:     corners,
 		VertexBuffer: vertexBuffer,
 	}
+}
+
+func NewQuadFourPoints(xzPairs [4][]float32) *Quad {
+	corners := [4]mgl32.Vec3{}
+	for i := 0; i < 4; i++ {
+		corners[i] = mgl32.Vec3{xzPairs[i][0], 0, xzPairs[i][1]}
+	}
+	return NewQuad(corners)
+}
+
+func NewRectangle(x float32, z float32, width float32, depth float32) *Quad {
+	corners := [4]mgl32.Vec3{
+		mgl32.Vec3{x, 0, z},
+		mgl32.Vec3{x, 0, z + depth},
+		mgl32.Vec3{x + width, 0, z + depth},
+		mgl32.Vec3{x + width, 0, z},
+	}
+	return NewQuad(corners)
 }
 
 func NewTexturedRectangle(vertices [4][]float32, uvs [4][]float32) *Quad {

@@ -153,12 +153,14 @@ func NewCameraSwitchDebugEntity(curCameraId int,
 	vertexBuffer := make([]float32, 0)
 	for _, regionIndex := range cameraSwitchTransitions[curCameraId] {
 		cameraSwitch := cameraSwitches[regionIndex]
-		vertex1 := mgl32.Vec3{float32(cameraSwitch.X1), 0, float32(cameraSwitch.Z1)}
-		vertex2 := mgl32.Vec3{float32(cameraSwitch.X2), 0, float32(cameraSwitch.Z2)}
-		vertex3 := mgl32.Vec3{float32(cameraSwitch.X3), 0, float32(cameraSwitch.Z3)}
-		vertex4 := mgl32.Vec3{float32(cameraSwitch.X4), 0, float32(cameraSwitch.Z4)}
-		rect := buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
-		vertexBuffer = append(vertexBuffer, rect...)
+		corners := [4][]float32{
+			[]float32{float32(cameraSwitch.X1), float32(cameraSwitch.Z1)},
+			[]float32{float32(cameraSwitch.X2), float32(cameraSwitch.Z2)},
+			[]float32{float32(cameraSwitch.X3), float32(cameraSwitch.Z3)},
+			[]float32{float32(cameraSwitch.X4), float32(cameraSwitch.Z4)},
+		}
+		rect := geometry.NewQuadFourPoints(corners)
+		vertexBuffer = append(vertexBuffer, rect.VertexBuffer...)
 	}
 
 	var vao uint32
@@ -175,15 +177,10 @@ func NewCameraSwitchDebugEntity(curCameraId int,
 	}
 }
 
-func NewDoorTriggerDebugEntity(doors []fileio.ScriptInstrDoorAotSet) *DebugEntity {
+func NewDoorTriggerDebugEntity(doors []game.AotDoor) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
-	for _, door := range doors {
-		vertex1 := mgl32.Vec3{float32(door.X), 0, float32(door.Y)}
-		vertex2 := mgl32.Vec3{float32(door.X), 0, float32(door.Y + door.Height)}
-		vertex3 := mgl32.Vec3{float32(door.X + door.Width), 0, float32(door.Y + door.Height)}
-		vertex4 := mgl32.Vec3{float32(door.X + door.Width), 0, float32(door.Y)}
-		rect := buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
-		vertexBuffer = append(vertexBuffer, rect...)
+	for _, aot := range doors {
+		vertexBuffer = append(vertexBuffer, aot.Bounds.VertexBuffer...)
 	}
 
 	var vao uint32
@@ -200,15 +197,10 @@ func NewDoorTriggerDebugEntity(doors []fileio.ScriptInstrDoorAotSet) *DebugEntit
 	}
 }
 
-func NewItemTriggerDebugEntity(items []fileio.ScriptInstrItemAotSet) *DebugEntity {
+func NewItemTriggerDebugEntity(items []game.AotItem) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
 	for _, aot := range items {
-		vertex1 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z)}
-		vertex2 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z + aot.Depth)}
-		vertex3 := mgl32.Vec3{float32(aot.X + aot.Width), 0, float32(aot.Z + aot.Depth)}
-		vertex4 := mgl32.Vec3{float32(aot.X + aot.Width), 0, float32(aot.Z)}
-		rect := buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
-		vertexBuffer = append(vertexBuffer, rect...)
+		vertexBuffer = append(vertexBuffer, aot.Bounds.VertexBuffer...)
 	}
 
 	var vao uint32
@@ -228,12 +220,7 @@ func NewItemTriggerDebugEntity(items []fileio.ScriptInstrItemAotSet) *DebugEntit
 func NewAotTriggerDebugEntity(aotTriggers []game.AotObject) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
 	for _, aot := range aotTriggers {
-		vertex1 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z)}
-		vertex2 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z + aot.Depth)}
-		vertex3 := mgl32.Vec3{float32(aot.X + aot.Width), 0, float32(aot.Z + aot.Depth)}
-		vertex4 := mgl32.Vec3{float32(aot.X + aot.Width), 0, float32(aot.Z)}
-		rect := buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
-		vertexBuffer = append(vertexBuffer, rect...)
+		vertexBuffer = append(vertexBuffer, aot.Bounds.VertexBuffer...)
 	}
 
 	var vao uint32
@@ -254,22 +241,14 @@ func NewSlopedSurfacesDebugEntity(collisionEntities []fileio.CollisionEntity) *D
 	vertexBuffer := make([]float32, 0)
 	for _, entity := range collisionEntities {
 		switch entity.Shape {
-		case 9:
-			// Rectangle climb up
-			rect := buildDebugSlopedRectangle(entity)
-			vertexBuffer = append(vertexBuffer, rect...)
-		case 10:
-			// Rectangle jump down
-			rect := buildDebugSlopedRectangle(entity)
-			vertexBuffer = append(vertexBuffer, rect...)
 		case 11:
 			// Ramp
-			rect := buildDebugSlopedRectangle(entity)
-			vertexBuffer = append(vertexBuffer, rect...)
+			rect := geometry.NewSlopedRectangle(entity)
+			vertexBuffer = append(vertexBuffer, rect.VertexBuffer...)
 		case 12:
 			// Stairs
-			rect := buildDebugSlopedRectangle(entity)
-			vertexBuffer = append(vertexBuffer, rect...)
+			rect := geometry.NewSlopedRectangle(entity)
+			vertexBuffer = append(vertexBuffer, rect.VertexBuffer...)
 		}
 	}
 
@@ -290,39 +269,6 @@ func NewSlopedSurfacesDebugEntity(collisionEntities []fileio.CollisionEntity) *D
 func buildDebugRectangle(corner1 mgl32.Vec3, corner2 mgl32.Vec3, corner3 mgl32.Vec3, corner4 mgl32.Vec3) []float32 {
 	quad := geometry.NewQuad([4]mgl32.Vec3{corner1, corner2, corner3, corner4})
 	return quad.VertexBuffer
-}
-
-func buildDebugSlopedRectangle(entity fileio.CollisionEntity) []float32 {
-	// Types 0 and 1 starts from x-axis
-	// Types 2 and 3 starts from z-axis
-	switch entity.SlopeType {
-	case 0:
-		vertex1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
-		vertex2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z + entity.Density)}
-		vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), float32(entity.SlopeHeight), float32(entity.Z + entity.Density)}
-		vertex4 := mgl32.Vec3{float32(entity.X + entity.Width), float32(entity.SlopeHeight), float32(entity.Z)}
-		return buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
-	case 1:
-		vertex1 := mgl32.Vec3{float32(entity.X), float32(entity.SlopeHeight), float32(entity.Z)}
-		vertex2 := mgl32.Vec3{float32(entity.X), float32(entity.SlopeHeight), float32(entity.Z + entity.Density)}
-		vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z + entity.Density)}
-		vertex4 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z)}
-		return buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
-	case 2:
-		vertex1 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z)}
-		vertex2 := mgl32.Vec3{float32(entity.X), float32(entity.SlopeHeight), float32(entity.Z + entity.Density)}
-		vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), float32(entity.SlopeHeight), float32(entity.Z + entity.Density)}
-		vertex4 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z)}
-		return buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
-	case 3:
-		vertex1 := mgl32.Vec3{float32(entity.X), float32(entity.SlopeHeight), float32(entity.Z)}
-		vertex2 := mgl32.Vec3{float32(entity.X), 0, float32(entity.Z + entity.Density)}
-		vertex3 := mgl32.Vec3{float32(entity.X + entity.Width), 0, float32(entity.Z + entity.Density)}
-		vertex4 := mgl32.Vec3{float32(entity.X + entity.Width), float32(entity.SlopeHeight), float32(entity.Z)}
-		return buildDebugRectangle(vertex1, vertex2, vertex3, vertex4)
-	}
-
-	return []float32{}
 }
 
 func buildDebugTriangle(corner1 mgl32.Vec3, corner2 mgl32.Vec3, corner3 mgl32.Vec3) []float32 {

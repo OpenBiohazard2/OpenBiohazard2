@@ -168,13 +168,11 @@ func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameS
 	gameDef.HandleRoomSwitch(gameDef.Player.Position)
 	aot := gameDef.AotManager.GetAotTriggerNearPlayer(gameDef.Player.Position)
 	if aot != nil {
-		if aot.Id == game.AOT_EVENT {
+		if aot.Header.Id == game.AOT_EVENT {
 			threadNum := aot.Data[0]
 			eventNum := aot.Data[3]
 			lineData := []byte{fileio.OP_EVT_EXEC, threadNum, 0, eventNum}
 			scriptDef.ScriptEvtExec(lineData, gameDef.GameRoom.RoomScriptData)
-			// Only execute event once
-			gameDef.AotManager.RemoveAotTrigger(int(aot.Aot))
 		}
 	}
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/samuelyuan/openbiohazard2/geometry"
 )
 
 // Handle script doors, items, events
@@ -16,39 +17,67 @@ const (
 )
 
 type AotManager struct {
-	Doors       []fileio.ScriptInstrDoorAotSet
-	Items       []fileio.ScriptInstrItemAotSet
+	Doors       []AotDoor
+	Items       []AotItem
 	Sprites     []fileio.ScriptInstrSceEsprOn
 	AotTriggers []AotObject
 }
 
+type AotHeader struct {
+	Aot   uint8
+	Id    uint8
+	Type  uint8
+	Floor uint8
+	Super uint8
+}
+
 type AotObject struct {
-	Aot          uint8
-	Id           uint8
-	Type         uint8
-	Floor        uint8
-	Super        uint8
-	X, Z         int16
-	Width, Depth int16
-	Data         [6]uint8
+	Header AotHeader
+	Bounds *geometry.Quad
+	Data   [6]uint8
+}
+
+type AotDoor struct {
+	Header                       AotHeader
+	Bounds                       *geometry.Quad
+	NextX, NextY, NextZ, NextDir int16
+	Stage, Room, Camera          uint8
+	NextFloor                    uint8
+	TextureType                  uint8
+	DoorType                     uint8
+	KnockType                    uint8
+	KeyId                        uint8
+	KeyType                      uint8
+	Free                         uint8
+}
+
+type AotItem struct {
+	Header          AotHeader
+	Bounds          *geometry.Quad
+	ItemId          uint16
+	Amount          uint16
+	ItemPickedIndex uint16
+	Md1ModelId      uint8
+	Act             uint8
 }
 
 func NewAotManager() *AotManager {
 	return &AotManager{
-		Doors:       make([]fileio.ScriptInstrDoorAotSet, 0),
-		Items:       make([]fileio.ScriptInstrItemAotSet, 0),
+		Doors:       make([]AotDoor, 0),
+		Items:       make([]AotItem, 0),
 		Sprites:     make([]fileio.ScriptInstrSceEsprOn, 0),
 		AotTriggers: make([]AotObject, 0),
 	}
 }
 
-func (aotManager *AotManager) GetDoorNearPlayer(position mgl32.Vec3) *fileio.ScriptInstrDoorAotSet {
+func (aotManager *AotManager) AddScriptSprite(sprite fileio.ScriptInstrSceEsprOn) {
+	aotManager.Sprites = append(aotManager.Sprites, sprite)
+}
+
+func (aotManager *AotManager) GetDoorNearPlayer(position mgl32.Vec3) *AotDoor {
 	for _, door := range aotManager.Doors {
-		corner1 := mgl32.Vec3{float32(door.X), 0, float32(door.Y)}
-		corner2 := mgl32.Vec3{float32(door.X), 0, float32(door.Y + door.Height)}
-		corner3 := mgl32.Vec3{float32(door.X + door.Width), 0, float32(door.Y + door.Height)}
-		corner4 := mgl32.Vec3{float32(door.X + door.Width), 0, float32(door.Y)}
-		if isPointInRectangle(position, corner1, corner2, corner3, corner4) {
+		vertices := door.Bounds.Vertices
+		if isPointInRectangle(position, vertices[0], vertices[1], vertices[2], vertices[3]) {
 			return &door
 		}
 	}
@@ -57,54 +86,190 @@ func (aotManager *AotManager) GetDoorNearPlayer(position mgl32.Vec3) *fileio.Scr
 
 func (aotManager *AotManager) GetAotTriggerNearPlayer(position mgl32.Vec3) *AotObject {
 	for _, aot := range aotManager.AotTriggers {
-		corner1 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z)}
-		corner2 := mgl32.Vec3{float32(aot.X), 0, float32(aot.Z + aot.Depth)}
-		corner3 := mgl32.Vec3{float32(aot.X + aot.Width), 0, float32(aot.Z + aot.Depth)}
-		corner4 := mgl32.Vec3{float32(aot.X + aot.Width), 0, float32(aot.Z)}
-		if isPointInRectangle(position, corner1, corner2, corner3, corner4) {
+		vertices := aot.Bounds.Vertices
+		if isPointInRectangle(position, vertices[0], vertices[1], vertices[2], vertices[3]) {
 			return &aot
 		}
 	}
 	return nil
 }
 
-func (aotManager *AotManager) AddDoorAot(door fileio.ScriptInstrDoorAotSet) {
-	aotManager.Doors = append(aotManager.Doors, door)
-}
-
-func (aotManager *AotManager) AddItemAot(item fileio.ScriptInstrItemAotSet) {
-	aotManager.Items = append(aotManager.Items, item)
-}
-
-func (aotManager *AotManager) AddScriptSprite(sprite fileio.ScriptInstrSceEsprOn) {
-	aotManager.Sprites = append(aotManager.Sprites, sprite)
-}
-
-func (aotManager *AotManager) AddAotTrigger(aotInstruction fileio.ScriptInstrAotSet) {
-	aotTrigger := AotObject{
+func (aotManager *AotManager) AddDoorAot(aotInstruction fileio.ScriptInstrDoorAotSet) {
+	aotHeader := AotHeader{
 		Aot:   aotInstruction.Aot,
 		Id:    aotInstruction.Id,
 		Type:  aotInstruction.Type,
 		Floor: aotInstruction.Floor,
 		Super: aotInstruction.Super,
-		X:     aotInstruction.X,
-		Z:     aotInstruction.Z,
-		Width: aotInstruction.Width,
-		Depth: aotInstruction.Depth,
-		Data:  aotInstruction.Data,
+	}
+	rect := geometry.NewRectangle(
+		float32(aotInstruction.X), float32(aotInstruction.Z),
+		float32(aotInstruction.Width), float32(aotInstruction.Depth))
+	doorAot := AotDoor{
+		Header:      aotHeader,
+		Bounds:      rect,
+		NextX:       aotInstruction.NextX,
+		NextY:       aotInstruction.NextY,
+		NextZ:       aotInstruction.NextZ,
+		NextDir:     aotInstruction.NextDir,
+		Stage:       aotInstruction.Stage,
+		Room:        aotInstruction.Room,
+		Camera:      aotInstruction.Camera,
+		NextFloor:   aotInstruction.NextFloor,
+		TextureType: aotInstruction.TextureType,
+		DoorType:    aotInstruction.DoorType,
+		KnockType:   aotInstruction.KnockType,
+		KeyId:       aotInstruction.KeyId,
+		KeyType:     aotInstruction.KeyType,
+		Free:        aotInstruction.Free,
+	}
+
+	fmt.Println("Create new door aot", aotInstruction.Aot, "with aot type", aotInstruction.Id)
+	aotManager.Doors = append(aotManager.Doors, doorAot)
+}
+
+func (aotManager *AotManager) AddDoorAot4p(aotInstruction fileio.ScriptInstrDoorAotSet4p) {
+	aotHeader := AotHeader{
+		Aot:   aotInstruction.Aot,
+		Id:    aotInstruction.Id,
+		Type:  aotInstruction.Type,
+		Floor: aotInstruction.Floor,
+		Super: aotInstruction.Super,
+	}
+	rect := geometry.NewQuadFourPoints([4][]float32{
+		[]float32{float32(aotInstruction.X1), float32(aotInstruction.Z1)},
+		[]float32{float32(aotInstruction.X2), float32(aotInstruction.Z2)},
+		[]float32{float32(aotInstruction.X3), float32(aotInstruction.Z3)},
+		[]float32{float32(aotInstruction.X4), float32(aotInstruction.Z4)},
+	})
+	doorAot := AotDoor{
+		Header:      aotHeader,
+		Bounds:      rect,
+		NextX:       aotInstruction.NextX,
+		NextY:       aotInstruction.NextY,
+		NextZ:       aotInstruction.NextZ,
+		NextDir:     aotInstruction.NextDir,
+		Stage:       aotInstruction.Stage,
+		Room:        aotInstruction.Room,
+		Camera:      aotInstruction.Camera,
+		NextFloor:   aotInstruction.NextFloor,
+		TextureType: aotInstruction.TextureType,
+		DoorType:    aotInstruction.DoorType,
+		KnockType:   aotInstruction.KnockType,
+		KeyId:       aotInstruction.KeyId,
+		KeyType:     aotInstruction.KeyType,
+		Free:        aotInstruction.Free,
+	}
+
+	fmt.Println("Create new door aot 4p", aotInstruction.Aot, "with aot type", aotInstruction.Id)
+	aotManager.Doors = append(aotManager.Doors, doorAot)
+}
+
+func (aotManager *AotManager) AddItemAot(aotInstruction fileio.ScriptInstrItemAotSet) {
+	aotHeader := AotHeader{
+		Aot:   aotInstruction.Aot,
+		Id:    aotInstruction.Id,
+		Type:  aotInstruction.Type,
+		Floor: aotInstruction.Floor,
+		Super: aotInstruction.Super,
+	}
+	rect := geometry.NewRectangle(
+		float32(aotInstruction.X), float32(aotInstruction.Z),
+		float32(aotInstruction.Width), float32(aotInstruction.Depth))
+	itemAot := AotItem{
+		Header:          aotHeader,
+		Bounds:          rect,
+		ItemId:          aotInstruction.ItemId,
+		Amount:          aotInstruction.Amount,
+		ItemPickedIndex: aotInstruction.ItemPickedIndex,
+		Md1ModelId:      aotInstruction.Md1ModelId,
+		Act:             aotInstruction.Act,
+	}
+
+	fmt.Println("Create new item aot", aotInstruction.Aot, "with aot type", aotInstruction.Id)
+	aotManager.Items = append(aotManager.Items, itemAot)
+}
+
+func (aotManager *AotManager) AddItemAot4p(aotInstruction fileio.ScriptInstrItemAotSet4p) {
+	aotHeader := AotHeader{
+		Aot:   aotInstruction.Aot,
+		Id:    aotInstruction.Id,
+		Type:  aotInstruction.Type,
+		Floor: aotInstruction.Floor,
+		Super: aotInstruction.Super,
+	}
+	rect := geometry.NewQuadFourPoints([4][]float32{
+		[]float32{float32(aotInstruction.X1), float32(aotInstruction.Z1)},
+		[]float32{float32(aotInstruction.X2), float32(aotInstruction.Z2)},
+		[]float32{float32(aotInstruction.X3), float32(aotInstruction.Z3)},
+		[]float32{float32(aotInstruction.X4), float32(aotInstruction.Z4)},
+	})
+	itemAot := AotItem{
+		Header:          aotHeader,
+		Bounds:          rect,
+		ItemId:          aotInstruction.ItemId,
+		Amount:          aotInstruction.Amount,
+		ItemPickedIndex: aotInstruction.ItemPickedIndex,
+		Md1ModelId:      aotInstruction.Md1ModelId,
+		Act:             aotInstruction.Act,
+	}
+
+	fmt.Println("Create new item aot 4p", aotInstruction.Aot, "with aot type", aotInstruction.Id)
+	aotManager.Items = append(aotManager.Items, itemAot)
+}
+
+func (aotManager *AotManager) AddAotTrigger(aotInstruction fileio.ScriptInstrAotSet) {
+	aotHeader := AotHeader{
+		Aot:   aotInstruction.Aot,
+		Id:    aotInstruction.Id,
+		Type:  aotInstruction.Type,
+		Floor: aotInstruction.Floor,
+		Super: aotInstruction.Super,
+	}
+	rect := geometry.NewRectangle(
+		float32(aotInstruction.X), float32(aotInstruction.Z),
+		float32(aotInstruction.Width), float32(aotInstruction.Depth))
+	aotTrigger := AotObject{
+		Header: aotHeader,
+		Bounds: rect,
+		Data:   aotInstruction.Data,
 	}
 
 	fmt.Println("Create new aot index", aotInstruction.Aot, "with aot type", aotInstruction.Id)
 	aotManager.AotTriggers = append(aotManager.AotTriggers, aotTrigger)
 }
 
+func (aotManager *AotManager) AddAotTrigger4p(aotInstruction fileio.ScriptInstrAotSet4p) {
+	aotHeader := AotHeader{
+		Aot:   aotInstruction.Aot,
+		Id:    aotInstruction.Id,
+		Type:  aotInstruction.Type,
+		Floor: aotInstruction.Floor,
+		Super: aotInstruction.Super,
+	}
+	rect := geometry.NewQuadFourPoints([4][]float32{
+		[]float32{float32(aotInstruction.X1), float32(aotInstruction.Z1)},
+		[]float32{float32(aotInstruction.X2), float32(aotInstruction.Z2)},
+		[]float32{float32(aotInstruction.X3), float32(aotInstruction.Z3)},
+		[]float32{float32(aotInstruction.X4), float32(aotInstruction.Z4)},
+	})
+	aotTrigger := AotObject{
+		Header: aotHeader,
+		Bounds: rect,
+		Data:   aotInstruction.Data,
+	}
+
+	fmt.Println("Create new aot 4p index", aotInstruction.Aot, "with aot type", aotInstruction.Id)
+	aotManager.AotTriggers = append(aotManager.AotTriggers, aotTrigger)
+}
+
 func (aotManager *AotManager) ResetAotTrigger(aotInstruction fileio.ScriptInstrAotReset) {
 	for i, aot := range aotManager.AotTriggers {
-		if int(aot.Aot) == int(aotInstruction.Aot) {
+		if int(aot.Header.Aot) == int(aotInstruction.Aot) {
 			fmt.Println("Reset aot index", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-			aot.Aot = aotInstruction.Aot
-			aot.Id = aotInstruction.Id
-			aot.Type = aotInstruction.Type
+			aot.Header.Aot = aotInstruction.Aot
+			aot.Header.Id = aotInstruction.Id
+			aot.Header.Type = aotInstruction.Type
 			aot.Data = aotInstruction.Data
 			aotManager.AotTriggers[i] = aot
 			return
@@ -113,20 +278,15 @@ func (aotManager *AotManager) ResetAotTrigger(aotInstruction fileio.ScriptInstrA
 
 	fmt.Println("No existing aot found for", aotInstruction.Aot, ". Create new aot with aot type", aotInstruction.Id)
 	aotTrigger := AotObject{
-		Aot:  aotInstruction.Aot,
-		Id:   aotInstruction.Id,
-		Type: aotInstruction.Type,
-		Data: aotInstruction.Data,
+		Header: AotHeader{
+			Aot:   aotInstruction.Aot,
+			Id:    aotInstruction.Id,
+			Type:  aotInstruction.Type,
+			Floor: 0,
+			Super: 0,
+		},
+		Bounds: geometry.NewRectangle(0, 0, 0, 0),
+		Data:   aotInstruction.Data,
 	}
 	aotManager.AotTriggers = append(aotManager.AotTriggers, aotTrigger)
-}
-
-func (aotManager *AotManager) RemoveAotTrigger(aotIndex int) {
-	for i, aot := range aotManager.AotTriggers {
-		if int(aot.Aot) == aotIndex {
-			fmt.Println("Remove aot index", aotIndex, ", aot type", aot.Id)
-			aotManager.AotTriggers = append(aotManager.AotTriggers[:i], aotManager.AotTriggers[i+1:]...)
-			return
-		}
-	}
 }
