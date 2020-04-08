@@ -4,7 +4,6 @@ package fileio
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -34,7 +33,7 @@ func LoadPLDFile(filename string) (*PLDOutput, error) {
 	defer file.Close()
 	if file == nil {
 		log.Fatal("PLD file doesn't exist:", filename)
-		return nil, fmt.Errorf("PLD file doesn't exist:", filename)
+		return nil, nil
 	}
 	fi, err := file.Stat()
 	if err != nil {
@@ -60,22 +59,22 @@ func LoadPLDStream(r io.ReaderAt, fileLength int64) (*PLDOutput, error) {
 		return nil, err
 	}
 
-	animationData, err := loadAnimationData(r, fileLength, pldHeader, pldOffsets)
+	animationData, err := loadAnimationData(r, fileLength, int64(pldOffsets.OffsetAnimation))
 	if err != nil {
 		return nil, err
 	}
 
-	skeletonData, err := loadSkeletonData(r, fileLength, pldHeader, pldOffsets, animationData)
+	skeletonData, err := loadSkeletonData(r, fileLength, int64(pldOffsets.OffsetSkeleton), animationData)
 	if err != nil {
 		return nil, err
 	}
 
-	meshData, err := loadMeshData(r, fileLength, pldHeader, pldOffsets)
+	meshData, err := loadMeshData(r, fileLength, int64(pldOffsets.OffsetMesh))
 	if err != nil {
 		return nil, err
 	}
 
-	timOutput, err := loadTexture(r, fileLength, pldHeader, pldOffsets)
+	timOutput, err := loadTexture(r, fileLength, int64(pldOffsets.OffsetTexture))
 	if err != nil {
 		return nil, err
 	}
@@ -89,26 +88,22 @@ func LoadPLDStream(r io.ReaderAt, fileLength int64) (*PLDOutput, error) {
 	return pldOutput, nil
 }
 
-func loadAnimationData(fileReader io.ReaderAt, fileLength int64, pldHeader PLDHeader, pldOffsets PLDOffsets) (*EDDOutput, error) {
-	offset := int64(pldOffsets.OffsetAnimation)
+func loadAnimationData(fileReader io.ReaderAt, fileLength int64, offset int64) (*EDDOutput, error) {
 	eddReader := io.NewSectionReader(fileReader, offset, fileLength-offset)
 	return LoadEDDStream(eddReader, fileLength-offset)
 }
 
-func loadSkeletonData(fileReader io.ReaderAt, fileLength int64, pldHeader PLDHeader, pldOffsets PLDOffsets, animationData *EDDOutput) (*EMROutput, error) {
-	offset := int64(pldOffsets.OffsetSkeleton)
+func loadSkeletonData(fileReader io.ReaderAt, fileLength int64, offset int64, animationData *EDDOutput) (*EMROutput, error) {
 	emrReader := io.NewSectionReader(fileReader, offset, fileLength-offset)
 	return LoadEMRStream(emrReader, fileLength-offset, animationData)
 }
 
-func loadMeshData(fileReader io.ReaderAt, fileLength int64, pldHeader PLDHeader, pldOffsets PLDOffsets) (*MD1Output, error) {
-	offset := int64(pldOffsets.OffsetMesh)
-	MD1Reader := io.NewSectionReader(fileReader, offset, fileLength-offset)
-	return LoadMD1Stream(MD1Reader, fileLength-offset)
+func loadMeshData(fileReader io.ReaderAt, fileLength int64, offset int64) (*MD1Output, error) {
+	md1Reader := io.NewSectionReader(fileReader, offset, fileLength-offset)
+	return LoadMD1Stream(md1Reader, fileLength-offset)
 }
 
-func loadTexture(fileReader io.ReaderAt, fileLength int64, pldHeader PLDHeader, pldOffsets PLDOffsets) (*TIMOutput, error) {
-	offset := pldOffsets.OffsetTexture
-	TIMReader := io.NewSectionReader(fileReader, int64(offset), fileLength-int64(offset))
+func loadTexture(fileReader io.ReaderAt, fileLength int64, offset int64) (*TIMOutput, error) {
+	TIMReader := io.NewSectionReader(fileReader, offset, fileLength-int64(offset))
 	return LoadTIMStream(TIMReader, fileLength-int64(offset))
 }

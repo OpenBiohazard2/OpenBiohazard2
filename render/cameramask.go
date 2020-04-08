@@ -99,17 +99,15 @@ func BuildCameraMaskPixels(roomImageOutput *fileio.RoomImageOutput, cameraMasks 
 func BuildCameraMaskDepthBuffer(roomImageOutput *fileio.RoomImageOutput, cameraMasks []fileio.MaskRectangle, renderDef *RenderDef) []float32 {
 	maskBuffer := make([]float32, 0)
 	for _, cameraMask := range cameraMasks {
+		// x, y are rectangle coordinates from the background image
 		destX := float32(cameraMask.DestX)
 		destY := float32(cameraMask.DestY)
+		// z is normalized depth
 		depth := normalizeMaskDepth(float32(cameraMask.Depth), renderDef)
 		maskWidth := float32(cameraMask.Width)
 		maskHeight := float32(cameraMask.Height)
 
 		// Create a rectangle for each mask
-		// x, y are rectangle coordinates from the background image
-		// z is normalized depth
-		// u, v are texture coordinates
-
 		corners := [4][]float32{
 			{destX, destY},
 			{destX + maskWidth, destY},

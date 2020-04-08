@@ -43,7 +43,7 @@ void renderItem() {
   gl_FragDepth = gl_FragCoord.z;
 }
 
-void renderDebug() {
+void renderSolidColor() {
   fragColor = debugColor;
   gl_FragDepth = gl_FragCoord.z;
 }
@@ -51,7 +51,7 @@ void renderDebug() {
 void renderMainGame() {
   switch (renderType) {
     case -1:
-      renderDebug();
+      renderSolidColor();
       break;
     case 1:
       renderBackgroundSolid();

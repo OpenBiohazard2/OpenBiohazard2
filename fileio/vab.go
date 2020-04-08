@@ -62,6 +62,7 @@ type VABTone struct {
 type VABHeaderOutput struct {
 	VABHeader  VABHeader
 	AudioSizes []uint16
+	NumBytes   int
 }
 
 type VABDataOutput struct {
@@ -100,9 +101,14 @@ func LoadVABHeaderStream(r io.ReaderAt, fileLength int64) (*VABHeaderOutput, err
 		return nil, err
 	}
 
+	totalProgramSize := 128 * 32
+	totalToneSize := int(vabHeader.ProgramCount) * 16 * 32
+	totalWaveformSize := int(vabHeader.WaveformCount+1) * 2
+	totalVabHeaderSize := totalProgramSize + totalToneSize + totalWaveformSize
 	vabHeaderOutput := &VABHeaderOutput{
 		VABHeader:  vabHeader,
 		AudioSizes: audioSizes,
+		NumBytes:   totalVabHeaderSize,
 	}
 	return vabHeaderOutput, nil
 }
