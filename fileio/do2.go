@@ -41,6 +41,8 @@ func LoadDO2Stream(r io.ReaderAt, fileLength int64) (*DO2Output, error) {
 		return nil, err
 	}
 
+	// TODO: Load .MD1 and .TIM
+
 	output := &DO2Output{
 		VABHeaderOutput: vabHeaderOutput,
 	}

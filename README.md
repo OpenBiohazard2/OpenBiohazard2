@@ -12,6 +12,25 @@ Open source re-implementation of the original Resident Evil 2 engine written in 
 2. Get the game data from your installed location. Copy all the files to the `data/` folder in this repository.
 3. Run `go build`.
 
+### Task list
+
+- [ ] Audio
+  - [ ] Background music
+  - [ ] Core sound
+- [ ] Game
+  - [x] Collision detection
+  - [x] Event triggers
+  - [ ] Inventory system
+  - [ ] Enemy AI
+  - [ ] Puzzles
+  - [ ] Door transitions
+- [ ] Renderer
+  - [x] Animation
+  - [x] Pre-rendered background
+  - [x] Depth testing
+  - [ ] Sprites
+  - [ ] Shadows
+
 ### Controls
 
 - W/S to move forward/backward.
