@@ -33,7 +33,7 @@ type RDTOffsets struct {
 	OffsetCameraSwitches         uint32 // .rvd file
 	OffsetLights                 uint32 // .lit file
 	OffsetItems                  uint32
-	OffsetFloors                 uint32 // .flr file
+	OffsetFloorSound             uint32 // .flr file
 	OffsetBlocks                 uint32 // .blk file
 	OffsetLang1                  uint32 // .msg file
 	OffsetLang2                  uint32 // .msg file
@@ -192,6 +192,11 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 
 	// Audio
 	_, err = LoadRDT_VABStream(r, fileLength, offsets)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = LoadRDT_FLRStream(r, fileLength, offsets)
 	if err != nil {
 		return nil, err
 	}

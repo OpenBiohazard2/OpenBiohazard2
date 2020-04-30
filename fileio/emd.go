@@ -78,9 +78,12 @@ func LoadEMDStream(r io.ReaderAt, fileLength int64) (*EMDOutput, error) {
 		return nil, err
 	}
 
-	skeletonData1, err := loadSkeletonData(r, fileLength, int64(emdOffsets.OffsetSkeleton1), animationData1)
-	if err != nil {
-		return nil, err
+	var skeletonData1 *EMROutput
+	if len(animationData1.AnimationIndexFrames) > 0 {
+		skeletonData1, err = loadSkeletonData(r, fileLength, int64(emdOffsets.OffsetSkeleton1), animationData1)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	animationData2, err := loadAnimationData(r, fileLength, int64(emdOffsets.OffsetAnimation2))
@@ -88,9 +91,12 @@ func LoadEMDStream(r io.ReaderAt, fileLength int64) (*EMDOutput, error) {
 		return nil, err
 	}
 
-	skeletonData2, err := loadSkeletonData(r, fileLength, int64(emdOffsets.OffsetSkeleton2), animationData2)
-	if err != nil {
-		return nil, err
+	var skeletonData2 *EMROutput
+	if len(animationData2.AnimationIndexFrames) > 0 {
+		skeletonData2, err = loadSkeletonData(r, fileLength, int64(emdOffsets.OffsetSkeleton2), animationData2)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	animationData3, err := loadAnimationData(r, fileLength, int64(emdOffsets.OffsetAnimation3))
@@ -98,9 +104,12 @@ func LoadEMDStream(r io.ReaderAt, fileLength int64) (*EMDOutput, error) {
 		return nil, err
 	}
 
-	skeletonData3, err := loadSkeletonData(r, fileLength, int64(emdOffsets.OffsetSkeleton3), animationData3)
-	if err != nil {
-		return nil, err
+	var skeletonData3 *EMROutput
+	if len(animationData3.AnimationIndexFrames) > 0 {
+		skeletonData3, err = loadSkeletonData(r, fileLength, int64(emdOffsets.OffsetSkeleton3), animationData3)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	meshData, err := loadMeshData(r, fileLength, int64(emdOffsets.OffsetMesh))

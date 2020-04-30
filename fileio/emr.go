@@ -5,6 +5,7 @@ package fileio
 import (
 	"encoding/binary"
 	"io"
+	"log"
 	"math"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -65,9 +66,9 @@ func LoadEMRStream(r io.ReaderAt, fileLength int64, animationData *EDDOutput) (*
 	}
 
 	// Read armature offsets
-	streamReader = io.NewSectionReader(r, int64(emrHeader.OffsetArmatures), fileLength)
+	armatureReader := io.NewSectionReader(r, int64(emrHeader.OffsetArmatures), fileLength)
 	armatures := make([]EMRArmature, int(emrHeader.Count))
-	if err := binary.Read(streamReader, binary.LittleEndian, &armatures); err != nil {
+	if err := binary.Read(armatureReader, binary.LittleEndian, &armatures); err != nil {
 		return nil, err
 	}
 
@@ -75,6 +76,12 @@ func LoadEMRStream(r io.ReaderAt, fileLength int64, animationData *EDDOutput) (*
 	// Used to calculated offset of each component based on its parent
 	armatureChildren := make([][]uint8, int(emrHeader.Count))
 	for i := 0; i < int(emrHeader.Count); i++ {
+		// Count exceeds max
+		if int(armatures[i].Count) >= int(emrHeader.Count) {
+			log.Println("Skeleton doesn't have bone to bind. Returning empty skeleton.")
+			return &EMROutput{}, nil
+		}
+
 		streamReader = io.NewSectionReader(r, int64(emrHeader.OffsetArmatures)+int64(armatures[i].Offset), fileLength)
 
 		armatureChildren[i] = make([]uint8, int(armatures[i].Count))
