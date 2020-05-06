@@ -34,6 +34,19 @@ func (scriptDef *ScriptDef) ScriptDoorAotSet(lineData []byte, gameDef *game.Game
 	return 1
 }
 
+func (scriptDef *ScriptDef) ScriptItemAotSet(lineData []byte, gameDef *game.GameDef) int {
+	byteArr := bytes.NewBuffer(lineData)
+	item := fileio.ScriptInstrItemAotSet{}
+	binary.Read(byteArr, binary.LittleEndian, &item)
+
+	if item.Id != game.AOT_ITEM {
+		log.Fatal("Item has incorrect aot type ", item.Id)
+	}
+
+	gameDef.AotManager.AddItemAot(item)
+	return 1
+}
+
 func (scriptDef *ScriptDef) ScriptAotReset(lineData []byte, gameDef *game.GameDef) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrAotReset{}

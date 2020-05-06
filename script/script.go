@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"log"
-	// "sort"
 
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
@@ -70,11 +69,6 @@ func (scriptDef *ScriptDef) RunScriptThread(
 	timeElapsedSeconds float64,
 	gameDef *game.GameDef,
 	renderDef *render.RenderDef) {
-	/*programCounters := make([]int, 0)
-	for counter, _ := range scriptData.Instructions {
-		programCounters = append(programCounters, counter)
-	}
-	sort.Ints(programCounters)*/
 
 	scriptDeltaTime += timeElapsedSeconds
 	if scriptDeltaTime > 1.0/SCRIPT_FRAMES_PER_SECOND {
@@ -130,12 +124,20 @@ func (scriptDef *ScriptDef) RunScriptThread(
 				returnValue = scriptDef.ScriptGoSub(lineData, scriptData)
 			case fileio.OP_BREAK:
 				returnValue = scriptDef.ScriptBreak(lineData)
-			case fileio.OP_CHECK:
+			case fileio.OP_CHECK: // 0x21
 				returnValue = scriptDef.ScriptCheckBit(lineData, gameDef)
-			case fileio.OP_SET_BIT:
+			case fileio.OP_SET_BIT: // 0x22
 				returnValue = scriptDef.ScriptSetBit(lineData, gameDef)
-			case fileio.OP_COMPARE:
-				returnValue = scriptDef.ScriptCompare(lineData)
+			case fileio.OP_COMPARE: // 0x23
+				returnValue = scriptDef.ScriptCompare(lineData, gameDef)
+			case fileio.OP_SAVE: // 0x24
+				returnValue = scriptDef.ScriptSave(lineData, gameDef)
+			case fileio.OP_COPY: // 0x25
+				returnValue = scriptDef.ScriptCopy(lineData, gameDef)
+			case fileio.OP_CALC: // 0x26
+				returnValue = scriptDef.ScriptCalc(lineData, gameDef)
+			case fileio.OP_CALC2: // 0x27
+				returnValue = scriptDef.ScriptCalc(lineData, gameDef)
 			case fileio.OP_CUT_CHG:
 				returnValue = scriptDef.ScriptCameraChange(lineData, gameDef)
 			case fileio.OP_AOT_SET:
@@ -489,32 +491,159 @@ func (scriptDef *ScriptDef) ScriptSetBit(lineData []byte, gameDef *game.GameDef)
 	instruction := fileio.ScriptInstrSetBit{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-	if instruction.Operation == 0 {
+	switch int(instruction.Operation) {
+	case 0:
 		// Clear bit
 		gameDef.SetBitArray(int(instruction.BitArray), int(instruction.BitNumber), 0)
-	} else if instruction.Operation == 1 {
+	case 1:
 		// Set bit
 		gameDef.SetBitArray(int(instruction.BitArray), int(instruction.BitNumber), 1)
-	} else if instruction.Operation == 7 {
+	case 7:
 		// Flip bit
 		currentBit := gameDef.GetBitArray(int(instruction.BitArray), int(instruction.BitNumber))
 		gameDef.SetBitArray(int(instruction.BitArray), int(instruction.BitNumber), currentBit^1)
-	} else {
+	default:
 		log.Fatal("Set bit operation ", instruction.Operation, " is invalid.")
 	}
 
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptCompare(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptCompare(lineData []byte, gameDef *game.GameDef) int {
 	byteArr := bytes.NewBuffer(lineData)
-	instruction := fileio.ScriptInstrMemberCompare{}
+	instruction := fileio.ScriptInstrCompare{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-	// TODO: Evaluate to true or false
-	// Assumes the statement is false
+	variableValue := gameDef.GetScriptVariable(int(instruction.VarId))
+	otherValue := int(instruction.Value)
+
+	switch int(instruction.Operation) {
+	case 0:
+		if variableValue == otherValue {
+			return 1
+		} else {
+			return 0
+		}
+	case 1:
+		// greater than
+		if variableValue > otherValue {
+			return 1
+		} else {
+			return 0
+		}
+	case 2:
+		// greater than or equals to
+		if variableValue >= otherValue {
+			return 1
+		} else {
+			return 0
+		}
+	case 3:
+		// less than
+		if variableValue < otherValue {
+			return 1
+		} else {
+			return 0
+		}
+	case 4:
+		// less than or equals to
+		if variableValue <= otherValue {
+			return 1
+		} else {
+			return 0
+		}
+	case 5:
+		// not equals
+		if variableValue != otherValue {
+			return 1
+		} else {
+			return 0
+		}
+	case 6:
+		if variableValue&otherValue != 0 {
+			return 1
+		} else {
+			return 0
+		}
+	}
 
 	return 1
+}
+
+func (scriptDef *ScriptDef) ScriptSave(lineData []byte, gameDef *game.GameDef) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrSave{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
+	gameDef.SetScriptVariable(int(instruction.VarId), int(instruction.Value))
+	return 1
+}
+
+func (scriptDef *ScriptDef) ScriptCopy(lineData []byte, gameDef *game.GameDef) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrCopy{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
+	sourceValue := gameDef.GetScriptVariable(int(instruction.SourceVarId))
+	gameDef.SetScriptVariable(int(instruction.DestVarId), sourceValue)
+	return 1
+}
+
+func (scriptDef *ScriptDef) ScriptCalc(lineData []byte, gameDef *game.GameDef) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrCalc{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
+	leftValue := int(gameDef.GetScriptVariable(int(instruction.VarId)))
+	rightValue := int(instruction.Value)
+	result := scriptDef.ScriptVariableCalculator(int(instruction.Operation), leftValue, rightValue)
+	gameDef.SetScriptVariable(int(instruction.VarId), result)
+	return 1
+}
+
+func (scriptDef *ScriptDef) ScriptCalc2(lineData []byte, gameDef *game.GameDef) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrCalc2{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
+	leftValue := int(gameDef.GetScriptVariable(int(instruction.VarId)))
+	rightValue := int(gameDef.GetScriptVariable(int(instruction.SourceVarId)))
+	result := scriptDef.ScriptVariableCalculator(int(instruction.Operation), leftValue, rightValue)
+	gameDef.SetScriptVariable(int(instruction.VarId), result)
+	return 1
+}
+
+func (scriptDef *ScriptDef) ScriptVariableCalculator(operation int, leftValue int, rightValue int) int {
+	switch operation {
+	case 0:
+		return leftValue + rightValue
+	case 1:
+		return leftValue - rightValue
+	case 2:
+		return leftValue * rightValue
+	case 3:
+		return leftValue / rightValue
+	case 4:
+		return leftValue % rightValue
+	case 5:
+		return leftValue | rightValue
+	case 6:
+		return leftValue & rightValue
+	case 7:
+		return leftValue ^ rightValue
+	case 8:
+		return ^leftValue
+	case 9:
+		return leftValue << (rightValue % 32)
+	case 10:
+		return leftValue >> (rightValue % 32)
+	case 11:
+		return leftValue >> (rightValue % 32)
+	default:
+		log.Fatal("Script variable calculator operation ", operation, " is invalid.")
+	}
+
+	return 0
 }
 
 func (scriptDef *ScriptDef) ScriptCameraChange(lineData []byte, gameDef *game.GameDef) int {
@@ -647,21 +776,6 @@ func (scriptDef *ScriptDef) ScriptSceEsprKill(lineData []byte) int {
 	instruction := fileio.ScriptInstrSceEsprKill{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-	return 1
-}
-
-func (scriptDef *ScriptDef) ScriptItemAotSet(lineData []byte,
-	gameDef *game.GameDef) int {
-
-	byteArr := bytes.NewBuffer(lineData)
-	item := fileio.ScriptInstrItemAotSet{}
-	binary.Read(byteArr, binary.LittleEndian, &item)
-
-	if item.Id != game.AOT_ITEM {
-		log.Fatal("Item has incorrect aot type ", item.Id)
-	}
-
-	gameDef.AotManager.AddItemAot(item)
 	return 1
 }
 

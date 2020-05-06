@@ -79,6 +79,7 @@ const (
 	OP_SUPER_SET        = 72
 	OP_CUT_REPLACE      = 75
 	OP_SCE_ESPR_KILL    = 76
+	OP_DOOR_MODEL_SET   = 77
 	OP_ITEM_AOT_SET     = 78
 	OP_SCE_TRG_CK       = 80
 	OP_SCE_BGM_CONTROL  = 81
@@ -185,6 +186,7 @@ var (
 		OP_SUPER_SET:        16,
 		OP_CUT_REPLACE:      3,
 		OP_SCE_ESPR_KILL:    5,
+		OP_DOOR_MODEL_SET:   22,
 		OP_ITEM_AOT_SET:     22,
 		OP_SCE_TRG_CK:       4,
 		OP_SCE_BGM_CONTROL:  6,
@@ -291,6 +293,41 @@ type ScriptInstrSetBit struct {
 	BitArray  uint8 // Index of array of bits to use
 	BitNumber uint8 // Bit number to check
 	Operation uint8 // 0x0: clear, 0x1: set, 0x2-0x6: invalid, 0x7: flip bit
+}
+
+type ScriptInstrCompare struct {
+	Opcode    uint8 // 0x23
+	Dummy     uint8
+	VarId     uint8
+	Operation uint8
+	Value     int16 // Value to compare against
+}
+
+type ScriptInstrSave struct {
+	Opcode uint8 // 0x24
+	VarId  uint8
+	Value  int16
+}
+
+type ScriptInstrCopy struct {
+	Opcode      uint8 // 0x25
+	DestVarId   uint8
+	SourceVarId uint8
+}
+
+type ScriptInstrCalc struct {
+	Opcode    uint8 // 0x26
+	Dummy     uint8
+	Operation uint8
+	VarId     uint8
+	Value     uint8
+}
+
+type ScriptInstrCalc2 struct {
+	Opcode      uint8 // 0x26
+	Operation   uint8
+	VarId       uint8
+	SourceVarId uint8
 }
 
 type ScriptInstrCutChg struct {
@@ -443,6 +480,19 @@ type ScriptInstrSceEsprKill struct {
 	Type          uint8
 	WorkComponent uint8
 	WorkIndex     uint8
+}
+
+type ScriptInstrDoorModelSet struct {
+	Opcode      uint8 // 0x4d
+	Index       uint8
+	Id          uint8
+	Type        uint8
+	Flag        uint8
+	ModelNumber uint8
+	Unknown0    uint16
+	Unknown1    uint16
+	Position    [3]int16
+	Direction   [3]int16
 }
 
 type ScriptInstrItemAotSet struct {
