@@ -94,52 +94,69 @@ func loadRoomState(mainGameStateInput *MainGameStateInput) {
 	// Initialize sprite textures
 	renderDef.SpriteGroupEntity = render.NewSpriteGroupEntity(mainGameRender.RenderRoom.SpriteData)
 
-	// Initialize scripts
+	initScriptOnRoomLoad(scriptDef, gameDef, renderDef)
+
+	mainGameRender.DebugEntities = render.BuildAllDebugEntities(gameDef)
+}
+
+func initScriptOnRoomLoad(scriptDef *script.ScriptDef, gameDef *game.GameDef, renderDef *render.RenderDef) {
+	// Reset all state
 	scriptDef.Reset()
+
+	gameRoom := gameDef.GameRoom
 
 	// Run initial script once when the room loads
 	threadNum := 0
 	functionNum := 0
-	scriptDef.InitScript(gameDef.GameRoom.InitScriptData, threadNum, functionNum)
-	scriptDef.RunScript(gameDef.GameRoom.InitScriptData, 10.0, gameDef, renderDef)
+	initScriptData := gameRoom.InitScriptData
+	scriptDef.InitScript(initScriptData, threadNum, functionNum)
+	scriptDef.RunScript(initScriptData, 10.0, gameDef, renderDef)
 
-	// Run the room script in the game loop
+	// Initialize the room script to be run in the game loop
 	threadNum = 0
 	functionNum = 0
-	scriptDef.InitScript(gameDef.GameRoom.RoomScriptData, threadNum, functionNum)
+	roomScriptData := gameRoom.RoomScriptData
+	scriptDef.InitScript(roomScriptData, threadNum, functionNum)
 	threadNum = 1
 	functionNum = 1
-	scriptDef.InitScript(gameDef.GameRoom.RoomScriptData, threadNum, functionNum)
-
-	mainGameRender.DebugEntities = render.BuildAllDebugEntities(gameDef)
+	scriptDef.InitScript(roomScriptData, threadNum, functionNum)
 }
 
 func loadCameraState(mainGameStateInput *MainGameStateInput) {
 	gameDef := mainGameStateInput.GameDef
 	mainGameRender := mainGameStateInput.MainGameRender
+
+	updateCameraView(mainGameRender, gameDef)
+	updateRoomBackroundImage(mainGameRender, gameDef)
+	updateCameraSwitchZones(mainGameRender, gameDef)
+}
+
+func updateCameraView(mainGameRender *MainGameRender, gameDef *game.GameDef) {
 	renderDef := mainGameRender.RenderDef
-	roomcutBinOutput := mainGameRender.RoomcutBinOutput
 
 	// Update camera position
 	cameraPosition := gameDef.GameRoom.CameraPositionData[gameDef.CameraId]
-	renderDef.Camera.CameraFrom = cameraPosition.CameraFrom
-	renderDef.Camera.CameraTo = cameraPosition.CameraTo
-	renderDef.Camera.CameraFov = cameraPosition.CameraFov
+	renderDef.Camera.Update(cameraPosition.CameraFrom, cameraPosition.CameraTo, cameraPosition.CameraFov)
 	renderDef.ViewMatrix = renderDef.Camera.BuildViewMatrix()
-	renderDef.EnvironmentLight = render.BuildEnvironmentLight(mainGameRender.RenderRoom.LightData[gameDef.CameraId])
 
+	// Update lighting
+	renderDef.EnvironmentLight = render.BuildEnvironmentLight(mainGameRender.RenderRoom.LightData[gameDef.CameraId])
+}
+
+func updateRoomBackroundImage(mainGameRender *MainGameRender, gameDef *game.GameDef) {
 	// Update background image
-	backgroundImageNumber := gameDef.GetBackgroundImageNumber()
-	roomOutput := fileio.ExtractRoomBackground(game.ROOMCUT_FILE, roomcutBinOutput, backgroundImageNumber)
+	roomOutput := fileio.ExtractRoomBackground(game.ROOMCUT_FILE, mainGameRender.RoomcutBinOutput, gameDef.GetBackgroundImageNumber())
 
 	if roomOutput.BackgroundImage != nil {
+		renderDef := mainGameRender.RenderDef
 		render.UpdateTextureADT(renderDef.BackgroundImageEntity.TextureId, roomOutput.BackgroundImage)
 		// Camera image mask depends on updated camera position
 		cameraMasks := mainGameRender.RenderRoom.CameraMaskData[gameDef.CameraId]
 		renderDef.CameraMaskEntity.UpdateCameraImageMaskEntity(renderDef, roomOutput, cameraMasks)
 	}
+}
 
-	// Update camera switch zones
+func updateCameraSwitchZones(mainGameRender *MainGameRender, gameDef *game.GameDef) {
 	cameraSwitchHandler := gameDef.GameRoom.CameraSwitchHandler
 	mainGameRender.CameraSwitchDebugEntity = render.NewCameraSwitchDebugEntity(gameDef.CameraId,
 		cameraSwitchHandler.CameraSwitches, cameraSwitchHandler.CameraSwitchTransitions)
@@ -152,20 +169,27 @@ func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameS
 	renderDef := mainGameRender.RenderDef
 	playerEntity := mainGameRender.PlayerEntity
 
+	// Update screen
+	playerEntity.UpdatePlayerEntity(gameDef.Player, gameDef.Player.PoseNumber)
+
 	timeElapsedSeconds := windowHandler.GetTimeSinceLastFrame()
 	// Only render these entities for debugging
 	debugEntitiesRender := render.DebugEntities{
 		CameraSwitchDebugEntity: mainGameRender.CameraSwitchDebugEntity,
 		DebugEntities:           mainGameRender.DebugEntities,
 	}
-	// Update screen
-	playerEntity.UpdatePlayerEntity(gameDef.Player, gameDef.Player.PoseNumber)
-
 	renderDef.RenderFrame(*playerEntity, debugEntitiesRender, timeElapsedSeconds)
 
 	handleMainGameInput(gameDef, timeElapsedSeconds, gameDef.GameRoom.CollisionEntities, gameStateManager)
 	gameDef.HandleCameraSwitch(gameDef.Player.Position)
 	gameDef.HandleRoomSwitch(gameDef.Player.Position)
+	handleEventTrigger(scriptDef, gameDef)
+
+	scriptDef.RunScript(gameDef.GameRoom.RoomScriptData, timeElapsedSeconds, gameDef, renderDef)
+}
+
+func handleEventTrigger(scriptDef *script.ScriptDef, gameDef *game.GameDef) {
+	// Handles events like cutscenes
 	aot := gameDef.AotManager.GetAotTriggerNearPlayer(gameDef.Player.Position)
 	if aot != nil {
 		if aot.Header.Id == game.AOT_EVENT {
@@ -175,8 +199,6 @@ func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameS
 			scriptDef.ScriptEvtExec(lineData, gameDef.GameRoom.RoomScriptData)
 		}
 	}
-
-	scriptDef.RunScript(gameDef.GameRoom.RoomScriptData, timeElapsedSeconds, gameDef, renderDef)
 }
 
 func handleMainGameInput(gameDef *game.GameDef,

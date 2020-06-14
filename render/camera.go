@@ -20,6 +20,12 @@ func NewCamera(cameraFrom mgl32.Vec3, cameraTo mgl32.Vec3, cameraUp mgl32.Vec3, 
 	}
 }
 
+func (c *Camera) Update(cameraFrom mgl32.Vec3, cameraTo mgl32.Vec3, cameraFov float32) {
+	c.CameraFrom = cameraFrom
+	c.CameraTo = cameraTo
+	c.CameraFov = cameraFov
+}
+
 func (c *Camera) BuildViewMatrix() mgl32.Mat4 {
 	cameraFrom := c.CameraFrom
 	cameraTo := c.CameraTo
