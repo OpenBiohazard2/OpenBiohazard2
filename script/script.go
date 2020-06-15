@@ -14,6 +14,10 @@ import (
 const (
 	SCRIPT_FRAMES_PER_SECOND = 30.0
 
+	INSTRUCTION_BREAK_FLOW = 0
+	INSTRUCTION_NORMAL     = 1
+	INSTRUCTION_THREAD_END = 2
+
 	WORKSET_PLAYER = 1
 	WORKSET_ENEMY  = 3
 	WORKSET_OBJECT = 4
@@ -59,158 +63,172 @@ func (scriptDef *ScriptDef) RunScript(
 	gameDef *game.GameDef,
 	renderDef *render.RenderDef) {
 	for i := 0; i < len(scriptDef.ScriptThreads); i++ {
-		scriptDef.RunScriptThread(scriptDef.ScriptThreads[i], scriptData, timeElapsedSeconds, gameDef, renderDef)
+		// Regulate frames per second
+		scriptDeltaTime += timeElapsedSeconds
+		if scriptDeltaTime > 1.0/SCRIPT_FRAMES_PER_SECOND {
+			scriptDeltaTime = 0.0
+		} else {
+			continue
+		}
+
+		scriptDef.RunScriptThread(scriptDef.ScriptThreads[i], scriptData, gameDef, renderDef)
 	}
 }
 
 func (scriptDef *ScriptDef) RunScriptThread(
 	curScriptThread *ScriptThread,
 	scriptData fileio.ScriptFunction,
-	timeElapsedSeconds float64,
 	gameDef *game.GameDef,
 	renderDef *render.RenderDef) {
-
-	scriptDeltaTime += timeElapsedSeconds
-	if scriptDeltaTime > 1.0/SCRIPT_FRAMES_PER_SECOND {
-		scriptDeltaTime = 0.0
-	} else {
-		return
-	}
-
 	scriptThread = curScriptThread
+
+	// Thread should not run
 	if scriptThread.RunStatus == false {
 		return
 	}
 
 	for true {
-		scriptReturnValue := 0
-		for true {
-			lineData := scriptData.Instructions[scriptThread.ProgramCounter]
-			opcode := lineData[0]
-
-			scriptThread.OverrideProgramCounter = false
-
-			var returnValue int
-			switch opcode {
-			case fileio.OP_EVT_END:
-				returnValue = scriptDef.ScriptEvtEnd(lineData)
-			case fileio.OP_EVT_EXEC:
-				returnValue = scriptDef.ScriptEvtExec(lineData, scriptData)
-			case fileio.OP_IF_START:
-				returnValue = scriptDef.ScriptIfBlockStart(lineData)
-			case fileio.OP_ELSE_START:
-				returnValue = scriptDef.ScriptElseCheck(lineData)
-			case fileio.OP_END_IF:
-				returnValue = scriptDef.ScriptEndIf()
-			case fileio.OP_SLEEP:
-				returnValue = scriptDef.ScriptSleep(lineData)
-			case fileio.OP_SLEEPING:
-				returnValue = scriptDef.ScriptSleeping(lineData)
-			case fileio.OP_FOR:
-				returnValue = scriptDef.ScriptForLoopBegin(lineData)
-			case fileio.OP_FOR_END:
-				returnValue = scriptDef.ScriptForLoopEnd(lineData)
-			case fileio.OP_SWITCH:
-				returnValue = scriptDef.ScriptSwitchBegin(lineData, scriptData.Instructions, gameDef)
-			case fileio.OP_CASE:
-				returnValue = 1
-			case fileio.OP_DEFAULT:
-				returnValue = 1
-			case fileio.OP_END_SWITCH:
-				returnValue = scriptDef.ScriptSwitchEnd()
-			case fileio.OP_GOTO:
-				returnValue = scriptDef.ScriptGoto(lineData)
-			case fileio.OP_GOSUB:
-				returnValue = scriptDef.ScriptGoSub(lineData, scriptData)
-			case fileio.OP_BREAK:
-				returnValue = scriptDef.ScriptBreak(lineData)
-			case fileio.OP_CHECK: // 0x21
-				returnValue = scriptDef.ScriptCheckBit(lineData, gameDef)
-			case fileio.OP_SET_BIT: // 0x22
-				returnValue = scriptDef.ScriptSetBit(lineData, gameDef)
-			case fileio.OP_COMPARE: // 0x23
-				returnValue = scriptDef.ScriptCompare(lineData, gameDef)
-			case fileio.OP_SAVE: // 0x24
-				returnValue = scriptDef.ScriptSave(lineData, gameDef)
-			case fileio.OP_COPY: // 0x25
-				returnValue = scriptDef.ScriptCopy(lineData, gameDef)
-			case fileio.OP_CALC: // 0x26
-				returnValue = scriptDef.ScriptCalc(lineData, gameDef)
-			case fileio.OP_CALC2: // 0x27
-				returnValue = scriptDef.ScriptCalc(lineData, gameDef)
-			case fileio.OP_CUT_CHG:
-				returnValue = scriptDef.ScriptCameraChange(lineData, gameDef)
-			case fileio.OP_AOT_SET:
-				returnValue = scriptDef.ScriptAotSet(lineData, gameDef)
-			case fileio.OP_OBJ_MODEL_SET:
-				returnValue = scriptDef.ScriptObjectModelSet(lineData, renderDef)
-			case fileio.OP_WORK_SET:
-				returnValue = scriptDef.ScriptWorkSet(lineData)
-			case fileio.OP_POS_SET:
-				returnValue = scriptDef.ScriptPositionSet(lineData, gameDef)
-			case fileio.OP_MEMBER_SET:
-				returnValue = scriptDef.ScriptMemberSet(lineData, gameDef, renderDef)
-			case fileio.OP_SCA_ID_SET:
-				returnValue = scriptDef.ScriptScaIdSet(lineData, gameDef)
-			case fileio.OP_SCE_ESPR_ON:
-				returnValue = scriptDef.ScriptSceEsprOn(lineData, gameDef, renderDef)
-			case fileio.OP_DOOR_AOT_SET:
-				returnValue = scriptDef.ScriptDoorAotSet(lineData, gameDef)
-			case fileio.OP_MEMBER_CMP:
-				returnValue = scriptDef.ScriptMemberCompare(lineData)
-			case fileio.OP_PLC_MOTION: // 0x3f
-				returnValue = scriptDef.ScriptPlcMotion(lineData)
-			case fileio.OP_PLC_DEST: // 0x40
-				returnValue = scriptDef.ScriptPlcDest(lineData)
-			case fileio.OP_PLC_NECK: // 0x41
-				returnValue = scriptDef.ScriptPlcNeck(lineData)
-			case fileio.OP_SCE_EM_SET: // 0x44
-				returnValue = scriptDef.ScriptSceEmSet(lineData)
-			case fileio.OP_AOT_RESET: // 0x46
-				returnValue = scriptDef.ScriptAotReset(lineData, gameDef)
-			case fileio.OP_SCE_ESPR_KILL: // 0x4c
-				returnValue = scriptDef.ScriptSceEsprKill(lineData)
-			case fileio.OP_ITEM_AOT_SET: // 0x4e
-				returnValue = scriptDef.ScriptItemAotSet(lineData, gameDef)
-			case fileio.OP_SCE_BGM_CONTROL: // 0x51
-				returnValue = scriptDef.ScriptSceBgmControl(lineData)
-			case fileio.OP_AOT_SET_4P:
-				returnValue = scriptDef.ScriptAotSet4p(lineData, gameDef)
-			case fileio.OP_DOOR_AOT_SET_4P:
-				returnValue = scriptDef.ScriptDoorAotSet4p(lineData, gameDef)
-			case fileio.OP_ITEM_AOT_SET_4P:
-				returnValue = scriptDef.ScriptItemAotSet4p(lineData, gameDef)
-			default:
-				returnValue = 1
-			}
-
-			if !scriptThread.OverrideProgramCounter {
-				scriptThread.IncrementProgramCounter(opcode)
-			}
-			scriptThread.OverrideProgramCounter = false
-
-			// Control flow is broken
-			if returnValue != 1 {
-				scriptReturnValue = returnValue
-				break
-			}
-		}
+		sectionReturnValue := scriptDef.RunScriptUntilBreakControlFlow(scriptData, gameDef, renderDef)
 
 		// End thread
-		if scriptReturnValue == 2 || scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter < 0 {
+		if scriptThread.ShouldTerminate(sectionReturnValue) {
 			break
 		}
 
-		if scriptThread.StackIndex == 0 {
-			log.Fatal("Script stack is empty")
-		}
-
-		// pop stack
-		scriptThread.StackIndex--
-		stackTop := scriptThread.LevelState[scriptThread.SubLevel].Stack[scriptThread.StackIndex]
-		scriptThread.ProgramCounter = stackTop
-		scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter--
+		scriptThread.JumpToNextLocationOnStack()
 	}
+}
+
+func (scriptDef *ScriptDef) RunScriptUntilBreakControlFlow(
+	scriptData fileio.ScriptFunction,
+	gameDef *game.GameDef,
+	renderDef *render.RenderDef) int {
+	scriptReturnValue := 0
+	for true {
+		lineData := scriptData.Instructions[scriptThread.ProgramCounter]
+		opcode := lineData[0]
+
+		// Override can be modified during execution
+		scriptThread.OverrideProgramCounter = false
+
+		instructionReturnValue := scriptDef.ExecuteSingleInstruction(lineData, scriptData, gameDef, renderDef)
+
+		if !scriptThread.OverrideProgramCounter {
+			scriptThread.IncrementProgramCounter(opcode)
+		}
+		scriptThread.OverrideProgramCounter = false
+
+		// Control flow is broken
+		if instructionReturnValue != INSTRUCTION_NORMAL {
+			scriptReturnValue = instructionReturnValue
+			break
+		}
+	}
+	return scriptReturnValue
+}
+
+func (scriptDef *ScriptDef) ExecuteSingleInstruction(
+	lineData []byte,
+	scriptData fileio.ScriptFunction,
+	gameDef *game.GameDef,
+	renderDef *render.RenderDef) int {
+	var returnValue int
+
+	opcode := lineData[0]
+	switch opcode {
+	case fileio.OP_EVT_END:
+		returnValue = scriptDef.ScriptEvtEnd(lineData)
+	case fileio.OP_EVT_EXEC:
+		returnValue = scriptDef.ScriptEvtExec(lineData, scriptData)
+	case fileio.OP_IF_START:
+		returnValue = scriptDef.ScriptIfBlockStart(scriptThread, lineData)
+	case fileio.OP_ELSE_START:
+		returnValue = scriptDef.ScriptElseCheck(scriptThread, lineData)
+	case fileio.OP_END_IF:
+		returnValue = scriptDef.ScriptEndIf()
+	case fileio.OP_SLEEP:
+		returnValue = scriptDef.ScriptSleep(lineData)
+	case fileio.OP_SLEEPING:
+		returnValue = scriptDef.ScriptSleeping(lineData)
+	case fileio.OP_FOR:
+		returnValue = scriptDef.ScriptForLoopBegin(lineData)
+	case fileio.OP_FOR_END:
+		returnValue = scriptDef.ScriptForLoopEnd(lineData)
+	case fileio.OP_SWITCH:
+		returnValue = scriptDef.ScriptSwitchBegin(lineData, scriptData.Instructions, gameDef)
+	case fileio.OP_CASE:
+		returnValue = 1 // already implemented in switch statement
+	case fileio.OP_DEFAULT:
+		returnValue = 1 // already implemented in switch statement
+	case fileio.OP_END_SWITCH:
+		returnValue = scriptDef.ScriptSwitchEnd()
+	case fileio.OP_GOTO:
+		returnValue = scriptDef.ScriptGoto(lineData)
+	case fileio.OP_GOSUB:
+		returnValue = scriptDef.ScriptGoSub(lineData, scriptData)
+	case fileio.OP_BREAK:
+		returnValue = scriptDef.ScriptBreak(lineData)
+	case fileio.OP_CHECK: // 0x21
+		returnValue = scriptDef.ScriptCheckBit(lineData, gameDef)
+	case fileio.OP_SET_BIT: // 0x22
+		returnValue = scriptDef.ScriptSetBit(lineData, gameDef)
+	case fileio.OP_COMPARE: // 0x23
+		returnValue = scriptDef.ScriptCompare(lineData, gameDef)
+	case fileio.OP_SAVE: // 0x24
+		returnValue = scriptDef.ScriptSave(lineData, gameDef)
+	case fileio.OP_COPY: // 0x25
+		returnValue = scriptDef.ScriptCopy(lineData, gameDef)
+	case fileio.OP_CALC: // 0x26
+		returnValue = scriptDef.ScriptCalc(lineData, gameDef)
+	case fileio.OP_CALC2: // 0x27
+		returnValue = scriptDef.ScriptCalc(lineData, gameDef)
+	case fileio.OP_CUT_CHG:
+		returnValue = scriptDef.ScriptCameraChange(lineData, gameDef)
+	case fileio.OP_AOT_SET:
+		returnValue = scriptDef.ScriptAotSet(lineData, gameDef)
+	case fileio.OP_OBJ_MODEL_SET:
+		returnValue = scriptDef.ScriptObjectModelSet(lineData, renderDef)
+	case fileio.OP_WORK_SET:
+		returnValue = scriptDef.ScriptWorkSet(lineData)
+	case fileio.OP_POS_SET:
+		returnValue = scriptDef.ScriptPositionSet(lineData, gameDef)
+	case fileio.OP_MEMBER_SET:
+		returnValue = scriptDef.ScriptMemberSet(lineData, gameDef, renderDef)
+	case fileio.OP_SCA_ID_SET:
+		returnValue = scriptDef.ScriptScaIdSet(lineData, gameDef)
+	case fileio.OP_SCE_ESPR_ON:
+		returnValue = scriptDef.ScriptSceEsprOn(lineData, gameDef, renderDef)
+	case fileio.OP_DOOR_AOT_SET:
+		returnValue = scriptDef.ScriptDoorAotSet(lineData, gameDef)
+	case fileio.OP_MEMBER_CMP:
+		returnValue = scriptDef.ScriptMemberCompare(lineData)
+	case fileio.OP_PLC_MOTION: // 0x3f
+		returnValue = scriptDef.ScriptPlcMotion(lineData)
+	case fileio.OP_PLC_DEST: // 0x40
+		returnValue = scriptDef.ScriptPlcDest(lineData)
+	case fileio.OP_PLC_NECK: // 0x41
+		returnValue = scriptDef.ScriptPlcNeck(lineData)
+	case fileio.OP_SCE_EM_SET: // 0x44
+		returnValue = scriptDef.ScriptSceEmSet(lineData)
+	case fileio.OP_AOT_RESET: // 0x46
+		returnValue = scriptDef.ScriptAotReset(lineData, gameDef)
+	case fileio.OP_SCE_ESPR_KILL: // 0x4c
+		returnValue = scriptDef.ScriptSceEsprKill(lineData)
+	case fileio.OP_ITEM_AOT_SET: // 0x4e
+		returnValue = scriptDef.ScriptItemAotSet(lineData, gameDef)
+	case fileio.OP_SCE_BGM_CONTROL: // 0x51
+		returnValue = scriptDef.ScriptSceBgmControl(lineData)
+	case fileio.OP_AOT_SET_4P:
+		returnValue = scriptDef.ScriptAotSet4p(lineData, gameDef)
+	case fileio.OP_DOOR_AOT_SET_4P:
+		returnValue = scriptDef.ScriptDoorAotSet4p(lineData, gameDef)
+	case fileio.OP_ITEM_AOT_SET_4P:
+		returnValue = scriptDef.ScriptItemAotSet4p(lineData, gameDef)
+	default:
+		returnValue = 1
+	}
+
+	return returnValue
 }
 
 func (scriptDef *ScriptDef) ScriptSleep(lineData []byte) int {
@@ -243,7 +261,7 @@ func (scriptDef *ScriptDef) ScriptSleeping(lineData []byte) int {
 
 	scriptThread.OverrideProgramCounter = true
 
-	return 2
+	return INSTRUCTION_THREAD_END
 }
 
 func (scriptDef *ScriptDef) ScriptCheckBit(lineData []byte, gameDef *game.GameDef) int {
@@ -254,7 +272,7 @@ func (scriptDef *ScriptDef) ScriptCheckBit(lineData []byte, gameDef *game.GameDe
 	if gameDef.GetBitArray(int(bitTest.BitArray), int(bitTest.Number)) == int(bitTest.Value) {
 		return 1
 	}
-	return 0
+	return INSTRUCTION_BREAK_FLOW
 }
 
 func (scriptDef *ScriptDef) ScriptSetBit(lineData []byte, gameDef *game.GameDef) int {
@@ -293,48 +311,48 @@ func (scriptDef *ScriptDef) ScriptCompare(lineData []byte, gameDef *game.GameDef
 		if variableValue == otherValue {
 			return 1
 		} else {
-			return 0
+			return INSTRUCTION_BREAK_FLOW
 		}
 	case 1:
 		// greater than
 		if variableValue > otherValue {
 			return 1
 		} else {
-			return 0
+			return INSTRUCTION_BREAK_FLOW
 		}
 	case 2:
 		// greater than or equals to
 		if variableValue >= otherValue {
 			return 1
 		} else {
-			return 0
+			return INSTRUCTION_BREAK_FLOW
 		}
 	case 3:
 		// less than
 		if variableValue < otherValue {
 			return 1
 		} else {
-			return 0
+			return INSTRUCTION_BREAK_FLOW
 		}
 	case 4:
 		// less than or equals to
 		if variableValue <= otherValue {
 			return 1
 		} else {
-			return 0
+			return INSTRUCTION_BREAK_FLOW
 		}
 	case 5:
 		// not equals
 		if variableValue != otherValue {
 			return 1
 		} else {
-			return 0
+			return INSTRUCTION_BREAK_FLOW
 		}
 	case 6:
 		if variableValue&otherValue != 0 {
 			return 1
 		} else {
-			return 0
+			return INSTRUCTION_BREAK_FLOW
 		}
 	}
 
@@ -414,7 +432,7 @@ func (scriptDef *ScriptDef) ScriptVariableCalculator(operation int, leftValue in
 		log.Fatal("Script variable calculator operation ", operation, " is invalid.")
 	}
 
-	return 0
+	return INSTRUCTION_BREAK_FLOW
 }
 
 func (scriptDef *ScriptDef) ScriptCameraChange(lineData []byte, gameDef *game.GameDef) int {

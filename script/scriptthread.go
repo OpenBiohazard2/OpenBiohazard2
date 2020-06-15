@@ -1,6 +1,8 @@
 package script
 
 import (
+	"log"
+
 	"github.com/samuelyuan/openbiohazard2/fileio"
 )
 
@@ -54,6 +56,13 @@ func NewLoopState() *LoopState {
 	}
 }
 
+func (loopState *LoopState) ResetLoopState() {
+	loopState.Counter = 0
+	loopState.Break = 0
+	loopState.LevelIfCounter = 0
+	loopState.StackValue = 0
+}
+
 func NewScriptThread() *ScriptThread {
 	levelState := make([]*LevelState, 4)
 	for i := 0; i < len(levelState); i++ {
@@ -87,10 +96,7 @@ func (thread *ScriptThread) Reset() {
 		}
 
 		for j := 0; j < len(thread.LevelState[i].LoopState); j++ {
-			thread.LevelState[i].LoopState[j].Counter = 0
-			thread.LevelState[i].LoopState[j].Break = 0
-			thread.LevelState[i].LoopState[j].LevelIfCounter = 0
-			thread.LevelState[i].LoopState[j].StackValue = 0
+			thread.LevelState[i].LoopState[j].ResetLoopState()
 		}
 	}
 	thread.LevelState[0].IfElseCounter = -1
@@ -101,4 +107,27 @@ func (thread *ScriptThread) Reset() {
 
 func (thread *ScriptThread) IncrementProgramCounter(opcode byte) {
 	thread.ProgramCounter += fileio.InstructionSize[opcode]
+}
+
+func (scriptThread *ScriptThread) JumpToNextLocationOnStack() {
+	scriptThread.ProgramCounter = scriptThread.PopStackTop()
+	scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter--
+}
+
+func (scriptThread *ScriptThread) PushStack(newPosition int) {
+	scriptThread.LevelState[scriptThread.SubLevel].Stack[scriptThread.StackIndex] = newPosition
+	scriptThread.StackIndex++
+}
+
+func (scriptThread *ScriptThread) PopStackTop() int {
+	if scriptThread.StackIndex == 0 {
+		log.Fatal("Script stack is empty")
+	}
+
+	scriptThread.StackIndex--
+	return scriptThread.LevelState[scriptThread.SubLevel].Stack[scriptThread.StackIndex]
+}
+
+func (scriptThread *ScriptThread) ShouldTerminate(scriptReturnValue int) bool {
+	return scriptReturnValue == INSTRUCTION_THREAD_END || scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter < 0
 }

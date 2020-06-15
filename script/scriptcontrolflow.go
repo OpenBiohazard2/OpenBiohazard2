@@ -3,13 +3,13 @@ package script
 import (
 	"bytes"
 	"encoding/binary"
-  "log"
+	"log"
 
 	"github.com/samuelyuan/openbiohazard2/fileio"
 	"github.com/samuelyuan/openbiohazard2/game"
 )
 
-func (scriptDef *ScriptDef) ScriptIfBlockStart(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptIfBlockStart(scriptThread *ScriptThread, lineData []byte) int {
 	byteArr := bytes.NewBuffer(lineData)
 	conditional := fileio.ScriptInstrIfElseStart{}
 	binary.Read(byteArr, binary.LittleEndian, &conditional)
@@ -17,20 +17,21 @@ func (scriptDef *ScriptDef) ScriptIfBlockStart(lineData []byte) int {
 	opcode := lineData[0]
 	scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter++
 	newPosition := (scriptThread.ProgramCounter + fileio.InstructionSize[opcode]) + int(conditional.BlockLength)
-	scriptThread.LevelState[scriptThread.SubLevel].Stack[scriptThread.StackIndex] = newPosition
-	scriptThread.StackIndex++
+	scriptThread.PushStack(newPosition)
 
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptElseCheck(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptElseCheck(scriptThread *ScriptThread, lineData []byte) int {
 	byteArr := bytes.NewBuffer(lineData)
 	conditional := fileio.ScriptInstrElseStart{}
 	binary.Read(byteArr, binary.LittleEndian, &conditional)
 
 	scriptThread.StackIndex--
-	scriptThread.ProgramCounter = scriptThread.ProgramCounter + int(conditional.BlockLength)
 	scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter--
+
+	// Jump to position after the else block
+	scriptThread.ProgramCounter = scriptThread.ProgramCounter + int(conditional.BlockLength)
 	scriptThread.OverrideProgramCounter = true
 	return 1
 }

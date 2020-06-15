@@ -15,12 +15,12 @@ func (scriptDef *ScriptDef) ScriptEvtEnd(lineData []byte) int {
 		scriptThread.ProgramCounter = scriptThread.LevelState[scriptThread.SubLevel].ReturnAddress
 		scriptThread.OverrideProgramCounter = true
 		scriptThread.StackIndex = ifElseCounter + 1
-		return 1
+		return INSTRUCTION_NORMAL
 	}
 
 	// The program is in the top level
 	scriptThread.RunStatus = false
-	return 2
+	return INSTRUCTION_THREAD_END
 }
 
 func (scriptDef *ScriptDef) ScriptEvtExec(lineData []byte, scriptData fileio.ScriptFunction) int {
@@ -47,5 +47,5 @@ func (scriptDef *ScriptDef) ScriptEvtExec(lineData []byte, scriptData fileio.Scr
 	scriptDef.ScriptThreads[nextThreadNum].ProgramCounter = scriptData.StartProgramCounter[instruction.Event]
 	scriptDef.ScriptThreads[nextThreadNum].LevelState[0].IfElseCounter = -1
 	scriptDef.ScriptThreads[nextThreadNum].LevelState[0].LoopLevel = -1
-	return 1
+	return INSTRUCTION_NORMAL
 }

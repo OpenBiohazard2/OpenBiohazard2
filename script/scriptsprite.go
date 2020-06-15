@@ -6,7 +6,7 @@ import (
 
 	"github.com/samuelyuan/openbiohazard2/fileio"
 	"github.com/samuelyuan/openbiohazard2/game"
-  "github.com/samuelyuan/openbiohazard2/render"
+	"github.com/samuelyuan/openbiohazard2/render"
 )
 
 func (scriptDef *ScriptDef) ScriptSceEsprOn(lineData []byte, gameDef *game.GameDef, renderDef *render.RenderDef) int {
@@ -24,7 +24,7 @@ func (scriptDef *ScriptDef) ScriptSceEsprKill(lineData []byte) int {
 	instruction := fileio.ScriptInstrSceEsprKill{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-  // TODO: implement
+	// TODO: implement
 
 	return 1
 }

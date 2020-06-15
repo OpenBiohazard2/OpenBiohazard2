@@ -14,7 +14,7 @@ func (scriptDef *ScriptDef) ScriptPlcMotion(lineData []byte) int {
 	instruction := fileio.ScriptInstrPlcMotion{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-  // TODO: implement
+	// TODO: implement
 
 	return 1
 }
@@ -24,7 +24,7 @@ func (scriptDef *ScriptDef) ScriptPlcDest(lineData []byte) int {
 	instruction := fileio.ScriptInstrPlcDest{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-  // TODO: implement
+	// TODO: implement
 
 	return 1
 }
@@ -34,7 +34,7 @@ func (scriptDef *ScriptDef) ScriptPlcNeck(lineData []byte) int {
 	instruction := fileio.ScriptInstrPlcNeck{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-  // TODO: implement
+	// TODO: implement
 
 	return 1
 }
