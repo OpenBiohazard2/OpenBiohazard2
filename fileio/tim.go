@@ -96,6 +96,11 @@ func LoadTIMStream(r io.ReaderAt, fileLength int64) (*TIMOutput, error) {
 func read4BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error) {
 	numColors := timHeader.NumColors
 	palettes := make([][]uint16, int(timHeader.NumCluts))
+
+	if numColors != 16 {
+		log.Fatal("4BPP TIM image does not have 16 colors in palette. It has ", numColors, "colors.")
+	}
+
 	for i := 0; i < int(timHeader.NumCluts); i++ {
 		palettes[i] = make([]uint16, numColors)
 		if err := binary.Read(reader, binary.LittleEndian, &palettes[i]); err != nil {
@@ -125,15 +130,18 @@ func read4BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error)
 		index := imageData[i/2]
 		colorPalette := palettes[(i%totalImageWidth)/(totalImageWidth/len(palettes))]
 
+		color1Index := index & 0x0F
+		color2Index := (index & 0xF0) >> 4
+
 		// color 1
 		x := i % totalImageWidth
 		y := i / totalImageWidth
-		pixelData2D[y][x] = colorPalette[(index&0xF0)>>4]
+		pixelData2D[y][x] = colorPalette[color1Index]
 
 		// color 2
 		x = (i + 1) % totalImageWidth
 		y = (i + 1) / totalImageWidth
-		pixelData2D[y][x] = colorPalette[index&0x0F]
+		pixelData2D[y][x] = colorPalette[color2Index]
 	}
 
 	headerBytes := 32
@@ -154,6 +162,11 @@ func read4BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error)
 func read8BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error) {
 	numColors := timHeader.NumColors
 	palettes := make([][]uint16, int(timHeader.NumCluts))
+
+	if numColors != 256 {
+		log.Fatal("8BPP TIM image does not have 256 colors in palette. It has ", numColors, "colors.")
+	}
+
 	for i := 0; i < int(timHeader.NumCluts); i++ {
 		palettes[i] = make([]uint16, numColors)
 		if err := binary.Read(reader, binary.LittleEndian, &palettes[i]); err != nil {
