@@ -87,6 +87,18 @@ func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 		}
 	}
 
+	if windowHandler.InputHandler.IsActive(client.MENU_LEFT_BUTTON) {
+		if gameStateManager.CanUpdateGameState() {
+			render.PrevMenu0Option()
+			gameStateManager.UpdateLastTimeChangeState()
+		}
+	} else if windowHandler.InputHandler.IsActive(client.MENU_RIGHT_BUTTON) {
+		if gameStateManager.CanUpdateGameState() {
+			render.NextMenu0Option()
+			gameStateManager.UpdateLastTimeChangeState()
+		}
+	}
+
 	timeElapsedSeconds := windowHandler.GetTimeSinceLastFrame()
 	renderDef.GenerateInventoryImage(inventoryImages, inventoryItemImages, timeElapsedSeconds)
 	renderDef.RenderSolidVideoBuffer()

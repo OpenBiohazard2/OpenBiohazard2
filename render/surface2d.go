@@ -174,6 +174,30 @@ func copyPixelsBrightness(sourcePixels [][]uint16, startX int, startY int, width
 	}
 }
 
+func copyPixelsBrightnessColor(sourcePixels [][]uint16, startX int, startY int, width int, height int,
+	destPixels []uint16, destX int, destY int, factorR float64, factorG float64, factorB float64) {
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			pixel := sourcePixels[startY+y][startX+x]
+			newPixel := int(0)
+			if pixel > 0 {
+				pixelR := (pixel % 32)
+				pixelG := ((pixel >> 5) % 32)
+				pixelB := ((pixel >> 10) % 32)
+				newR := int(math.Floor(float64(pixelR) * factorR))
+				newG := int(math.Floor(float64(pixelG) * factorG))
+				newB := int(math.Floor(float64(pixelB) * factorB))
+				newPixel = (1 << 15) | (newB << 10) | (newG << 5) | newR
+			}
+
+			// Overwrite pixel if it's not transparent
+			if newPixel > 0 {
+				destPixels[((destY+y)*IMAGE_SURFACE_WIDTH)+(destX+x)] = uint16(newPixel)
+			}
+		}
+	}
+}
+
 func fillPixels(newImageColors []uint16, destX int, destY int, width int, height int,
 	r int, g int, b int) {
 	// Convert color to A1R5G5B5 format

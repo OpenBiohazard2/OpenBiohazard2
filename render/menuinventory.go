@@ -10,6 +10,10 @@ const (
 	HEALTH_ORANGE_CAUTION = 2
 	HEALTH_DANGER         = 3
 	HEALTH_POISON         = 4
+	HEALTH_POS_X          = 58
+	HEALTH_POS_Y          = 29
+	ITEMLIST_POS_X        = 220
+	ITEMLIST_POS_Y        = 70
 )
 
 var (
@@ -23,6 +27,8 @@ var (
 		NewHealthECGDanger(),
 		NewHealthECGPoison(),
 	}
+	Status_Function0   = 0
+	Status_MenuCursor0 = 2
 )
 
 type HealthECGView struct {
@@ -84,10 +90,10 @@ func buildBackground(inventoryImages []*fileio.TIMOutput, newImageColors []uint1
 	buildMenuTabs(inventoryImages, newImageColors)
 
 	// Item slots
-	copyPixels(inventoryImages[0].PixelData, 114, 92, 5, 120, newImageColors, 220, 73) // left
-	copyPixels(inventoryImages[0].PixelData, 0, 140, 90, 3, newImageColors, 220, 70)   // top
-	copyPixels(inventoryImages[0].PixelData, 114, 92, 5, 120, newImageColors, 305, 73) // right
-	copyPixels(inventoryImages[0].PixelData, 0, 140, 90, 4, newImageColors, 220, 193)  // bottom
+	copyPixels(inventoryImages[0].PixelData, 114, 92, 5, 120, newImageColors, ITEMLIST_POS_X, ITEMLIST_POS_Y+3)    // left
+	copyPixels(inventoryImages[0].PixelData, 0, 140, 90, 3, newImageColors, ITEMLIST_POS_X, ITEMLIST_POS_Y)        // top
+	copyPixels(inventoryImages[0].PixelData, 114, 92, 5, 120, newImageColors, ITEMLIST_POS_X+85, ITEMLIST_POS_Y+3) // right
+	copyPixels(inventoryImages[0].PixelData, 0, 140, 90, 4, newImageColors, ITEMLIST_POS_X, ITEMLIST_POS_Y+123)    // bottom
 
 	buildDescription(inventoryImages, newImageColors)
 }
@@ -109,12 +115,12 @@ func buildPlayerFace(inventoryImages []*fileio.TIMOutput, newImageColors []uint1
 
 	// Pipes to the right of player image
 	copyPixels(inventoryImages[0].PixelData, 56, 186, 7, 7, newImageColors, 53, 32)
-	copyPixels(inventoryImages[0].PixelData, 56, 186, 7, 7, newImageColors, 53, 60)
+	copyPixels(inventoryImages[0].PixelData, 56, 186, 7, 7, newImageColors, 53, HEALTH_POS_X+2)
 }
 
 func buildHealthECG(inventoryImages []*fileio.TIMOutput, newImageColors []uint16, backgroundColor [3]int) {
 	// Draw health background
-	copyPixels(inventoryImages[0].PixelData, 0, 92, 99, 47, newImageColors, 60, 29)
+	copyPixels(inventoryImages[0].PixelData, 0, 92, 99, 47, newImageColors, HEALTH_POS_X+2, HEALTH_POS_Y)
 	// Sloped line to the right of Condition
 	for i := 0; i < 8; i++ {
 		fillPixels(newImageColors, 129-i, 68+i, 30+i, 1, backgroundColor[0], backgroundColor[1], backgroundColor[2])
@@ -135,8 +141,8 @@ func buildHealthECG(inventoryImages []*fileio.TIMOutput, newImageColors []uint16
 			continue
 		}
 		// Draw a vertical line
-		destX := startX + 70
-		destY := ecgView.Lines[startX][0] + 31
+		destX := startX + HEALTH_POS_X + 12
+		destY := ecgView.Lines[startX][0] + HEALTH_POS_Y + 2
 		width := 1
 		height := ecgView.Lines[startX][1] + 1
 
@@ -157,6 +163,12 @@ func buildHealthECG(inventoryImages []*fileio.TIMOutput, newImageColors []uint16
 		}
 		fillPixels(newImageColors, destX, destY, width, height, red, green, blue)
 	}
+
+	drawPlayerCondition(inventoryImages, newImageColors, healthStatus)
+}
+
+func drawPlayerCondition(inventoryImages []*fileio.TIMOutput, newImageColors []uint16, healthStatus int) {
+	copyPixels(inventoryImages[4].PixelData, 0, healthStatus*11, 44, 11, newImageColors, HEALTH_POS_X+47, HEALTH_POS_Y+25)
 }
 
 func NewHealthECGFine() HealthECGView {
@@ -255,17 +267,39 @@ func NewHealthECGPoison() HealthECGView {
 }
 
 func buildMenuTabs(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
+	var selectedOption [3]float64
+	if IsCursorOnMenu0() {
+		// Cursor is on this option, but it's not selected
+		selectedOption = [3]float64{1.0, 1.0, 1.0}
+	} else {
+		// Highlight option in red if this option is selected
+		selectedOption = [3]float64{1.0, 0.5, 0.5}
+	}
+
+	otherOption := [3]float64{0.4, 0.4, 0.4}
+
+	optionsBrightness := [4][3]float64{otherOption, otherOption, otherOption, otherOption}
+	optionsBrightness[Status_MenuCursor0] = selectedOption
+
 	// File
 	copyPixels(inventoryImages[0].PixelData, 3, 164, 49, 12, newImageColors, 111, 16)
+	copyPixelsBrightnessColor(inventoryImages[5].PixelData, 0, 0, 47, 10, newImageColors, 112, 17,
+		optionsBrightness[0][0], optionsBrightness[0][1], optionsBrightness[0][2])
 
 	// Map
 	copyPixels(inventoryImages[0].PixelData, 3, 164, 49, 12, newImageColors, 160, 16)
+	copyPixelsBrightnessColor(inventoryImages[5].PixelData, 0, 10, 47, 10, newImageColors, 161, 17,
+		optionsBrightness[1][0], optionsBrightness[1][1], optionsBrightness[1][2])
 
 	// Item
 	copyPixels(inventoryImages[0].PixelData, 3, 164, 49, 12, newImageColors, 209, 16)
+	copyPixelsBrightnessColor(inventoryImages[5].PixelData, 0, 20, 47, 10, newImageColors, 210, 17,
+		optionsBrightness[2][0], optionsBrightness[2][1], optionsBrightness[2][2])
 
 	// Exit
 	copyPixels(inventoryImages[0].PixelData, 3, 164, 49, 12, newImageColors, 258, 16)
+	copyPixelsBrightnessColor(inventoryImages[5].PixelData, 0, 30, 47, 10, newImageColors, 259, 17,
+		optionsBrightness[3][0], optionsBrightness[3][1], optionsBrightness[3][2])
 }
 
 func buildDescription(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
@@ -283,4 +317,22 @@ func buildDescription(inventoryImages []*fileio.TIMOutput, newImageColors []uint
 	copyPixels(inventoryImages[0].PixelData, 56, 178, 35, 7, newImageColors, 226, 215)
 	copyPixels(inventoryImages[0].PixelData, 56, 178, 35, 7, newImageColors, 261, 215)
 	copyPixels(inventoryImages[0].PixelData, 56, 178, 24, 7, newImageColors, 296, 215)
+}
+
+func NextMenu0Option() {
+	Status_MenuCursor0++
+	if Status_MenuCursor0 > 3 {
+		Status_MenuCursor0 = 3
+	}
+}
+
+func PrevMenu0Option() {
+	Status_MenuCursor0--
+	if Status_MenuCursor0 < 0 {
+		Status_MenuCursor0 = 0
+	}
+}
+
+func IsCursorOnMenu0() bool {
+	return Status_Function0 < 3
 }

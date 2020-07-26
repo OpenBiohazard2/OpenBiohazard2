@@ -11,6 +11,8 @@ const (
 	ACTION_BUTTON         Action = iota
 	MENU_UP_BUTTON        Action = iota
 	MENU_DOWN_BUTTON      Action = iota
+	MENU_LEFT_BUTTON      Action = iota
+	MENU_RIGHT_BUTTON     Action = iota
 	PLAYER_FORWARD        Action = iota
 	PLAYER_BACKWARD       Action = iota
 	PLAYER_ROTATE_LEFT    Action = iota
@@ -36,6 +38,8 @@ func NewInputHandler() *InputHandler {
 		ACTION_BUTTON:         glfw.KeyEnter,
 		MENU_UP_BUTTON:        glfw.KeyUp,
 		MENU_DOWN_BUTTON:      glfw.KeyDown,
+		MENU_LEFT_BUTTON:      glfw.KeyLeft,
+		MENU_RIGHT_BUTTON:     glfw.KeyRight,
 		PLAYER_FORWARD:        glfw.KeyW,
 		PLAYER_BACKWARD:       glfw.KeyS,
 		PLAYER_ROTATE_LEFT:    glfw.KeyA,

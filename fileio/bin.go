@@ -29,7 +29,7 @@ func LoadBINFile(inputFilename string) *BinOutput {
 	defer binFile.Close()
 
 	if binFile == nil {
-		log.Fatal("BIN file doesn't exist: ", inputFilename)
+		log.Fatal("Load BIN file failed. BIN file doesn't exist: ", inputFilename)
 		return nil
 	}
 
@@ -96,7 +96,7 @@ func LoadTIMImages(inputFilename string) ([]*TIMOutput, error) {
 	defer binFile.Close()
 
 	if binFile == nil {
-		log.Fatal("File doesn't exist")
+		log.Fatal("Failed to load TIM images. BIN file doesn't exist", inputFilename)
 		return nil, nil
 	}
 
