@@ -5,36 +5,25 @@ import (
 )
 
 const (
-	HEALTH_FINE           = 0
-	HEALTH_YELLOW_CAUTION = 1
-	HEALTH_ORANGE_CAUTION = 2
-	HEALTH_DANGER         = 3
-	HEALTH_POISON         = 4
-	HEALTH_POS_X          = 58
-	HEALTH_POS_Y          = 29
-	ITEMLIST_POS_X        = 220
-	ITEMLIST_POS_Y        = 70
+	ITEMLIST_POS_X      = 220
+	ITEMLIST_POS_Y      = 70
+	MAX_TOP_MENU_SLOTS  = 4
+	MAX_INVENTORY_SLOTS = 8
+	RESERVED_ITEM_SLOT  = 10
 )
 
 var (
 	totalInventoryTime = float64(0)
-	updateHealthTime   = float64(30) // milliseconds
-	ecgOffsetX         = 0
-	healthECGViews     = [5]HealthECGView{
-		NewHealthECGFine(),
-		NewHealthECGYellowCaution(),
-		NewHealthECGOrangeCaution(),
-		NewHealthECGDanger(),
-		NewHealthECGPoison(),
-	}
-	Status_Function0   = 0
-	Status_MenuCursor0 = 2
+
+	Status_Function0           = 3
+	Status_MenuCursor0         = 2
+	Status_InventoryMainCursor = 0
 )
 
-type HealthECGView struct {
-	Color    [3]int
-	Gradient [3]int
-	Lines    [80][2]int
+func InitializeInventoryCursor() {
+	Status_Function0 = 3
+	Status_MenuCursor0 = 2
+	Status_InventoryMainCursor = 0
 }
 
 func (renderDef *RenderDef) GenerateInventoryImage(
@@ -45,26 +34,40 @@ func (renderDef *RenderDef) GenerateInventoryImage(
 	newImageColors := renderDef.VideoBuffer.ImagePixels
 	totalInventoryTime += timeElapsedSeconds * 1000
 	buildBackground(inventoryImages, newImageColors)
-	buildItems(inventoryItemImages, newImageColors)
+	buildItems(inventoryImages, inventoryItemImages, newImageColors)
 	renderDef.VideoBuffer.UpdateSurface(newImageColors)
 }
 
-func buildItems(inventoryItemImages []*fileio.TIMOutput, newImageColors []uint16) {
+func buildItems(inventoryImages []*fileio.TIMOutput, inventoryItemImages []*fileio.TIMOutput, newImageColors []uint16) {
 	// Item in top right corner
-	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 265, 35)
+	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, ITEMLIST_POS_X+45, ITEMLIST_POS_Y-35)
 
 	// Empty inventory slots
-	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 225, 73)
-	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 265, 73)
-	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 225, 103)
-	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 265, 103)
-	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 225, 133)
-	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 265, 133)
-	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 225, 163)
-	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, 265, 163)
+	for row := 0; row < 4; row++ {
+		// left slot
+		copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, ITEMLIST_POS_X+5, ITEMLIST_POS_Y+3+30*row)
+		// right slot
+		copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, ITEMLIST_POS_X+45, ITEMLIST_POS_Y+3+30*row)
+	}
 
 	// Equipped item
 	copyPixels(inventoryItemImages[2].PixelData, 40, 90, 80, 30, newImageColors, 172, 35)
+
+	// Item cursor surrounding item
+	if IsEditingItemScreen() {
+		var cursorX, cursorY int
+		cursorFrameOffsetX := 3
+		cursorFrameOffsetY := 1
+		// Special item in top right corner
+		if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
+			cursorX = ITEMLIST_POS_X + cursorFrameOffsetX + 40
+			cursorY = ITEMLIST_POS_Y + cursorFrameOffsetY - 38
+		} else {
+			cursorX = ITEMLIST_POS_X + cursorFrameOffsetX + (Status_InventoryMainCursor%2)*40
+			cursorY = ITEMLIST_POS_Y + cursorFrameOffsetY + (Status_InventoryMainCursor/2)*30
+		}
+		copyPixelsTransparent(inventoryImages[3].PixelData, 0, 30, 44, 34, newImageColors, cursorX, cursorY)
+	}
 }
 
 func buildBackground(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
@@ -118,157 +121,9 @@ func buildPlayerFace(inventoryImages []*fileio.TIMOutput, newImageColors []uint1
 	copyPixels(inventoryImages[0].PixelData, 56, 186, 7, 7, newImageColors, 53, HEALTH_POS_X+2)
 }
 
-func buildHealthECG(inventoryImages []*fileio.TIMOutput, newImageColors []uint16, backgroundColor [3]int) {
-	// Draw health background
-	copyPixels(inventoryImages[0].PixelData, 0, 92, 99, 47, newImageColors, HEALTH_POS_X+2, HEALTH_POS_Y)
-	// Sloped line to the right of Condition
-	for i := 0; i < 8; i++ {
-		fillPixels(newImageColors, 129-i, 68+i, 30+i, 1, backgroundColor[0], backgroundColor[1], backgroundColor[2])
-	}
-
-	// Draw ECG lines
-	healthStatus := HEALTH_FINE
-	ecgView := healthECGViews[healthStatus]
-
-	if totalInventoryTime >= updateHealthTime {
-		ecgOffsetX = (ecgOffsetX + 1) % 128
-		totalInventoryTime = 0
-	}
-
-	for columnNum := 0; columnNum < 32; columnNum++ {
-		startX := ecgOffsetX - columnNum
-		if startX < 0 || startX >= len(ecgView.Lines) {
-			continue
-		}
-		// Draw a vertical line
-		destX := startX + HEALTH_POS_X + 12
-		destY := ecgView.Lines[startX][0] + HEALTH_POS_Y + 2
-		width := 1
-		height := ecgView.Lines[startX][1] + 1
-
-		// lines to the left will have a darker color
-		lineColor := ecgView.Color
-		gradientColor := ecgView.Gradient
-		red := lineColor[0] - (gradientColor[0] * columnNum)
-		if red < 0 {
-			red = 0
-		}
-		green := lineColor[1] - (gradientColor[1] * columnNum)
-		if green < 0 {
-			green = 0
-		}
-		blue := lineColor[2] - (gradientColor[2] * columnNum)
-		if blue < 0 {
-			blue = 0
-		}
-		fillPixels(newImageColors, destX, destY, width, height, red, green, blue)
-	}
-
-	drawPlayerCondition(inventoryImages, newImageColors, healthStatus)
-}
-
-func drawPlayerCondition(inventoryImages []*fileio.TIMOutput, newImageColors []uint16, healthStatus int) {
-	copyPixels(inventoryImages[4].PixelData, 0, healthStatus*11, 44, 11, newImageColors, HEALTH_POS_X+47, HEALTH_POS_Y+25)
-}
-
-func NewHealthECGFine() HealthECGView {
-	lines := [80][2]int{
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {14, 0}, {13, 0}, {12, 0}, {12, 0}, {13, 2}, {15, 3}, {18, 2},
-		{20, 0}, {16, 4}, {8, 8}, {5, 3}, {4, 0}, {5, 3}, {8, 7}, {15, 4}, {19, 5}, {24, 3},
-		{27, 0}, {25, 2}, {21, 4}, {16, 5}, {14, 2}, {13, 0}, {14, 2}, {16, 3}, {19, 0}, {19, 0},
-		{18, 0}, {16, 2}, {14, 2}, {13, 0}, {12, 0}, {13, 0}, {14, 1}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-	}
-
-	return HealthECGView{
-		Color:    [3]int{20, 255, 20}, // green,
-		Gradient: [3]int{1, 8, 1},
-		Lines:    lines,
-	}
-}
-
-func NewHealthECGYellowCaution() HealthECGView {
-	lines := [80][2]int{
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {14, 0}, {13, 0}, {12, 0}, {12, 0}, {14, 0}, {13, 2}, {15, 3}, {18, 2},
-		{20, 0}, {16, 4}, {8, 8}, {6, 2}, {5, 0}, {6, 2}, {8, 5}, {13, 2}, {15, 0}, {16, 4},
-		{20, 2}, {22, 0}, {21, 0}, {16, 5}, {15, 0}, {14, 0}, {14, 0}, {13, 0}, {13, 0}, {14, 0},
-		{15, 0}, {15, 0}, {15, 0}, {14, 0}, {14, 0}, {14, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-	}
-
-	return HealthECGView{
-		Color:    [3]int{255, 255, 20}, // yellow
-		Gradient: [3]int{8, 8, 1},
-		Lines:    lines,
-	}
-}
-
-func NewHealthECGOrangeCaution() HealthECGView {
-	lines := [80][2]int{
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {16, 0}, {16, 0}, {17, 0}, {17, 0}, {17, 0}, {16, 0}, {15, 0}, {14, 0},
-		{14, 0}, {14, 0}, {15, 0}, {15, 0}, {15, 0}, {14, 0}, {11, 3}, {10, 0}, {9, 0}, {10, 4},
-		{13, 3}, {16, 3}, {19, 0}, {20, 0}, {19, 0}, {18, 0}, {16, 2}, {14, 2}, {13, 0}, {12, 0},
-		{12, 0}, {12, 0}, {13, 0}, {14, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-	}
-
-	return HealthECGView{
-		Color:    [3]int{255, 80, 20}, // orange
-		Gradient: [3]int{8, 4, 1},
-		Lines:    lines,
-	}
-}
-
-func NewHealthECGDanger() HealthECGView {
-	lines := [80][2]int{
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {14, 0},
-		{14, 0}, {13, 0}, {13, 0}, {14, 0}, {15, 0}, {15, 0}, {15, 0}, {16, 0}, {17, 2}, {17, 0},
-		{17, 0}, {14, 3}, {10, 4}, {9, 0}, {10, 2}, {12, 3}, {15, 0}, {16, 0}, {16, 0}, {16, 0},
-		{16, 0}, {15, 0}, {14, 0}, {13, 0}, {13, 0}, {14, 0}, {14, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-	}
-
-	return HealthECGView{
-		Color:    [3]int{255, 20, 20}, // red
-		Gradient: [3]int{8, 1, 1},
-		Lines:    lines,
-	}
-}
-
-func NewHealthECGPoison() HealthECGView {
-	lines := [80][2]int{
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {14, 1}, {13, 1}, {12, 1}, {12, 1},
-		{13, 2}, {15, 3}, {18, 2}, {20, 1}, {16, 4}, {8, 8}, {5, 3}, {4, 1}, {5, 3}, {8, 7},
-		{15, 4}, {19, 5}, {24, 2}, {26, 1}, {25, 1}, {15, 10}, {14, 1}, {15, 1}, {16, 2}, {18, 1},
-		{17, 1}, {10, 7}, {9, 1}, {10, 2}, {12, 4}, {16, 1}, {17, 1}, {18, 1}, {18, 1}, {18, 1},
-		{17, 1}, {16, 1}, {15, 1}, {15, 1}, {15, 1}, {15, 1}, {15, 1}, {12, 3}, {10, 2}, {9, 1},
-		{10, 6}, {16, 3}, {19, 1}, {19, 1}, {17, 2}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-		{15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0}, {15, 0},
-	}
-
-	return HealthECGView{
-		Color:    [3]int{255, 20, 255}, // purple
-		Gradient: [3]int{8, 1, 8},
-		Lines:    lines,
-	}
-}
-
 func buildMenuTabs(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
 	var selectedOption [3]float64
-	if IsCursorOnMenu0() {
+	if IsCursorOnTopMenu() {
 		// Cursor is on this option, but it's not selected
 		selectedOption = [3]float64{1.0, 1.0, 1.0}
 	} else {
@@ -319,20 +174,89 @@ func buildDescription(inventoryImages []*fileio.TIMOutput, newImageColors []uint
 	copyPixels(inventoryImages[0].PixelData, 56, 178, 24, 7, newImageColors, 296, 215)
 }
 
-func NextMenu0Option() {
+func NextTopMenuOption() {
 	Status_MenuCursor0++
-	if Status_MenuCursor0 > 3 {
-		Status_MenuCursor0 = 3
+	if Status_MenuCursor0 >= MAX_TOP_MENU_SLOTS {
+		Status_MenuCursor0 = MAX_TOP_MENU_SLOTS - 1
 	}
 }
 
-func PrevMenu0Option() {
+func PrevTopMenuOption() {
 	Status_MenuCursor0--
 	if Status_MenuCursor0 < 0 {
 		Status_MenuCursor0 = 0
 	}
 }
 
-func IsCursorOnMenu0() bool {
+func NextItemInList() {
+	if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
+		return
+	}
+
+	Status_InventoryMainCursor++
+	if Status_InventoryMainCursor >= MAX_INVENTORY_SLOTS {
+		Status_InventoryMainCursor = MAX_INVENTORY_SLOTS - 1
+	}
+}
+
+func PrevItemInList() {
+	if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
+		return
+	}
+
+	Status_InventoryMainCursor--
+	if Status_InventoryMainCursor < 0 {
+		Status_InventoryMainCursor = 0
+	}
+}
+
+func NextRowInItemList() {
+	if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
+		Status_InventoryMainCursor = 1
+		return
+	}
+
+	if Status_InventoryMainCursor+2 < MAX_INVENTORY_SLOTS {
+		Status_InventoryMainCursor += 2
+	}
+}
+
+func PrevRowInItemList() {
+	// Return to top menu
+	if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
+		Status_InventoryMainCursor = 0
+		SetCursorTopMenu()
+		return
+	}
+
+	if Status_InventoryMainCursor-2 >= 0 {
+		Status_InventoryMainCursor -= 2
+	} else if Status_InventoryMainCursor == 1 {
+		Status_InventoryMainCursor = RESERVED_ITEM_SLOT
+	}
+}
+
+func IsCursorOnTopMenu() bool {
 	return Status_Function0 < 3
+}
+
+func IsEditingItemScreen() bool {
+	return Status_Function0 == 3 && Status_MenuCursor0 == 2
+}
+
+func IsTopMenuCursorOnItems() bool {
+	return Status_Function0 < 3 && Status_MenuCursor0 == 2
+}
+
+func IsTopMenuExit() bool {
+	return Status_MenuCursor0 == 3
+}
+
+func SetCursorTopMenu() {
+	// Can only naviagate top menu with cursor
+	Status_Function0 = 2
+}
+
+func SetEditItemScreen() {
+	Status_Function0 = 3
 }

@@ -89,12 +89,45 @@ func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 
 	if windowHandler.InputHandler.IsActive(client.MENU_LEFT_BUTTON) {
 		if gameStateManager.CanUpdateGameState() {
-			render.PrevMenu0Option()
+			if render.IsCursorOnTopMenu() {
+				render.PrevTopMenuOption()
+			} else if render.IsEditingItemScreen() {
+				render.PrevItemInList()
+			}
 			gameStateManager.UpdateLastTimeChangeState()
 		}
 	} else if windowHandler.InputHandler.IsActive(client.MENU_RIGHT_BUTTON) {
 		if gameStateManager.CanUpdateGameState() {
-			render.NextMenu0Option()
+			if render.IsCursorOnTopMenu() {
+				render.NextTopMenuOption()
+			} else if render.IsEditingItemScreen() {
+				render.NextItemInList()
+			}
+			gameStateManager.UpdateLastTimeChangeState()
+		}
+	} else if windowHandler.InputHandler.IsActive(client.MENU_UP_BUTTON) {
+		if gameStateManager.CanUpdateGameState() {
+			if render.IsEditingItemScreen() {
+				render.PrevRowInItemList()
+			}
+			gameStateManager.UpdateLastTimeChangeState()
+		}
+	} else if windowHandler.InputHandler.IsActive(client.MENU_DOWN_BUTTON) {
+		if gameStateManager.CanUpdateGameState() {
+			if render.IsEditingItemScreen() {
+				render.NextRowInItemList()
+			}
+			gameStateManager.UpdateLastTimeChangeState()
+		}
+	} else if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
+		if gameStateManager.CanUpdateGameState() {
+			if render.IsCursorOnTopMenu() {
+				if render.IsTopMenuExit() {
+					gameStateManager.UpdateGameState(GAME_STATE_MAIN_GAME)
+				} else if render.IsTopMenuCursorOnItems() {
+					render.SetEditItemScreen()
+				}
+			}
 			gameStateManager.UpdateLastTimeChangeState()
 		}
 	}
