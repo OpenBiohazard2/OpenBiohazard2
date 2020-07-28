@@ -13,17 +13,24 @@ const (
 )
 
 var (
-	totalInventoryTime = float64(0)
+	totalInventoryTime        = float64(0)
+	updateInventoryCursorTime = float64(30) // milliseconds
 
 	Status_Function0           = 3
+	Status_Function1           = 0
 	Status_MenuCursor0         = 2
 	Status_InventoryMainCursor = 0
+	Status_BlinkSwitch0        = false
+	Status_BlinkTimer0         = 50
 )
 
 func InitializeInventoryCursor() {
 	Status_Function0 = 3
+	Status_Function1 = 0
 	Status_MenuCursor0 = 2
 	Status_InventoryMainCursor = 0
+	Status_BlinkSwitch0 = false
+	Status_BlinkTimer0 = 50
 }
 
 func (renderDef *RenderDef) GenerateInventoryImage(
@@ -33,6 +40,7 @@ func (renderDef *RenderDef) GenerateInventoryImage(
 	renderDef.VideoBuffer.ClearSurface()
 	newImageColors := renderDef.VideoBuffer.ImagePixels
 	totalInventoryTime += timeElapsedSeconds * 1000
+	totalHealthTime += timeElapsedSeconds * 1000
 	buildBackground(inventoryImages, newImageColors)
 	buildItems(inventoryImages, inventoryItemImages, newImageColors)
 	renderDef.VideoBuffer.UpdateSurface(newImageColors)
@@ -55,19 +63,44 @@ func buildItems(inventoryImages []*fileio.TIMOutput, inventoryItemImages []*file
 
 	// Item cursor surrounding item
 	if IsEditingItemScreen() {
-		var cursorX, cursorY int
-		cursorFrameOffsetX := 3
-		cursorFrameOffsetY := 1
-		// Special item in top right corner
-		if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
-			cursorX = ITEMLIST_POS_X + cursorFrameOffsetX + 40
-			cursorY = ITEMLIST_POS_Y + cursorFrameOffsetY - 38
-		} else {
-			cursorX = ITEMLIST_POS_X + cursorFrameOffsetX + (Status_InventoryMainCursor%2)*40
-			cursorY = ITEMLIST_POS_Y + cursorFrameOffsetY + (Status_InventoryMainCursor/2)*30
-		}
-		copyPixelsTransparent(inventoryImages[3].PixelData, 0, 30, 44, 34, newImageColors, cursorX, cursorY)
+		displayInventoryMainCursor(inventoryImages, newImageColors)
 	}
+}
+
+func displayInventoryMainCursor(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
+	var cursorX, cursorY int
+	cursorFrameOffsetX := 3
+	cursorFrameOffsetY := 1
+
+	if totalInventoryTime >= updateInventoryCursorTime {
+		if Status_Function1 == 0 {
+			if !Status_BlinkSwitch0 {
+				if Status_BlinkTimer0 > 120 {
+					Status_BlinkSwitch0 = true
+				}
+				Status_BlinkTimer0 += 3
+			} else {
+				if Status_BlinkTimer0 < 50 {
+					Status_BlinkSwitch0 = false
+				}
+				Status_BlinkTimer0 -= 3
+			}
+		} else {
+			Status_BlinkTimer0 = 60
+		}
+		totalInventoryTime = 0
+	}
+	brightnessFactor := float64(Status_BlinkTimer0) / 128.0
+
+	// Special item in top right corner
+	if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
+		cursorX = ITEMLIST_POS_X + cursorFrameOffsetX + 40
+		cursorY = ITEMLIST_POS_Y + cursorFrameOffsetY - 38
+	} else {
+		cursorX = ITEMLIST_POS_X + cursorFrameOffsetX + (Status_InventoryMainCursor%2)*40
+		cursorY = ITEMLIST_POS_Y + cursorFrameOffsetY + (Status_InventoryMainCursor/2)*30
+	}
+	copyPixelsBrightness(inventoryImages[3].PixelData, 0, 30, 44, 34, newImageColors, cursorX, cursorY, brightnessFactor)
 }
 
 func buildBackground(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {

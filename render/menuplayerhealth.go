@@ -15,6 +15,7 @@ const (
 )
 
 var (
+	totalHealthTime  = float64(0)
 	updateHealthTime = float64(30) // milliseconds
 	ecgOffsetX       = 0
 	healthECGViews   = [5]HealthECGView{
@@ -44,9 +45,9 @@ func buildHealthECG(inventoryImages []*fileio.TIMOutput, newImageColors []uint16
 	healthStatus := HEALTH_FINE
 	ecgView := healthECGViews[healthStatus]
 
-	if totalInventoryTime >= updateHealthTime {
+	if totalHealthTime >= updateHealthTime {
 		ecgOffsetX = (ecgOffsetX + 1) % 128
-		totalInventoryTime = 0
+		totalHealthTime = 0
 	}
 
 	for columnNum := 0; columnNum < 32; columnNum++ {
