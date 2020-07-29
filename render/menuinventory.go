@@ -22,7 +22,15 @@ var (
 	Status_InventoryMainCursor = 0
 	Status_BlinkSwitch0        = false
 	Status_BlinkTimer0         = 50
+
+	playerInventoryItems = InitializeInventoryItems()
 )
+
+type InventoryItem struct {
+	Id   int
+	Num  int
+	Size int
+}
 
 func InitializeInventoryCursor() {
 	Status_Function0 = 3
@@ -31,6 +39,14 @@ func InitializeInventoryCursor() {
 	Status_InventoryMainCursor = 0
 	Status_BlinkSwitch0 = false
 	Status_BlinkTimer0 = 50
+}
+
+func InitializeInventoryItems() []InventoryItem {
+	playerInventoryItems := make([]InventoryItem, 11)
+	playerInventoryItems[0] = InventoryItem{Id: 2, Num: 18, Size: 1}                  // hand gun
+	playerInventoryItems[1] = InventoryItem{Id: 1, Num: 1, Size: 0}                   // knife
+	playerInventoryItems[RESERVED_ITEM_SLOT] = InventoryItem{Id: 47, Num: 1, Size: 0} // lighter
+	return playerInventoryItems
 }
 
 func (renderDef *RenderDef) GenerateInventoryImage(
@@ -48,14 +64,22 @@ func (renderDef *RenderDef) GenerateInventoryImage(
 
 func buildItems(inventoryImages []*fileio.TIMOutput, inventoryItemImages []*fileio.TIMOutput, newImageColors []uint16) {
 	// Item in top right corner
-	copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, ITEMLIST_POS_X+45, ITEMLIST_POS_Y-35)
+	reservedItemX := (playerInventoryItems[RESERVED_ITEM_SLOT].Id % 6) * 40
+	reservedItemY := (playerInventoryItems[RESERVED_ITEM_SLOT].Id / 6) * 30
+	copyPixels(inventoryItemImages[0].PixelData, reservedItemX, reservedItemY, 40, 30, newImageColors, ITEMLIST_POS_X+45, ITEMLIST_POS_Y-35)
 
 	// Empty inventory slots
 	for row := 0; row < 4; row++ {
 		// left slot
-		copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, ITEMLIST_POS_X+5, ITEMLIST_POS_Y+3+30*row)
+		leftItemIndex := (2 * row)
+		leftItemX := (playerInventoryItems[leftItemIndex].Id % 6) * 40
+		leftItemY := (playerInventoryItems[leftItemIndex].Id / 6) * 30
+		copyPixels(inventoryItemImages[0].PixelData, leftItemX, leftItemY, 40, 30, newImageColors, ITEMLIST_POS_X+5, ITEMLIST_POS_Y+3+30*row)
 		// right slot
-		copyPixels(inventoryItemImages[0].PixelData, 0, 0, 40, 30, newImageColors, ITEMLIST_POS_X+45, ITEMLIST_POS_Y+3+30*row)
+		rightItemIndex := (2 * row) + 1
+		rightItemX := (playerInventoryItems[rightItemIndex].Id % 6) * 40
+		rightItemY := (playerInventoryItems[rightItemIndex].Id / 6) * 30
+		copyPixels(inventoryItemImages[0].PixelData, rightItemX, rightItemY, 40, 30, newImageColors, ITEMLIST_POS_X+45, ITEMLIST_POS_Y+3+30*row)
 	}
 
 	// Equipped item
