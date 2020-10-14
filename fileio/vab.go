@@ -67,6 +67,7 @@ type VABHeaderOutput struct {
 
 type VABDataOutput struct {
 	RawADPCMData [][]uint8
+	NumBytes     int
 }
 
 func LoadVABHeaderStream(r io.ReaderAt, fileLength int64) (*VABHeaderOutput, error) {
@@ -101,10 +102,11 @@ func LoadVABHeaderStream(r io.ReaderAt, fileLength int64) (*VABHeaderOutput, err
 		return nil, err
 	}
 
-	totalProgramSize := 128 * 32
-	totalToneSize := int(vabHeader.ProgramCount) * 16 * 32
-	totalWaveformSize := int(vabHeader.WaveformCount+1) * 2
-	totalVabHeaderSize := totalProgramSize + totalToneSize + totalWaveformSize
+	headerSize := 32                                       // sizeof(VABHeader)
+	totalProgramSize := 128 * 16                           // 128 * sizeof(VABProgram)
+	totalToneSize := int(vabHeader.ProgramCount) * 16 * 32 // programCount * 16 * sizeof(VABTone)
+	totalWaveformSize := 256 * 2 // 256 * sizeof(uint16)
+	totalVabHeaderSize := headerSize + totalProgramSize + totalToneSize + totalWaveformSize
 	vabHeaderOutput := &VABHeaderOutput{
 		VABHeader:  vabHeader,
 		AudioSizes: audioSizes,
@@ -117,6 +119,7 @@ func LoadVABDataStream(r io.ReaderAt, fileLength int64, vabHeaderOutput *VABHead
 	vabDataReader := io.NewSectionReader(r, int64(0), fileLength)
 
 	rawADPCMData := make([][]uint8, 0)
+	totalBytes := 0
 	for i := 0; i < len(vabHeaderOutput.AudioSizes); i++ {
 		rawAudioSize := int(vabHeaderOutput.AudioSizes[i])
 		if rawAudioSize == 0 {
@@ -128,10 +131,13 @@ func LoadVABDataStream(r io.ReaderAt, fileLength int64, vabHeaderOutput *VABHead
 			return nil, err
 		}
 		rawADPCMData = append(rawADPCMData, adpcmData)
+		totalBytes += len(adpcmData)
 	}
 
 	vabDataOutput := &VABDataOutput{
 		RawADPCMData: rawADPCMData,
+		NumBytes:     totalBytes,
 	}
+
 	return vabDataOutput, nil
 }

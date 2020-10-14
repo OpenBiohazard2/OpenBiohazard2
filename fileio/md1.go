@@ -105,6 +105,7 @@ type MD1QuadTexture struct {
 
 type MD1Output struct {
 	Components []MD1Object
+	NumBytes   int64
 }
 
 func LoadMD1Stream(r io.ReaderAt, fileLength int64) (*MD1Output, error) {
@@ -121,6 +122,8 @@ func LoadMD1Stream(r io.ReaderAt, fileLength int64) (*MD1Output, error) {
 	if err := binary.Read(fileReader, binary.LittleEndian, &modelObjectHeaders); err != nil {
 		return nil, err
 	}
+
+	totalBytes := int64(0)
 
 	// Offsets are after model header, which is 12 bytes
 	beginOffset := int64(12)
@@ -186,6 +189,12 @@ func LoadMD1Stream(r io.ReaderAt, fileLength int64) (*MD1Output, error) {
 			return nil, err
 		}
 
+		// Assumes the texture offset is the largest offset
+		blockEnd := offset + (16 * int64(modelObjectHeader.QuadsHeader.QuadIndexCount))
+		if blockEnd > totalBytes {
+			totalBytes = blockEnd
+		}
+
 		objects[i] = MD1Object{
 			TriangleVertices: triangleVertices,
 			TriangleNormals:  triangleNormals,
@@ -200,6 +209,7 @@ func LoadMD1Stream(r io.ReaderAt, fileLength int64) (*MD1Output, error) {
 
 	md1Output := &MD1Output{
 		Components: objects,
+		NumBytes:   totalBytes,
 	}
 	return md1Output, nil
 }
