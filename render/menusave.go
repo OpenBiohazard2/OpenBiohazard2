@@ -1,16 +1,15 @@
 package render
 
 import (
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"image"
 )
 
-func (renderDef *RenderDef) GenerateSaveScreenImage(saveScreenImageOutput *fileio.ADTOutput) {
-	renderDef.VideoBuffer.ClearSurface()
-	newImageColors := renderDef.VideoBuffer.ImagePixels
-	buildSaveScreenBackground(saveScreenImageOutput, newImageColors)
-	renderDef.VideoBuffer.UpdateSurface(newImageColors)
+func (renderDef *RenderDef) GenerateSaveScreenImage(saveScreenImage *Image16Bit) {
+	screenImage.Clear()
+	buildSaveScreenBackground(saveScreenImage)
+	renderDef.VideoBuffer.UpdateSurface(screenImage.GetPixelsForRendering())
 }
 
-func buildSaveScreenBackground(saveScreenImageOutput *fileio.ADTOutput, newImageColors []uint16) {
-	copyPixelsTransparent(saveScreenImageOutput.PixelData, 0, 0, 320, 240, newImageColors, 0, 0)
+func buildSaveScreenBackground(saveScreenImage *Image16Bit) {
+	screenImage.WriteSubImage(image.Point{0, 0}, saveScreenImage, image.Rect(0, 0, 320, 240))
 }

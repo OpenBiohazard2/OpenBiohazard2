@@ -1,7 +1,8 @@
 package render
 
 import (
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"image"
+	"image/color"
 )
 
 const (
@@ -33,12 +34,12 @@ type HealthECGView struct {
 	Lines    [80][2]int
 }
 
-func buildHealthECG(inventoryImages []*fileio.TIMOutput, newImageColors []uint16, backgroundColor [3]int) {
+func buildHealthECG(inventoryMenuImages []*Image16Bit, backgroundColor color.RGBA) {
 	// Draw health background
-	copyPixels(inventoryImages[0].PixelData, 0, 92, 99, 47, newImageColors, HEALTH_POS_X+2, HEALTH_POS_Y)
+	screenImage.WriteSubImage(image.Point{HEALTH_POS_X + 2, HEALTH_POS_Y}, inventoryMenuImages[0], image.Rect(0, 92, 99, 92+47))
 	// Sloped line to the right of Condition
 	for i := 0; i < 8; i++ {
-		fillPixels(newImageColors, 129-i, 68+i, 30+i, 1, backgroundColor[0], backgroundColor[1], backgroundColor[2])
+		screenImage.FillPixels(image.Point{129 - i, 68 + i}, image.Rect(129-i, 68+i, 159, 69+i), backgroundColor)
 	}
 
 	// Draw ECG lines
@@ -76,14 +77,16 @@ func buildHealthECG(inventoryImages []*fileio.TIMOutput, newImageColors []uint16
 		if blue < 0 {
 			blue = 0
 		}
-		fillPixels(newImageColors, destX, destY, width, height, red, green, blue)
+		finalColor := color.RGBA{uint8(red), uint8(green), uint8(blue), 255}
+		screenImage.FillPixels(image.Point{destX, destY}, image.Rect(destX, destY, destX+width, destY+height), finalColor)
 	}
 
-	drawPlayerCondition(inventoryImages, newImageColors, healthStatus)
+	drawPlayerCondition(inventoryMenuImages, healthStatus)
 }
 
-func drawPlayerCondition(inventoryImages []*fileio.TIMOutput, newImageColors []uint16, healthStatus int) {
-	copyPixels(inventoryImages[4].PixelData, 0, healthStatus*11, 44, 11, newImageColors, HEALTH_POS_X+47, HEALTH_POS_Y+25)
+func drawPlayerCondition(inventoryMenuImages []*Image16Bit, healthStatus int) {
+	screenImage.WriteSubImage(image.Point{HEALTH_POS_X + 47, HEALTH_POS_Y + 25},
+		inventoryMenuImages[4], image.Rect(0, healthStatus*11, 44, (healthStatus+1)*11))
 }
 
 func NewHealthECGFine() HealthECGView {

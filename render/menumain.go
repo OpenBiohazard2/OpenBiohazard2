@@ -1,36 +1,37 @@
 package render
 
 import (
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"image"
 )
 
-func (renderDef *RenderDef) GenerateMainMenuImage(
-	menuBackgroundImageOutput *fileio.ADTOutput,
-	menuBackgroundTextOutput []*fileio.TIMOutput) {
-	renderDef.VideoBuffer.ClearSurface()
-	newImageColors := renderDef.VideoBuffer.ImagePixels
-	buildMainMenuBackground(menuBackgroundImageOutput, newImageColors)
-	buildMainMenuText(menuBackgroundTextOutput, newImageColors, 0)
-	renderDef.VideoBuffer.UpdateSurface(newImageColors)
+func (renderDef *RenderDef) UpdateMainMenu(
+	menuBackgroundImage *Image16Bit,
+	menuTextImages []*Image16Bit,
+	mainMenuOption int,
+) {
+	screenImage.Clear()
+	buildMainMenuBackground(menuBackgroundImage)
+	buildMainMenuText(menuTextImages, mainMenuOption)
+	renderDef.VideoBuffer.UpdateSurface(screenImage.GetPixelsForRendering())
 }
 
-func buildMainMenuBackground(backgroundImageOutput *fileio.ADTOutput, newImageColors []uint16) {
-	copyPixelsTransparent(backgroundImageOutput.PixelData, 0, 0, 320, 240, newImageColors, 0, 0)
+func buildMainMenuBackground(menuBackgroundImage *Image16Bit) {
+	screenImage.WriteSubImage(image.Point{0, 0}, menuBackgroundImage, image.Rect(0, 0, 320, 240))
 }
 
-func buildMainMenuText(menuBackgroundTextOutput []*fileio.TIMOutput, newImageColors []uint16, mainMenuOption int) {
-	buildTitleText(menuBackgroundTextOutput, newImageColors)
-	buildMainMenuOptions(menuBackgroundTextOutput, newImageColors, mainMenuOption)
+func buildMainMenuText(menuTextImages []*Image16Bit, mainMenuOption int) {
+	buildTitleText(menuTextImages)
+	buildMainMenuOptions(menuTextImages, mainMenuOption)
 }
 
-func buildTitleText(menuBackgroundTextOutput []*fileio.TIMOutput, newImageColors []uint16) {
-	copyPixelsTransparent(menuBackgroundTextOutput[1].PixelData, 0, 0, 128, 81, newImageColors, 18, 30)
-	copyPixelsTransparent(menuBackgroundTextOutput[1].PixelData, 0, 81, 128, 47, newImageColors, 146, 31)
-	copyPixelsTransparent(menuBackgroundTextOutput[2].PixelData, 0, 0, 128, 34, newImageColors, 146, 78)
-	copyPixelsTransparent(menuBackgroundTextOutput[2].PixelData, 0, 34, 46, 82, newImageColors, 274, 31)
+func buildTitleText(menuTextImages []*Image16Bit) {
+	screenImage.WriteSubImage(image.Point{18, 30}, menuTextImages[1], image.Rect(0, 0, 128, 81))
+	screenImage.WriteSubImage(image.Point{146, 31}, menuTextImages[1], image.Rect(0, 81, 128, 81+47))
+	screenImage.WriteSubImage(image.Point{146, 78}, menuTextImages[2], image.Rect(0, 0, 128, 34))
+	screenImage.WriteSubImage(image.Point{274, 31}, menuTextImages[2], image.Rect(0, 34, 46, 34+82))
 }
 
-func buildMainMenuOptions(menuBackgroundTextOutput []*fileio.TIMOutput, newImageColors []uint16, mainMenuOption int) {
+func buildMainMenuOptions(menuTextImages []*Image16Bit, mainMenuOption int) {
 	selectedOption := 1.0
 	otherOption := 0.3
 
@@ -38,45 +39,39 @@ func buildMainMenuOptions(menuBackgroundTextOutput []*fileio.TIMOutput, newImage
 	optionsBrightness[mainMenuOption] = selectedOption
 
 	// Load Game
-	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 70, 29, 106, 13, newImageColors, 114, 134, optionsBrightness[0])
+	screenImage.WriteSubImageUniformBrightness(image.Point{114, 134}, menuTextImages[0], image.Rect(70, 29, 70+106, 29+13),
+		optionsBrightness[0])
 
 	// New Game
-	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 54, 17, 147, 12, newImageColors, 95, 154, optionsBrightness[1])
+	screenImage.WriteSubImageUniformBrightness(image.Point{95, 154}, menuTextImages[0], image.Rect(54, 17, 54+147, 17+12),
+		optionsBrightness[1])
 
 	// Special
-	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 94, 96, 74, 14, newImageColors, 130, 174, optionsBrightness[2])
+	screenImage.WriteSubImageUniformBrightness(image.Point{130, 174}, menuTextImages[0], image.Rect(94, 96, 94+74, 96+14),
+		optionsBrightness[2])
 
 	// Option
-	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 88, 43, 74, 14, newImageColors, 125, 194, optionsBrightness[3])
+	screenImage.WriteSubImageUniformBrightness(image.Point{125, 194}, menuTextImages[0], image.Rect(88, 43, 88+74, 43+14),
+		optionsBrightness[3])
 }
 
-func (renderDef *RenderDef) UpdateMainMenu(
-	menuBackgroundImageOutput *fileio.ADTOutput,
-	menuBackgroundTextOutput []*fileio.TIMOutput,
-	mainMenuOption int) {
-	renderDef.VideoBuffer.ClearSurface()
-	newImageColors := renderDef.VideoBuffer.ImagePixels
-	buildMainMenuBackground(menuBackgroundImageOutput, newImageColors)
-	buildMainMenuText(menuBackgroundTextOutput, newImageColors, mainMenuOption)
-	renderDef.VideoBuffer.UpdateSurface(newImageColors)
+func (renderDef *RenderDef) UpdateSpecialMenu(
+	menuBackgroundImage *Image16Bit,
+	menuTextImages []*Image16Bit,
+	mainMenuOption int,
+) {
+	screenImage.Clear()
+	buildMainMenuBackground(menuBackgroundImage)
+	buildSpecialMenuText(menuTextImages, mainMenuOption)
+	renderDef.VideoBuffer.UpdateSurface(screenImage.GetPixelsForRendering())
 }
 
-func (renderDef *RenderDef) GenerateSpecialMenuImage(
-	menuBackgroundImageOutput *fileio.ADTOutput,
-	menuBackgroundTextOutput []*fileio.TIMOutput) {
-	renderDef.VideoBuffer.ClearSurface()
-	newImageColors := renderDef.VideoBuffer.ImagePixels
-	buildMainMenuBackground(menuBackgroundImageOutput, newImageColors)
-	buildSpecialMenuText(menuBackgroundTextOutput, newImageColors, 0)
-	renderDef.VideoBuffer.UpdateSurface(newImageColors)
+func buildSpecialMenuText(menuTextImages []*Image16Bit, mainMenuOption int) {
+	buildTitleText(menuTextImages)
+	buildSpecialMenuOptions(menuTextImages, mainMenuOption)
 }
 
-func buildSpecialMenuText(menuBackgroundTextOutput []*fileio.TIMOutput, newImageColors []uint16, mainMenuOption int) {
-	buildTitleText(menuBackgroundTextOutput, newImageColors)
-	buildSpecialMenuOptions(menuBackgroundTextOutput, newImageColors, mainMenuOption)
-}
-
-func buildSpecialMenuOptions(menuBackgroundTextOutput []*fileio.TIMOutput, newImageColors []uint16, specialMenuOption int) {
+func buildSpecialMenuOptions(menuTextImages []*Image16Bit, specialMenuOption int) {
 	selectedOption := 1.0
 	otherOption := 0.3
 
@@ -84,22 +79,14 @@ func buildSpecialMenuOptions(menuBackgroundTextOutput []*fileio.TIMOutput, newIm
 	optionsBrightness[specialMenuOption] = selectedOption
 
 	// Special title
-	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 94, 96, 74, 14, newImageColors, 125, 134, otherOption)
+	screenImage.WriteSubImageUniformBrightness(image.Point{125, 134}, menuTextImages[0], image.Rect(94, 96, 94+74, 96+14),
+		otherOption)
 
 	// Gallery
-	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 169, 96, 75, 14, newImageColors, 120, 154, optionsBrightness[0])
+	screenImage.WriteSubImageUniformBrightness(image.Point{120, 154}, menuTextImages[0], image.Rect(169, 96, 169+75, 96+14),
+		optionsBrightness[0])
 
 	// Exit
-	copyPixelsBrightness(menuBackgroundTextOutput[0].PixelData, 105, 124, 45, 14, newImageColors, 135, 174, optionsBrightness[1])
-}
-
-func (renderDef *RenderDef) UpdateSpecialMenu(
-	menuBackgroundImageOutput *fileio.ADTOutput,
-	menuBackgroundTextOutput []*fileio.TIMOutput,
-	mainMenuOption int) {
-	renderDef.VideoBuffer.ClearSurface()
-	newImageColors := renderDef.VideoBuffer.ImagePixels
-	buildMainMenuBackground(menuBackgroundImageOutput, newImageColors)
-	buildSpecialMenuText(menuBackgroundTextOutput, newImageColors, mainMenuOption)
-	renderDef.VideoBuffer.UpdateSurface(newImageColors)
+	screenImage.WriteSubImageUniformBrightness(image.Point{135, 174}, menuTextImages[0], image.Rect(105, 124, 105+45, 124+14),
+		optionsBrightness[1])
 }

@@ -26,15 +26,15 @@ type GameStateManager struct {
 }
 
 type MainMenuStateInput struct {
-	RenderDef                 *render.RenderDef
-	MenuBackgroundImageOutput *fileio.ADTOutput
-	MenuBackgroundTextImages  []*fileio.TIMOutput
+	RenderDef           *render.RenderDef
+	MenuBackgroundImage *render.Image16Bit
+	MenuTextImages      []*render.Image16Bit
 }
 
 type InventoryStateInput struct {
 	RenderDef           *render.RenderDef
-	InventoryImages     []*fileio.TIMOutput
-	InventoryItemImages []*fileio.TIMOutput
+	InventoryMenuImages []*render.Image16Bit
+	InventoryItemImages []*render.Image16Bit
 }
 
 func NewGameStateManager() *GameStateManager {
@@ -61,18 +61,27 @@ func (gameStateManager *GameStateManager) UpdateLastTimeChangeState() {
 }
 
 func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
-	inventoryImages, _ := fileio.LoadTIMImages(game.INVENTORY_FILE)
-	inventoryItemImages, _ := fileio.LoadTIMImages(game.ITEMALL_FILE)
+	inventoryMenuImagesTIMOutput, _ := fileio.LoadTIMImages(game.INVENTORY_FILE)
+	inventoryMenuImages := make([]*render.Image16Bit, len(inventoryMenuImagesTIMOutput))
+	for i := 0; i < len(inventoryMenuImages); i++ {
+		inventoryMenuImages[i] = render.ConvertPixelsToImage16Bit(inventoryMenuImagesTIMOutput[i].PixelData)
+	}
+
+	inventoryItemImagesTIMOutput, _ := fileio.LoadTIMImages(game.ITEMALL_FILE)
+	inventoryItemImages := make([]*render.Image16Bit, len(inventoryItemImagesTIMOutput))
+	for i := 0; i < len(inventoryItemImages); i++ {
+		inventoryItemImages[i] = render.ConvertPixelsToImage16Bit(inventoryItemImagesTIMOutput[i].PixelData)
+	}
 	return &InventoryStateInput{
 		RenderDef:           renderDef,
-		InventoryImages:     inventoryImages,
+		InventoryMenuImages: inventoryMenuImages,
 		InventoryItemImages: inventoryItemImages,
 	}
 }
 
 func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager *GameStateManager) {
 	renderDef := inventoryStateInput.RenderDef
-	inventoryImages := inventoryStateInput.InventoryImages
+	inventoryMenuImages := inventoryStateInput.InventoryMenuImages
 	inventoryItemImages := inventoryStateInput.InventoryItemImages
 
 	if gameStateManager.ImageResourcesLoaded == false {
@@ -133,7 +142,7 @@ func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 	}
 
 	timeElapsedSeconds := windowHandler.GetTimeSinceLastFrame()
-	renderDef.GenerateInventoryImage(inventoryImages, inventoryItemImages, timeElapsedSeconds)
+	renderDef.GenerateInventoryImage(inventoryMenuImages, inventoryItemImages, timeElapsedSeconds)
 	renderDef.RenderSolidVideoBuffer()
 }
 
@@ -141,12 +150,19 @@ func handleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *Ga
 	maxOptions := 4
 	renderDef := mainMenuStateInput.RenderDef
 	if gameStateManager.ImageResourcesLoaded == false {
-		menuBackgroundImageOutput := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
-		menuBackgroundTextImages, _ := fileio.LoadTIMImages(game.MENU_TEXT_FILE)
-		renderDef.GenerateMainMenuImage(menuBackgroundImageOutput, menuBackgroundTextImages)
+		menuBackgroundImageADTOutput := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
+		menuBackgroundImage := render.ConvertPixelsToImage16Bit(menuBackgroundImageADTOutput.PixelData)
 
-		mainMenuStateInput.MenuBackgroundImageOutput = menuBackgroundImageOutput
-		mainMenuStateInput.MenuBackgroundTextImages = menuBackgroundTextImages
+		menuBackgroundTextImagesTIMOutput, _ := fileio.LoadTIMImages(game.MENU_TEXT_FILE)
+		menuTextImages := make([]*render.Image16Bit, len(menuBackgroundTextImagesTIMOutput))
+		for i := 0; i < len(menuBackgroundTextImagesTIMOutput); i++ {
+			menuTextImages[i] = render.ConvertPixelsToImage16Bit(menuBackgroundTextImagesTIMOutput[i].PixelData)
+		}
+
+		renderDef.UpdateMainMenu(menuBackgroundImage, menuTextImages, 0)
+
+		mainMenuStateInput.MenuBackgroundImage = menuBackgroundImage
+		mainMenuStateInput.MenuTextImages = menuTextImages
 		gameStateManager.ImageResourcesLoaded = true
 		gameStateManager.MainMenuOption = 0
 		gameStateManager.UpdateLastTimeChangeState()
@@ -175,7 +191,7 @@ func handleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *Ga
 			if gameStateManager.MainMenuOption < 0 {
 				gameStateManager.MainMenuOption = 0
 			}
-			renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImageOutput, mainMenuStateInput.MenuBackgroundTextImages, gameStateManager.MainMenuOption)
+			renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages, gameStateManager.MainMenuOption)
 			gameStateManager.UpdateLastTimeChangeState()
 		}
 	}
@@ -186,7 +202,7 @@ func handleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *Ga
 			if gameStateManager.MainMenuOption >= maxOptions {
 				gameStateManager.MainMenuOption = maxOptions - 1
 			}
-			renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImageOutput, mainMenuStateInput.MenuBackgroundTextImages, gameStateManager.MainMenuOption)
+			renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages, gameStateManager.MainMenuOption)
 			gameStateManager.UpdateLastTimeChangeState()
 		}
 	}
@@ -195,8 +211,9 @@ func handleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *Ga
 func handleLoadSave(renderDef *render.RenderDef, gameStateManager *GameStateManager) {
 	if gameStateManager.ImageResourcesLoaded == false {
 		// Initialize load save screen
-		saveScreenImage := fileio.LoadADTFile(game.SAVE_SCREEN_FILE)
-		renderDef.GenerateSaveScreenImage(saveScreenImage)
+		saveScreenImageADTOutput := fileio.LoadADTFile(game.SAVE_SCREEN_FILE)
+		saveScreenImageRender := render.ConvertPixelsToImage16Bit(saveScreenImageADTOutput.PixelData)
+		renderDef.GenerateSaveScreenImage(saveScreenImageRender)
 
 		gameStateManager.ImageResourcesLoaded = true
 		gameStateManager.UpdateLastTimeChangeState()
@@ -215,12 +232,19 @@ func handleSpecialMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager 
 	maxOptions := 2
 	renderDef := mainMenuStateInput.RenderDef
 	if gameStateManager.ImageResourcesLoaded == false {
-		menuBackgroundImageOutput := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
-		menuBackgroundTextImages, _ := fileio.LoadTIMImages(game.MENU_TEXT_FILE)
-		renderDef.GenerateSpecialMenuImage(menuBackgroundImageOutput, menuBackgroundTextImages)
+		menuBackgroundImageADTOutput := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
+		menuBackgroundImage := render.ConvertPixelsToImage16Bit(menuBackgroundImageADTOutput.PixelData)
 
-		mainMenuStateInput.MenuBackgroundImageOutput = menuBackgroundImageOutput
-		mainMenuStateInput.MenuBackgroundTextImages = menuBackgroundTextImages
+		menuBackgroundTextImagesTIMOutput, _ := fileio.LoadTIMImages(game.MENU_TEXT_FILE)
+		menuTextImages := make([]*render.Image16Bit, len(menuBackgroundTextImagesTIMOutput))
+		for i := 0; i < len(menuBackgroundTextImagesTIMOutput); i++ {
+			menuTextImages[i] = render.ConvertPixelsToImage16Bit(menuBackgroundTextImagesTIMOutput[i].PixelData)
+		}
+
+		renderDef.UpdateSpecialMenu(menuBackgroundImage, menuTextImages, 0)
+
+		mainMenuStateInput.MenuBackgroundImage = menuBackgroundImage
+		mainMenuStateInput.MenuTextImages = menuTextImages
 		gameStateManager.ImageResourcesLoaded = true
 		gameStateManager.SpecialMenuOption = 0
 		gameStateManager.UpdateLastTimeChangeState()
@@ -245,7 +269,7 @@ func handleSpecialMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager 
 			if gameStateManager.SpecialMenuOption < 0 {
 				gameStateManager.SpecialMenuOption = 0
 			}
-			renderDef.UpdateSpecialMenu(mainMenuStateInput.MenuBackgroundImageOutput, mainMenuStateInput.MenuBackgroundTextImages, gameStateManager.SpecialMenuOption)
+			renderDef.UpdateSpecialMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages, gameStateManager.SpecialMenuOption)
 			gameStateManager.UpdateLastTimeChangeState()
 		}
 	}
@@ -256,7 +280,7 @@ func handleSpecialMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager 
 			if gameStateManager.SpecialMenuOption >= maxOptions {
 				gameStateManager.SpecialMenuOption = maxOptions - 1
 			}
-			renderDef.UpdateSpecialMenu(mainMenuStateInput.MenuBackgroundImageOutput, mainMenuStateInput.MenuBackgroundTextImages, gameStateManager.SpecialMenuOption)
+			renderDef.UpdateSpecialMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages, gameStateManager.SpecialMenuOption)
 			gameStateManager.UpdateLastTimeChangeState()
 		}
 	}

@@ -1,7 +1,8 @@
 package render
 
 import (
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"image"
+	"image/color"
 )
 
 const (
@@ -50,23 +51,24 @@ func InitializeInventoryItems() []InventoryItem {
 }
 
 func (renderDef *RenderDef) GenerateInventoryImage(
-	inventoryImages []*fileio.TIMOutput,
-	inventoryItemImages []*fileio.TIMOutput,
-	timeElapsedSeconds float64) {
-	renderDef.VideoBuffer.ClearSurface()
-	newImageColors := renderDef.VideoBuffer.ImagePixels
+	inventoryMenuImages []*Image16Bit,
+	inventoryItemImages []*Image16Bit,
+	timeElapsedSeconds float64,
+) {
+	screenImage.Clear()
 	totalInventoryTime += timeElapsedSeconds * 1000
 	totalHealthTime += timeElapsedSeconds * 1000
-	buildBackground(inventoryImages, newImageColors)
-	buildItems(inventoryImages, inventoryItemImages, newImageColors)
-	renderDef.VideoBuffer.UpdateSurface(newImageColors)
+	buildBackground(inventoryMenuImages)
+	buildItems(inventoryMenuImages, inventoryItemImages)
+	renderDef.VideoBuffer.UpdateSurface(screenImage.GetPixelsForRendering())
 }
 
-func buildItems(inventoryImages []*fileio.TIMOutput, inventoryItemImages []*fileio.TIMOutput, newImageColors []uint16) {
+func buildItems(inventoryMenuImages []*Image16Bit, inventoryItemImages []*Image16Bit) {
 	// Item in top right corner
 	reservedItemX := (playerInventoryItems[RESERVED_ITEM_SLOT].Id % 6) * 40
 	reservedItemY := (playerInventoryItems[RESERVED_ITEM_SLOT].Id / 6) * 30
-	copyPixels(inventoryItemImages[0].PixelData, reservedItemX, reservedItemY, 40, 30, newImageColors, ITEMLIST_POS_X+45, ITEMLIST_POS_Y-35)
+	screenImage.WriteSubImage(image.Point{ITEMLIST_POS_X + 45, ITEMLIST_POS_Y - 35},
+		inventoryItemImages[0], image.Rect(reservedItemX, reservedItemY, reservedItemX+40, reservedItemY+30))
 
 	// Empty inventory slots
 	for row := 0; row < 4; row++ {
@@ -74,24 +76,26 @@ func buildItems(inventoryImages []*fileio.TIMOutput, inventoryItemImages []*file
 		leftItemIndex := (2 * row)
 		leftItemX := (playerInventoryItems[leftItemIndex].Id % 6) * 40
 		leftItemY := (playerInventoryItems[leftItemIndex].Id / 6) * 30
-		copyPixels(inventoryItemImages[0].PixelData, leftItemX, leftItemY, 40, 30, newImageColors, ITEMLIST_POS_X+5, ITEMLIST_POS_Y+3+30*row)
+		screenImage.WriteSubImage(image.Point{ITEMLIST_POS_X + 5, ITEMLIST_POS_Y + 3 + 30*row},
+			inventoryItemImages[0], image.Rect(leftItemX, leftItemY, leftItemX+40, leftItemY+30))
 		// right slot
 		rightItemIndex := (2 * row) + 1
 		rightItemX := (playerInventoryItems[rightItemIndex].Id % 6) * 40
 		rightItemY := (playerInventoryItems[rightItemIndex].Id / 6) * 30
-		copyPixels(inventoryItemImages[0].PixelData, rightItemX, rightItemY, 40, 30, newImageColors, ITEMLIST_POS_X+45, ITEMLIST_POS_Y+3+30*row)
+		screenImage.WriteSubImage(image.Point{ITEMLIST_POS_X + 45, ITEMLIST_POS_Y + 3 + 30*row},
+			inventoryItemImages[0], image.Rect(rightItemX, rightItemY, rightItemX+40, rightItemY+30))
 	}
 
 	// Equipped item
-	copyPixels(inventoryItemImages[2].PixelData, 40, 90, 80, 30, newImageColors, 172, 35)
+	screenImage.WriteSubImage(image.Point{172, 35}, inventoryItemImages[2], image.Rect(40, 90, 40+80, 90+30))
 
 	// Item cursor surrounding item
 	if IsEditingItemScreen() {
-		displayInventoryMainCursor(inventoryImages, newImageColors)
+		displayInventoryMainCursor(inventoryMenuImages)
 	}
 }
 
-func displayInventoryMainCursor(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
+func displayInventoryMainCursor(inventoryMenuImages []*Image16Bit) {
 	var cursorX, cursorY int
 	cursorFrameOffsetX := 3
 	cursorFrameOffsetY := 1
@@ -124,61 +128,66 @@ func displayInventoryMainCursor(inventoryImages []*fileio.TIMOutput, newImageCol
 		cursorX = ITEMLIST_POS_X + cursorFrameOffsetX + (Status_InventoryMainCursor%2)*40
 		cursorY = ITEMLIST_POS_Y + cursorFrameOffsetY + (Status_InventoryMainCursor/2)*30
 	}
-	copyPixelsBrightness(inventoryImages[3].PixelData, 0, 30, 44, 34, newImageColors, cursorX, cursorY, brightnessFactor)
+	screenImage.WriteSubImageUniformBrightness(image.Point{cursorX, cursorY},
+		inventoryMenuImages[3], image.Rect(0, 30, 44, 30+34), brightnessFactor)
 }
 
-func buildBackground(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
+func buildBackground(inventoryMenuImages []*Image16Bit) {
 	// The inventory image is split up into many small components
 	// Combine them manually back into a single image
 	// source image is 256x256
 	// dest image is 320x240
-	backgroundColor := [3]int{5, 5, 31}
-	fillPixels(newImageColors, 0, 0, 320, 240, backgroundColor[0], backgroundColor[1], backgroundColor[2])
+	backgroundColor := color.RGBA{5, 5, 31, 255}
+	screenImage.FillPixels(image.Point{0, 0}, image.Rect(0, 0, 320, 240), backgroundColor)
 
-	buildPlayerFace(inventoryImages, newImageColors)
-	buildHealthECG(inventoryImages, newImageColors, backgroundColor)
+	buildPlayerFace(inventoryMenuImages)
+	buildHealthECG(inventoryMenuImages, backgroundColor)
 
 	// Equipped item
-	copyPixels(inventoryImages[0].PixelData, 50, 211, 11, 39, newImageColors, 161, 29) // left
-	copyPixels(inventoryImages[0].PixelData, 0, 158, 80, 6, newImageColors, 172, 29)   // top
-	copyPixels(inventoryImages[0].PixelData, 91, 164, 5, 39, newImageColors, 252, 29)  // right
-	copyPixels(inventoryImages[0].PixelData, 0, 155, 80, 3, newImageColors, 172, 65)   // bottom
+	screenImage.WriteSubImage(image.Point{161, 29}, inventoryMenuImages[0], image.Rect(50, 211, 50+11, 211+39)) // left
+	screenImage.WriteSubImage(image.Point{172, 29}, inventoryMenuImages[0], image.Rect(0, 158, 80, 158+6))      // top
+	screenImage.WriteSubImage(image.Point{252, 29}, inventoryMenuImages[0], image.Rect(91, 164, 91+5, 164+39))  // right
+	screenImage.WriteSubImage(image.Point{172, 65}, inventoryMenuImages[0], image.Rect(0, 155, 80, 155+3))      // bottom
 
 	// Extra item
-	copyPixels(inventoryImages[0].PixelData, 0, 211, 50, 41, newImageColors, 260, 29)
+	screenImage.WriteSubImage(image.Point{260, 29}, inventoryMenuImages[0], image.Rect(0, 211, 50, 211+41))
 
-	buildMenuTabs(inventoryImages, newImageColors)
+	buildMenuTabs(inventoryMenuImages)
 
 	// Item slots
-	copyPixels(inventoryImages[0].PixelData, 114, 92, 5, 120, newImageColors, ITEMLIST_POS_X, ITEMLIST_POS_Y+3)    // left
-	copyPixels(inventoryImages[0].PixelData, 0, 140, 90, 3, newImageColors, ITEMLIST_POS_X, ITEMLIST_POS_Y)        // top
-	copyPixels(inventoryImages[0].PixelData, 114, 92, 5, 120, newImageColors, ITEMLIST_POS_X+85, ITEMLIST_POS_Y+3) // right
-	copyPixels(inventoryImages[0].PixelData, 0, 140, 90, 4, newImageColors, ITEMLIST_POS_X, ITEMLIST_POS_Y+123)    // bottom
+	screenImage.WriteSubImage(image.Point{ITEMLIST_POS_X, ITEMLIST_POS_Y + 3},
+		inventoryMenuImages[0], image.Rect(114, 92, 114+5, 92+120)) // left
+	screenImage.WriteSubImage(image.Point{ITEMLIST_POS_X, ITEMLIST_POS_Y},
+		inventoryMenuImages[0], image.Rect(0, 140, 90, 140+3)) // top
+	screenImage.WriteSubImage(image.Point{ITEMLIST_POS_X + 85, ITEMLIST_POS_Y + 3},
+		inventoryMenuImages[0], image.Rect(114, 92, 114+5, 92+120)) // right
+	screenImage.WriteSubImage(image.Point{ITEMLIST_POS_X, ITEMLIST_POS_Y + 123},
+		inventoryMenuImages[0], image.Rect(0, 140, 90, 140+4)) // bottom
 
-	buildDescription(inventoryImages, newImageColors)
+	buildDescription(inventoryMenuImages)
 }
 
-func buildPlayerFace(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
+func buildPlayerFace(inventoryMenuImages []*Image16Bit) {
 	// Player
-	copyPixels(inventoryImages[0].PixelData, 106, 152, 4, 60, newImageColors, 7, 16)  // left
-	copyPixels(inventoryImages[0].PixelData, 0, 140, 39, 4, newImageColors, 11, 16)   // top
-	copyPixels(inventoryImages[0].PixelData, 109, 152, 4, 60, newImageColors, 49, 16) // right
-	copyPixels(inventoryImages[0].PixelData, 0, 140, 39, 4, newImageColors, 11, 72)   // bottom
-	copyPixels(inventoryImages[1].PixelData, 1, 73, 37, 8, newImageColors, 11, 21)    // player name
-	copyPixels(inventoryImages[1].PixelData, 0, 85, 38, 42, newImageColors, 11, 31)   // player image
-	copyPixels(inventoryImages[0].PixelData, 56, 164, 38, 1, newImageColors, 11, 30)  // line between name and image
+	screenImage.WriteSubImage(image.Point{7, 16}, inventoryMenuImages[0], image.Rect(106, 152, 106+4, 152+60))  // left
+	screenImage.WriteSubImage(image.Point{11, 16}, inventoryMenuImages[0], image.Rect(0, 140, 39, 140+4))       // top
+	screenImage.WriteSubImage(image.Point{49, 16}, inventoryMenuImages[0], image.Rect(109, 152, 109+4, 152+60)) // right
+	screenImage.WriteSubImage(image.Point{11, 72}, inventoryMenuImages[0], image.Rect(0, 140, 39, 140+4))       // bottom
+	screenImage.WriteSubImage(image.Point{11, 21}, inventoryMenuImages[1], image.Rect(1, 73, 1+37, 73+8))       // player name
+	screenImage.WriteSubImage(image.Point{11, 31}, inventoryMenuImages[1], image.Rect(0, 85, 38, 85+42))        // player image
+	screenImage.WriteSubImage(image.Point{11, 30}, inventoryMenuImages[0], image.Rect(56, 164, 56+38, 164+1))   // line between name and image
 
 	// Pipes to the left of player image
-	copyPixels(inventoryImages[0].PixelData, 107, 242, 7, 14, newImageColors, 0, 17)
-	copyPixels(inventoryImages[0].PixelData, 107, 242, 7, 14, newImageColors, 0, 33)
-	copyPixels(inventoryImages[0].PixelData, 107, 242, 7, 14, newImageColors, 0, 49)
+	screenImage.WriteSubImage(image.Point{0, 17}, inventoryMenuImages[0], image.Rect(107, 242, 107+7, 242+14))
+	screenImage.WriteSubImage(image.Point{0, 33}, inventoryMenuImages[0], image.Rect(107, 242, 107+7, 242+14))
+	screenImage.WriteSubImage(image.Point{0, 49}, inventoryMenuImages[0], image.Rect(107, 242, 107+7, 242+14))
 
 	// Pipes to the right of player image
-	copyPixels(inventoryImages[0].PixelData, 56, 186, 7, 7, newImageColors, 53, 32)
-	copyPixels(inventoryImages[0].PixelData, 56, 186, 7, 7, newImageColors, 53, HEALTH_POS_X+2)
+	screenImage.WriteSubImage(image.Point{53, 32}, inventoryMenuImages[0], image.Rect(56, 186, 56+7, 186+7))
+	screenImage.WriteSubImage(image.Point{53, HEALTH_POS_X + 2}, inventoryMenuImages[0], image.Rect(56, 186, 56+7, 186+7))
 }
 
-func buildMenuTabs(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
+func buildMenuTabs(inventoryMenuImages []*Image16Bit) {
 	var selectedOption [3]float64
 	if IsCursorOnTopMenu() {
 		// Cursor is on this option, but it's not selected
@@ -194,41 +203,41 @@ func buildMenuTabs(inventoryImages []*fileio.TIMOutput, newImageColors []uint16)
 	optionsBrightness[Status_MenuCursor0] = selectedOption
 
 	// File
-	copyPixels(inventoryImages[0].PixelData, 3, 164, 49, 12, newImageColors, 111, 16)
-	copyPixelsBrightnessColor(inventoryImages[5].PixelData, 0, 0, 47, 10, newImageColors, 112, 17,
-		optionsBrightness[0][0], optionsBrightness[0][1], optionsBrightness[0][2])
+	screenImage.WriteSubImage(image.Point{111, 16}, inventoryMenuImages[0], image.Rect(3, 164, 3+49, 164+12))
+	screenImage.WriteSubImageVariableBrightness(image.Point{112, 17},
+		inventoryMenuImages[5], image.Rect(0, 0, 47, 10), optionsBrightness[0])
 
 	// Map
-	copyPixels(inventoryImages[0].PixelData, 3, 164, 49, 12, newImageColors, 160, 16)
-	copyPixelsBrightnessColor(inventoryImages[5].PixelData, 0, 10, 47, 10, newImageColors, 161, 17,
-		optionsBrightness[1][0], optionsBrightness[1][1], optionsBrightness[1][2])
+	screenImage.WriteSubImage(image.Point{160, 16}, inventoryMenuImages[0], image.Rect(3, 164, 3+49, 164+12))
+	screenImage.WriteSubImageVariableBrightness(image.Point{161, 17},
+		inventoryMenuImages[5], image.Rect(0, 10, 47, 10+10), optionsBrightness[1])
 
 	// Item
-	copyPixels(inventoryImages[0].PixelData, 3, 164, 49, 12, newImageColors, 209, 16)
-	copyPixelsBrightnessColor(inventoryImages[5].PixelData, 0, 20, 47, 10, newImageColors, 210, 17,
-		optionsBrightness[2][0], optionsBrightness[2][1], optionsBrightness[2][2])
+	screenImage.WriteSubImage(image.Point{209, 16}, inventoryMenuImages[0], image.Rect(3, 164, 3+49, 164+12))
+	screenImage.WriteSubImageVariableBrightness(image.Point{210, 17},
+		inventoryMenuImages[5], image.Rect(0, 20, 47, 20+10), optionsBrightness[2])
 
 	// Exit
-	copyPixels(inventoryImages[0].PixelData, 3, 164, 49, 12, newImageColors, 258, 16)
-	copyPixelsBrightnessColor(inventoryImages[5].PixelData, 0, 30, 47, 10, newImageColors, 259, 17,
-		optionsBrightness[3][0], optionsBrightness[3][1], optionsBrightness[3][2])
+	screenImage.WriteSubImage(image.Point{258, 16}, inventoryMenuImages[0], image.Rect(3, 164, 3+49, 164+12))
+	screenImage.WriteSubImageVariableBrightness(image.Point{259, 17},
+		inventoryMenuImages[5], image.Rect(0, 30, 47, 30+10), optionsBrightness[3])
 }
 
-func buildDescription(inventoryImages []*fileio.TIMOutput, newImageColors []uint16) {
-	descriptionColor := [3]int{6, 13, 23}
-	fillPixels(newImageColors, 13, 174, 201, 49, descriptionColor[0], descriptionColor[1], descriptionColor[2])
-	copyPixels(inventoryImages[0].PixelData, 106, 163, 5, 49, newImageColors, 8, 174)   // left
-	copyPixels(inventoryImages[0].PixelData, 0, 147, 83, 4, newImageColors, 8, 170)     // top left
-	copyPixels(inventoryImages[0].PixelData, 0, 80, 128, 4, newImageColors, 91, 170)    // top right
-	copyPixels(inventoryImages[0].PixelData, 106, 163, 5, 49, newImageColors, 214, 174) // right
-	copyPixels(inventoryImages[0].PixelData, 0, 147, 83, 4, newImageColors, 8, 223)     // bottom left
-	copyPixels(inventoryImages[0].PixelData, 0, 80, 128, 4, newImageColors, 91, 223)    // bottom right
+func buildDescription(inventoryMenuImages []*Image16Bit) {
+	descriptionColor := color.RGBA{6, 13, 23, 255}
+	screenImage.FillPixels(image.Point{13, 174}, image.Rect(13, 174, 13+201, 174+49), descriptionColor)
+	screenImage.WriteSubImage(image.Point{8, 174}, inventoryMenuImages[0], image.Rect(106, 163, 106+5, 163+49))   // left
+	screenImage.WriteSubImage(image.Point{8, 170}, inventoryMenuImages[0], image.Rect(0, 147, 83, 147+4))         // top left
+	screenImage.WriteSubImage(image.Point{91, 170}, inventoryMenuImages[0], image.Rect(0, 80, 128, 80+4))         // top right
+	screenImage.WriteSubImage(image.Point{214, 174}, inventoryMenuImages[0], image.Rect(106, 163, 106+5, 163+49)) // right
+	screenImage.WriteSubImage(image.Point{8, 223}, inventoryMenuImages[0], image.Rect(0, 147, 83, 147+4))         // bottom left
+	screenImage.WriteSubImage(image.Point{91, 223}, inventoryMenuImages[0], image.Rect(0, 80, 128, 80+4))         // bottom right
 
 	// Pipes to the right of description
-	copyPixels(inventoryImages[0].PixelData, 107, 242, 7, 14, newImageColors, 219, 212)
-	copyPixels(inventoryImages[0].PixelData, 56, 178, 35, 7, newImageColors, 226, 215)
-	copyPixels(inventoryImages[0].PixelData, 56, 178, 35, 7, newImageColors, 261, 215)
-	copyPixels(inventoryImages[0].PixelData, 56, 178, 24, 7, newImageColors, 296, 215)
+	screenImage.WriteSubImage(image.Point{219, 212}, inventoryMenuImages[0], image.Rect(107, 242, 107+7, 242+14))
+	screenImage.WriteSubImage(image.Point{226, 215}, inventoryMenuImages[0], image.Rect(56, 178, 56+35, 178+7))
+	screenImage.WriteSubImage(image.Point{261, 215}, inventoryMenuImages[0], image.Rect(56, 178, 56+35, 178+7))
+	screenImage.WriteSubImage(image.Point{296, 215}, inventoryMenuImages[0], image.Rect(56, 178, 56+24, 178+7))
 }
 
 func NextTopMenuOption() {

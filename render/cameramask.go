@@ -1,6 +1,7 @@
 package render
 
 import (
+	"image"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
 	"github.com/samuelyuan/openbiohazard2/geometry"
@@ -59,41 +60,26 @@ func (cameraMaskImageEntity *SceneEntity) UpdateCameraImageMaskEntity(
 		return
 	}
 
-	cameraMaskColors := BuildCameraMaskPixels(roomOutput, cameraMasks)
+	cameraMaskImage := BuildCameraMask(roomOutput, cameraMasks)
 	cameraMaskDepthBuffer := BuildCameraMaskDepthBuffer(roomOutput, cameraMasks, renderDef)
 
-	cameraMaskImageEntity.SetTexture(cameraMaskColors, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT)
+	cameraMaskImageEntity.SetTexture(cameraMaskImage.GetPixelsForRendering(), BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT)
 	cameraMaskImageEntity.SetMesh(cameraMaskDepthBuffer)
 	return
 }
 
-func BuildCameraMaskPixels(roomImageOutput *fileio.RoomImageOutput, cameraMasks []fileio.MaskRectangle) []uint16 {
+func BuildCameraMask(roomImageOutput *fileio.RoomImageOutput, cameraMasks []fileio.MaskRectangle) *Image16Bit {
 	// Combine original background image with mask data
-	backgroundImageColors := roomImageOutput.BackgroundImage.PixelData
-	imageMaskColors := roomImageOutput.ImageMask.PixelData
+	backgroundImage := ConvertPixelsToImage16Bit(roomImageOutput.BackgroundImage.PixelData)
+	imageMask := ConvertPixelsToImage16Bit(roomImageOutput.ImageMask.PixelData)
 
-	textureBuffer := make([]uint16, BACKGROUND_IMAGE_WIDTH*BACKGROUND_IMAGE_HEIGHT)
 	for _, cameraMask := range cameraMasks {
-		for offsetY := 0; offsetY < cameraMask.Height; offsetY++ {
-			for offsetX := 0; offsetX < cameraMask.Width; offsetX++ {
-				backgroundColor := backgroundImageColors[cameraMask.DestY+offsetY][cameraMask.DestX+offsetX]
-
-				// Determine if pixel should be transparent
-				maskColor := imageMaskColors[cameraMask.SrcY+offsetY][cameraMask.SrcX+offsetX]
-				var alpha int
-				if maskColor > 0 {
-					alpha = 1
-				} else {
-					alpha = 0
-				}
-
-				newTextureColor := int(backgroundColor) | int(alpha<<15)
-				textureBuffer[((cameraMask.DestY+offsetY)*BACKGROUND_IMAGE_WIDTH)+(cameraMask.DestX+offsetX)] = uint16(newTextureColor)
-			}
-		}
+		sourceRect := image.Rect(cameraMask.SrcX, cameraMask.SrcY, 
+			cameraMask.SrcX+cameraMask.Width, cameraMask.SrcY+cameraMask.Height)
+		backgroundImage.ApplyMask(image.Point{cameraMask.DestX, cameraMask.DestY}, imageMask, sourceRect) 
 	}
 
-	return textureBuffer
+	return backgroundImage
 }
 
 func BuildCameraMaskDepthBuffer(roomImageOutput *fileio.RoomImageOutput, cameraMasks []fileio.MaskRectangle, renderDef *RenderDef) []float32 {
