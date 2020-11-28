@@ -10,15 +10,11 @@ import (
 
 const (
 	RENDER_TYPE_ENTITY = 3
-	FRAME_TIME         = 30 // time in milliseconds
 	VERTEX_LEN         = 8
 )
 
 var (
-	totalTime   = float64(0)
-	frameIndex  = 0 // points to frame number
-	frameNumber = 0 // corresponds to rotation
-	curPose     = -1
+	animation = NewAnimation()
 )
 
 type PlayerEntity struct {
@@ -76,7 +72,7 @@ func RenderAnimatedEntity(programShader uint32, playerEntity PlayerEntity, timeE
 	modelMatrix := playerEntity.Player.GetModelMatrix()
 	gl.UniformMatrix4fv(modelLoc, 1, false, &modelMatrix[0])
 
-	updateAnimationFrame(playerEntity, timeElapsedSeconds)
+	animation.UpdateAnimationFrame(playerEntity.AnimationPoseNumber, playerEntity.PLDOutput.AnimationData, timeElapsedSeconds)
 
 	// The root of the skeleton is component 0
 	transforms := make([]mgl32.Mat4, len(pldOutput.MeshData.Components))
@@ -136,41 +132,6 @@ func RenderAnimatedEntity(programShader uint32, playerEntity PlayerEntity, timeE
 	gl.DisableVertexAttribArray(2)
 }
 
-func updateAnimationFrame(playerEntity PlayerEntity, timeElapsedSeconds float64) {
-	pldOutput := playerEntity.PLDOutput
-	poseNumber := playerEntity.AnimationPoseNumber
-
-	// Only keep track of time if an animation is playing
-	if curPose != -1 {
-		totalTime += timeElapsedSeconds * 1000
-	} else {
-		totalTime = 0
-	}
-
-	// Switch to a different pose
-	if curPose != poseNumber {
-		frameIndex = 0
-		if poseNumber != -1 {
-			frameData := pldOutput.AnimationData.AnimationIndexFrames[poseNumber]
-			frameNumber = frameData[frameIndex].FrameId
-		}
-		curPose = poseNumber
-	}
-
-	// Loop animation data
-	if totalTime >= FRAME_TIME && curPose != -1 {
-		totalTime = 0
-		frameIndex++
-		if poseNumber != -1 {
-			frameData := pldOutput.AnimationData.AnimationIndexFrames[poseNumber]
-			if frameIndex >= len(frameData) {
-				frameIndex = 0
-			}
-			frameNumber = frameData[frameIndex].FrameId
-		}
-	}
-}
-
 func buildComponentTransforms(skeletonData *fileio.EMROutput, curId int, parentId int, transforms []mgl32.Mat4) {
 	transformMatrix := mgl32.Ident4()
 	if parentId != -1 {
@@ -184,9 +145,9 @@ func buildComponentTransforms(skeletonData *fileio.EMROutput, curId int, parentI
 	transformMatrix = transformMatrix.Mul4(translate)
 
 	// Rotate if there is an animation pose
-	if curPose != -1 {
+	if animation.CurPose != -1 {
 		quat := mgl32.QuatIdent()
-		frameRotation := skeletonData.FrameData[frameNumber].RotationAngles[curId]
+		frameRotation := skeletonData.FrameData[animation.FrameNumber].RotationAngles[curId]
 		quat = quat.Mul(mgl32.QuatRotate(frameRotation.X(), mgl32.Vec3{1.0, 0.0, 0.0}))
 		quat = quat.Mul(mgl32.QuatRotate(frameRotation.Y(), mgl32.Vec3{0.0, 1.0, 0.0}))
 		quat = quat.Mul(mgl32.QuatRotate(frameRotation.Z(), mgl32.Vec3{0.0, 0.0, 1.0}))

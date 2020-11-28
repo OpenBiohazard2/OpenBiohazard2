@@ -2,6 +2,7 @@ package render
 
 import (
 	"image"
+
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
 	"github.com/samuelyuan/openbiohazard2/geometry"
@@ -74,9 +75,9 @@ func BuildCameraMask(roomImageOutput *fileio.RoomImageOutput, cameraMasks []file
 	imageMask := ConvertPixelsToImage16Bit(roomImageOutput.ImageMask.PixelData)
 
 	for _, cameraMask := range cameraMasks {
-		sourceRect := image.Rect(cameraMask.SrcX, cameraMask.SrcY, 
+		sourceRect := image.Rect(cameraMask.SrcX, cameraMask.SrcY,
 			cameraMask.SrcX+cameraMask.Width, cameraMask.SrcY+cameraMask.Height)
-		backgroundImage.ApplyMask(image.Point{cameraMask.DestX, cameraMask.DestY}, imageMask, sourceRect) 
+		backgroundImage.ApplyMask(image.Point{cameraMask.DestX, cameraMask.DestY}, imageMask, sourceRect)
 	}
 
 	return backgroundImage
