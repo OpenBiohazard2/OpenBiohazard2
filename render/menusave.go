@@ -7,7 +7,7 @@ import (
 func (renderDef *RenderDef) GenerateSaveScreenImage(saveScreenImage *Image16Bit) {
 	screenImage.Clear()
 	buildSaveScreenBackground(saveScreenImage)
-	renderDef.VideoBuffer.UpdateSurface(screenImage.GetPixelsForRendering())
+	renderDef.VideoBuffer.UpdateSurface(screenImage)
 }
 
 func buildSaveScreenBackground(saveScreenImage *Image16Bit) {

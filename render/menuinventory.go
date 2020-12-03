@@ -3,26 +3,18 @@ package render
 import (
 	"image"
 	"image/color"
+
+	"github.com/samuelyuan/openbiohazard2/gui"
 )
 
 const (
-	ITEMLIST_POS_X      = 220
-	ITEMLIST_POS_Y      = 70
-	MAX_TOP_MENU_SLOTS  = 4
-	MAX_INVENTORY_SLOTS = 8
-	RESERVED_ITEM_SLOT  = 10
+	ITEMLIST_POS_X = 220
+	ITEMLIST_POS_Y = 70
 )
 
 var (
 	totalInventoryTime        = float64(0)
 	updateInventoryCursorTime = float64(30) // milliseconds
-
-	Status_Function0           = 3
-	Status_Function1           = 0
-	Status_MenuCursor0         = 2
-	Status_InventoryMainCursor = 0
-	Status_BlinkSwitch0        = false
-	Status_BlinkTimer0         = 50
 
 	playerInventoryItems = InitializeInventoryItems()
 )
@@ -33,40 +25,36 @@ type InventoryItem struct {
 	Size int
 }
 
-func InitializeInventoryCursor() {
-	Status_Function0 = 3
-	Status_Function1 = 0
-	Status_MenuCursor0 = 2
-	Status_InventoryMainCursor = 0
-	Status_BlinkSwitch0 = false
-	Status_BlinkTimer0 = 50
-}
-
 func InitializeInventoryItems() []InventoryItem {
 	playerInventoryItems := make([]InventoryItem, 11)
-	playerInventoryItems[0] = InventoryItem{Id: 2, Num: 18, Size: 1}                  // hand gun
-	playerInventoryItems[1] = InventoryItem{Id: 1, Num: 1, Size: 0}                   // knife
-	playerInventoryItems[RESERVED_ITEM_SLOT] = InventoryItem{Id: 47, Num: 1, Size: 0} // lighter
+	playerInventoryItems[0] = InventoryItem{Id: 2, Num: 18, Size: 1}                      // hand gun
+	playerInventoryItems[1] = InventoryItem{Id: 1, Num: 1, Size: 0}                       // knife
+	playerInventoryItems[gui.RESERVED_ITEM_SLOT] = InventoryItem{Id: 47, Num: 1, Size: 0} // lighter
 	return playerInventoryItems
 }
 
 func (renderDef *RenderDef) GenerateInventoryImage(
 	inventoryMenuImages []*Image16Bit,
 	inventoryItemImages []*Image16Bit,
+	inventoryMenu *gui.InventoryMenu,
 	timeElapsedSeconds float64,
 ) {
 	screenImage.Clear()
 	totalInventoryTime += timeElapsedSeconds * 1000
 	totalHealthTime += timeElapsedSeconds * 1000
-	buildBackground(inventoryMenuImages)
-	buildItems(inventoryMenuImages, inventoryItemImages)
-	renderDef.VideoBuffer.UpdateSurface(screenImage.GetPixelsForRendering())
+	buildBackground(inventoryMenuImages, inventoryMenu)
+	buildItems(inventoryMenuImages, inventoryItemImages, inventoryMenu)
+	renderDef.VideoBuffer.UpdateSurface(screenImage)
 }
 
-func buildItems(inventoryMenuImages []*Image16Bit, inventoryItemImages []*Image16Bit) {
+func buildItems(
+	inventoryMenuImages []*Image16Bit,
+	inventoryItemImages []*Image16Bit,
+	inventoryMenu *gui.InventoryMenu,
+) {
 	// Item in top right corner
-	reservedItemX := (playerInventoryItems[RESERVED_ITEM_SLOT].Id % 6) * 40
-	reservedItemY := (playerInventoryItems[RESERVED_ITEM_SLOT].Id / 6) * 30
+	reservedItemX := (playerInventoryItems[gui.RESERVED_ITEM_SLOT].Id % 6) * 40
+	reservedItemY := (playerInventoryItems[gui.RESERVED_ITEM_SLOT].Id / 6) * 30
 	screenImage.WriteSubImage(image.Point{ITEMLIST_POS_X + 45, ITEMLIST_POS_Y - 35},
 		inventoryItemImages[0], image.Rect(reservedItemX, reservedItemY, reservedItemX+40, reservedItemY+30))
 
@@ -90,49 +78,35 @@ func buildItems(inventoryMenuImages []*Image16Bit, inventoryItemImages []*Image1
 	screenImage.WriteSubImage(image.Point{172, 35}, inventoryItemImages[2], image.Rect(40, 90, 40+80, 90+30))
 
 	// Item cursor surrounding item
-	if IsEditingItemScreen() {
-		displayInventoryMainCursor(inventoryMenuImages)
+	if inventoryMenu.IsEditingItemScreen() {
+		displayInventoryMainCursor(inventoryMenuImages, inventoryMenu)
 	}
 }
 
-func displayInventoryMainCursor(inventoryMenuImages []*Image16Bit) {
+func displayInventoryMainCursor(inventoryMenuImages []*Image16Bit, inventoryMenu *gui.InventoryMenu) {
 	var cursorX, cursorY int
 	cursorFrameOffsetX := 3
 	cursorFrameOffsetY := 1
 
 	if totalInventoryTime >= updateInventoryCursorTime {
-		if Status_Function1 == 0 {
-			if !Status_BlinkSwitch0 {
-				if Status_BlinkTimer0 > 120 {
-					Status_BlinkSwitch0 = true
-				}
-				Status_BlinkTimer0 += 3
-			} else {
-				if Status_BlinkTimer0 < 50 {
-					Status_BlinkSwitch0 = false
-				}
-				Status_BlinkTimer0 -= 3
-			}
-		} else {
-			Status_BlinkTimer0 = 60
-		}
+		inventoryMenu.UpdateCursorBlink()
 		totalInventoryTime = 0
 	}
-	brightnessFactor := float64(Status_BlinkTimer0) / 128.0
+	brightnessFactor := inventoryMenu.GetCursorBlinkBrightnessFactor()
 
 	// Special item in top right corner
-	if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
+	if inventoryMenu.IsCursorOnReservedItem() {
 		cursorX = ITEMLIST_POS_X + cursorFrameOffsetX + 40
 		cursorY = ITEMLIST_POS_Y + cursorFrameOffsetY - 38
 	} else {
-		cursorX = ITEMLIST_POS_X + cursorFrameOffsetX + (Status_InventoryMainCursor%2)*40
-		cursorY = ITEMLIST_POS_Y + cursorFrameOffsetY + (Status_InventoryMainCursor/2)*30
+		cursorX = ITEMLIST_POS_X + cursorFrameOffsetX + inventoryMenu.GetMainCursorColumn()*40
+		cursorY = ITEMLIST_POS_Y + cursorFrameOffsetY + inventoryMenu.GetMainCursorRow()*30
 	}
 	screenImage.WriteSubImageUniformBrightness(image.Point{cursorX, cursorY},
 		inventoryMenuImages[3], image.Rect(0, 30, 44, 30+34), brightnessFactor)
 }
 
-func buildBackground(inventoryMenuImages []*Image16Bit) {
+func buildBackground(inventoryMenuImages []*Image16Bit, inventoryMenu *gui.InventoryMenu) {
 	// The inventory image is split up into many small components
 	// Combine them manually back into a single image
 	// source image is 256x256
@@ -152,7 +126,7 @@ func buildBackground(inventoryMenuImages []*Image16Bit) {
 	// Extra item
 	screenImage.WriteSubImage(image.Point{260, 29}, inventoryMenuImages[0], image.Rect(0, 211, 50, 211+41))
 
-	buildMenuTabs(inventoryMenuImages)
+	buildMenuTabs(inventoryMenuImages, inventoryMenu)
 
 	// Item slots
 	screenImage.WriteSubImage(image.Point{ITEMLIST_POS_X, ITEMLIST_POS_Y + 3},
@@ -187,9 +161,9 @@ func buildPlayerFace(inventoryMenuImages []*Image16Bit) {
 	screenImage.WriteSubImage(image.Point{53, HEALTH_POS_X + 2}, inventoryMenuImages[0], image.Rect(56, 186, 56+7, 186+7))
 }
 
-func buildMenuTabs(inventoryMenuImages []*Image16Bit) {
+func buildMenuTabs(inventoryMenuImages []*Image16Bit, inventoryMenu *gui.InventoryMenu) {
 	var selectedOption [3]float64
-	if IsCursorOnTopMenu() {
+	if inventoryMenu.IsCursorOnTopMenu() {
 		// Cursor is on this option, but it's not selected
 		selectedOption = [3]float64{1.0, 1.0, 1.0}
 	} else {
@@ -200,7 +174,7 @@ func buildMenuTabs(inventoryMenuImages []*Image16Bit) {
 	otherOption := [3]float64{0.4, 0.4, 0.4}
 
 	optionsBrightness := [4][3]float64{otherOption, otherOption, otherOption, otherOption}
-	optionsBrightness[Status_MenuCursor0] = selectedOption
+	optionsBrightness[inventoryMenu.GetTopMenuSelectedOption()] = selectedOption
 
 	// File
 	screenImage.WriteSubImage(image.Point{111, 16}, inventoryMenuImages[0], image.Rect(3, 164, 3+49, 164+12))
@@ -238,91 +212,4 @@ func buildDescription(inventoryMenuImages []*Image16Bit) {
 	screenImage.WriteSubImage(image.Point{226, 215}, inventoryMenuImages[0], image.Rect(56, 178, 56+35, 178+7))
 	screenImage.WriteSubImage(image.Point{261, 215}, inventoryMenuImages[0], image.Rect(56, 178, 56+35, 178+7))
 	screenImage.WriteSubImage(image.Point{296, 215}, inventoryMenuImages[0], image.Rect(56, 178, 56+24, 178+7))
-}
-
-func NextTopMenuOption() {
-	Status_MenuCursor0++
-	if Status_MenuCursor0 >= MAX_TOP_MENU_SLOTS {
-		Status_MenuCursor0 = MAX_TOP_MENU_SLOTS - 1
-	}
-}
-
-func PrevTopMenuOption() {
-	Status_MenuCursor0--
-	if Status_MenuCursor0 < 0 {
-		Status_MenuCursor0 = 0
-	}
-}
-
-func NextItemInList() {
-	if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
-		return
-	}
-
-	Status_InventoryMainCursor++
-	if Status_InventoryMainCursor >= MAX_INVENTORY_SLOTS {
-		Status_InventoryMainCursor = MAX_INVENTORY_SLOTS - 1
-	}
-}
-
-func PrevItemInList() {
-	if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
-		return
-	}
-
-	Status_InventoryMainCursor--
-	if Status_InventoryMainCursor < 0 {
-		Status_InventoryMainCursor = 0
-	}
-}
-
-func NextRowInItemList() {
-	if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
-		Status_InventoryMainCursor = 1
-		return
-	}
-
-	if Status_InventoryMainCursor+2 < MAX_INVENTORY_SLOTS {
-		Status_InventoryMainCursor += 2
-	}
-}
-
-func PrevRowInItemList() {
-	// Return to top menu
-	if Status_InventoryMainCursor == RESERVED_ITEM_SLOT {
-		Status_InventoryMainCursor = 0
-		SetCursorTopMenu()
-		return
-	}
-
-	if Status_InventoryMainCursor-2 >= 0 {
-		Status_InventoryMainCursor -= 2
-	} else if Status_InventoryMainCursor == 1 {
-		Status_InventoryMainCursor = RESERVED_ITEM_SLOT
-	}
-}
-
-func IsCursorOnTopMenu() bool {
-	return Status_Function0 < 3
-}
-
-func IsEditingItemScreen() bool {
-	return Status_Function0 == 3 && Status_MenuCursor0 == 2
-}
-
-func IsTopMenuCursorOnItems() bool {
-	return Status_Function0 < 3 && Status_MenuCursor0 == 2
-}
-
-func IsTopMenuExit() bool {
-	return Status_MenuCursor0 == 3
-}
-
-func SetCursorTopMenu() {
-	// Can only naviagate top menu with cursor
-	Status_Function0 = 2
-}
-
-func SetEditItemScreen() {
-	Status_Function0 = 3
 }

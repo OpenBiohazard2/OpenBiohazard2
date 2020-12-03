@@ -111,8 +111,8 @@ func (r *RenderDef) RenderSurface2D(surface *Surface2D) {
 	gl.DisableVertexAttribArray(1)
 }
 
-func (surface *Surface2D) UpdateSurface(newImagePixels []uint16) {
-	UpdateTexture(surface.TextureId, newImagePixels, IMAGE_SURFACE_WIDTH, IMAGE_SURFACE_HEIGHT)
+func (surface *Surface2D) UpdateSurface(newImage *Image16Bit) {
+	UpdateTexture(surface.TextureId, newImage.GetPixelsForRendering(), int32(newImage.GetWidth()), int32(newImage.GetHeight()))
 }
 
 func buildSurface2DVertexBuffer() []float32 {

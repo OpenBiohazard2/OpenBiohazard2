@@ -4,6 +4,7 @@ import (
 	"github.com/samuelyuan/openbiohazard2/client"
 	"github.com/samuelyuan/openbiohazard2/fileio"
 	"github.com/samuelyuan/openbiohazard2/game"
+	"github.com/samuelyuan/openbiohazard2/gui"
 	"github.com/samuelyuan/openbiohazard2/render"
 )
 
@@ -14,13 +15,11 @@ const (
 	GAME_STATE_LOAD_SAVE    = 3
 	GAME_STATE_SPECIAL_MENU = 4
 
-	STATE_CHANGE_DELAY = 0.5 // in seconds
+	STATE_CHANGE_DELAY = 0.2 // in seconds
 )
 
 type GameStateManager struct {
 	GameState            int
-	MainMenuOption       int
-	SpecialMenuOption    int
 	ImageResourcesLoaded bool
 	LastTimeChangeState  float64
 }
@@ -29,19 +28,19 @@ type MainMenuStateInput struct {
 	RenderDef           *render.RenderDef
 	MenuBackgroundImage *render.Image16Bit
 	MenuTextImages      []*render.Image16Bit
+	Menu                *gui.Menu
 }
 
 type InventoryStateInput struct {
 	RenderDef           *render.RenderDef
 	InventoryMenuImages []*render.Image16Bit
 	InventoryItemImages []*render.Image16Bit
+	InventoryMenu       *gui.InventoryMenu
 }
 
 func NewGameStateManager() *GameStateManager {
 	return &GameStateManager{
 		GameState:            GAME_STATE_MAIN_MENU,
-		MainMenuOption:       0,
-		SpecialMenuOption:    0,
 		ImageResourcesLoaded: false,
 		LastTimeChangeState:  windowHandler.GetCurrentTime(),
 	}
@@ -76,6 +75,7 @@ func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
 		RenderDef:           renderDef,
 		InventoryMenuImages: inventoryMenuImages,
 		InventoryItemImages: inventoryItemImages,
+		InventoryMenu:       gui.NewInventoryMenu(),
 	}
 }
 
@@ -83,8 +83,10 @@ func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 	renderDef := inventoryStateInput.RenderDef
 	inventoryMenuImages := inventoryStateInput.InventoryMenuImages
 	inventoryItemImages := inventoryStateInput.InventoryItemImages
+	inventoryMenu := inventoryStateInput.InventoryMenu
 
 	if gameStateManager.ImageResourcesLoaded == false {
+		inventoryMenu.Reset()
 		gameStateManager.ImageResourcesLoaded = true
 		gameStateManager.UpdateLastTimeChangeState()
 	}
@@ -96,58 +98,30 @@ func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 		}
 	}
 
-	if windowHandler.InputHandler.IsActive(client.MENU_LEFT_BUTTON) {
+	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
 		if gameStateManager.CanUpdateGameState() {
-			if render.IsCursorOnTopMenu() {
-				render.PrevTopMenuOption()
-			} else if render.IsEditingItemScreen() {
-				render.PrevItemInList()
-			}
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	} else if windowHandler.InputHandler.IsActive(client.MENU_RIGHT_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			if render.IsCursorOnTopMenu() {
-				render.NextTopMenuOption()
-			} else if render.IsEditingItemScreen() {
-				render.NextItemInList()
-			}
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	} else if windowHandler.InputHandler.IsActive(client.MENU_UP_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			if render.IsEditingItemScreen() {
-				render.PrevRowInItemList()
-			}
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	} else if windowHandler.InputHandler.IsActive(client.MENU_DOWN_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			if render.IsEditingItemScreen() {
-				render.NextRowInItemList()
-			}
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	} else if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			if render.IsCursorOnTopMenu() {
-				if render.IsTopMenuExit() {
+			if inventoryMenu.IsCursorOnTopMenu() {
+				if inventoryMenu.IsTopMenuExit() {
 					gameStateManager.UpdateGameState(GAME_STATE_MAIN_GAME)
-				} else if render.IsTopMenuCursorOnItems() {
-					render.SetEditItemScreen()
+				} else if inventoryMenu.IsTopMenuCursorOnItems() {
+					inventoryMenu.SetEditItemScreen()
 				}
 			}
 			gameStateManager.UpdateLastTimeChangeState()
 		}
 	}
 
+	if gameStateManager.CanUpdateGameState() {
+		inventoryMenu.HandleSwitchMenuOption(windowHandler)
+		gameStateManager.UpdateLastTimeChangeState()
+	}
+
 	timeElapsedSeconds := windowHandler.GetTimeSinceLastFrame()
-	renderDef.GenerateInventoryImage(inventoryMenuImages, inventoryItemImages, timeElapsedSeconds)
+	renderDef.GenerateInventoryImage(inventoryMenuImages, inventoryItemImages, inventoryMenu, timeElapsedSeconds)
 	renderDef.RenderSolidVideoBuffer()
 }
 
 func handleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *GameStateManager) {
-	maxOptions := 4
 	renderDef := mainMenuStateInput.RenderDef
 	if gameStateManager.ImageResourcesLoaded == false {
 		menuBackgroundImageADTOutput := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
@@ -159,51 +133,40 @@ func handleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *Ga
 			menuTextImages[i] = render.ConvertPixelsToImage16Bit(menuBackgroundTextImagesTIMOutput[i].PixelData)
 		}
 
-		renderDef.UpdateMainMenu(menuBackgroundImage, menuTextImages, 0)
-
 		mainMenuStateInput.MenuBackgroundImage = menuBackgroundImage
 		mainMenuStateInput.MenuTextImages = menuTextImages
+		mainMenuStateInput.Menu.CurrentOption = 0
+		renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages,
+			mainMenuStateInput.Menu.CurrentOption)
+
 		gameStateManager.ImageResourcesLoaded = true
-		gameStateManager.MainMenuOption = 0
 		gameStateManager.UpdateLastTimeChangeState()
 	}
 
 	renderDef.RenderTransparentVideoBuffer()
 
-	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			if gameStateManager.MainMenuOption == 0 {
+	if gameStateManager.CanUpdateGameState() {
+		mainMenuStateInput.Menu.HandleMenuEvent(windowHandler)
+
+		if mainMenuStateInput.Menu.IsOptionSelected {
+			if mainMenuStateInput.Menu.CurrentOption == 0 {
 				gameStateManager.UpdateGameState(GAME_STATE_LOAD_SAVE)
 				gameStateManager.UpdateLastTimeChangeState()
-			} else if gameStateManager.MainMenuOption == 1 {
+			} else if mainMenuStateInput.Menu.CurrentOption == 1 {
 				gameStateManager.UpdateGameState(GAME_STATE_MAIN_GAME)
 				gameStateManager.UpdateLastTimeChangeState()
-			} else if gameStateManager.MainMenuOption == 2 {
+			} else if mainMenuStateInput.Menu.CurrentOption == 2 {
 				gameStateManager.UpdateGameState(GAME_STATE_SPECIAL_MENU)
 				gameStateManager.UpdateLastTimeChangeState()
 			}
-		}
-	}
 
-	if windowHandler.InputHandler.IsActive(client.MENU_UP_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.MainMenuOption--
-			if gameStateManager.MainMenuOption < 0 {
-				gameStateManager.MainMenuOption = 0
-			}
-			renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages, gameStateManager.MainMenuOption)
+			mainMenuStateInput.Menu.IsOptionSelected = false
+		} else if mainMenuStateInput.Menu.IsNewOption {
+			renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages,
+				mainMenuStateInput.Menu.CurrentOption)
 			gameStateManager.UpdateLastTimeChangeState()
-		}
-	}
 
-	if windowHandler.InputHandler.IsActive(client.MENU_DOWN_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.MainMenuOption++
-			if gameStateManager.MainMenuOption >= maxOptions {
-				gameStateManager.MainMenuOption = maxOptions - 1
-			}
-			renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages, gameStateManager.MainMenuOption)
-			gameStateManager.UpdateLastTimeChangeState()
+			mainMenuStateInput.Menu.IsNewOption = false
 		}
 	}
 }
@@ -228,9 +191,8 @@ func handleLoadSave(renderDef *render.RenderDef, gameStateManager *GameStateMana
 	}
 }
 
-func handleSpecialMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *GameStateManager) {
-	maxOptions := 2
-	renderDef := mainMenuStateInput.RenderDef
+func handleSpecialMenu(specialMenuStateInput *MainMenuStateInput, gameStateManager *GameStateManager) {
+	renderDef := specialMenuStateInput.RenderDef
 	if gameStateManager.ImageResourcesLoaded == false {
 		menuBackgroundImageADTOutput := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
 		menuBackgroundImage := render.ConvertPixelsToImage16Bit(menuBackgroundImageADTOutput.PixelData)
@@ -241,47 +203,37 @@ func handleSpecialMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager 
 			menuTextImages[i] = render.ConvertPixelsToImage16Bit(menuBackgroundTextImagesTIMOutput[i].PixelData)
 		}
 
-		renderDef.UpdateSpecialMenu(menuBackgroundImage, menuTextImages, 0)
+		specialMenuStateInput.MenuBackgroundImage = menuBackgroundImage
+		specialMenuStateInput.MenuTextImages = menuTextImages
+		specialMenuStateInput.Menu.CurrentOption = 0
+		renderDef.UpdateSpecialMenu(specialMenuStateInput.MenuBackgroundImage, specialMenuStateInput.MenuTextImages,
+			specialMenuStateInput.Menu.CurrentOption)
 
-		mainMenuStateInput.MenuBackgroundImage = menuBackgroundImage
-		mainMenuStateInput.MenuTextImages = menuTextImages
 		gameStateManager.ImageResourcesLoaded = true
-		gameStateManager.SpecialMenuOption = 0
 		gameStateManager.UpdateLastTimeChangeState()
 	}
 
 	renderDef.RenderTransparentVideoBuffer()
-	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			if gameStateManager.SpecialMenuOption == 0 {
 
-			} else if gameStateManager.SpecialMenuOption == 1 {
+	if gameStateManager.CanUpdateGameState() {
+		specialMenuStateInput.Menu.HandleMenuEvent(windowHandler)
+
+		if specialMenuStateInput.Menu.IsOptionSelected {
+			if specialMenuStateInput.Menu.CurrentOption == 0 {
+				// TODO: Load gallery
+			} else if specialMenuStateInput.Menu.CurrentOption == 1 {
 				// Exit
 				gameStateManager.UpdateGameState(GAME_STATE_MAIN_MENU)
 				gameStateManager.UpdateLastTimeChangeState()
 			}
-		}
-	}
 
-	if windowHandler.InputHandler.IsActive(client.MENU_UP_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.SpecialMenuOption--
-			if gameStateManager.SpecialMenuOption < 0 {
-				gameStateManager.SpecialMenuOption = 0
-			}
-			renderDef.UpdateSpecialMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages, gameStateManager.SpecialMenuOption)
+			specialMenuStateInput.Menu.IsOptionSelected = false
+		} else if specialMenuStateInput.Menu.IsNewOption {
+			renderDef.UpdateSpecialMenu(specialMenuStateInput.MenuBackgroundImage, specialMenuStateInput.MenuTextImages,
+				specialMenuStateInput.Menu.CurrentOption)
 			gameStateManager.UpdateLastTimeChangeState()
-		}
-	}
 
-	if windowHandler.InputHandler.IsActive(client.MENU_DOWN_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.SpecialMenuOption++
-			if gameStateManager.SpecialMenuOption >= maxOptions {
-				gameStateManager.SpecialMenuOption = maxOptions - 1
-			}
-			renderDef.UpdateSpecialMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages, gameStateManager.SpecialMenuOption)
-			gameStateManager.UpdateLastTimeChangeState()
+			specialMenuStateInput.Menu.IsNewOption = false
 		}
 	}
 }

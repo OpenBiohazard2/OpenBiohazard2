@@ -12,7 +12,7 @@ func (renderDef *RenderDef) UpdateMainMenu(
 	screenImage.Clear()
 	buildMainMenuBackground(menuBackgroundImage)
 	buildMainMenuText(menuTextImages, mainMenuOption)
-	renderDef.VideoBuffer.UpdateSurface(screenImage.GetPixelsForRendering())
+	renderDef.VideoBuffer.UpdateSurface(screenImage)
 }
 
 func buildMainMenuBackground(menuBackgroundImage *Image16Bit) {
@@ -63,7 +63,7 @@ func (renderDef *RenderDef) UpdateSpecialMenu(
 	screenImage.Clear()
 	buildMainMenuBackground(menuBackgroundImage)
 	buildSpecialMenuText(menuTextImages, mainMenuOption)
-	renderDef.VideoBuffer.UpdateSurface(screenImage.GetPixelsForRendering())
+	renderDef.VideoBuffer.UpdateSurface(screenImage)
 }
 
 func buildSpecialMenuText(menuTextImages []*Image16Bit, mainMenuOption int) {

@@ -33,6 +33,14 @@ func ConvertPixelsToImage16Bit(sourcePixels [][]uint16) *Image16Bit {
 	}
 }
 
+func (image16bit *Image16Bit) GetWidth() int {
+	return image16bit.imageData.Bounds().Dx()
+}
+
+func (image16bit *Image16Bit) GetHeight() int {
+	return image16bit.imageData.Bounds().Dy()
+}
+
 func (image16bit *Image16Bit) Clear() {
 	minPoint := image16bit.imageData.Bounds().Min
 	maxPoint := image16bit.imageData.Bounds().Max

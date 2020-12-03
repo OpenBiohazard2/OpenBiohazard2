@@ -8,6 +8,7 @@ import (
 	"github.com/go-gl/glfw/v3.2/glfw"
 	"github.com/samuelyuan/openbiohazard2/client"
 	"github.com/samuelyuan/openbiohazard2/game"
+	"github.com/samuelyuan/openbiohazard2/gui"
 	"github.com/samuelyuan/openbiohazard2/render"
 )
 
@@ -47,6 +48,11 @@ func main() {
 	// Initialize main menu
 	mainMenuStateInput := &MainMenuStateInput{
 		RenderDef: renderDef,
+		Menu:      gui.NewMenu(4),
+	}
+	specialMenuStateInput := &MainMenuStateInput{
+		RenderDef: renderDef,
+		Menu:      gui.NewMenu(2),
 	}
 
 	// Initialize inventory
@@ -65,7 +71,7 @@ func main() {
 		case GAME_STATE_LOAD_SAVE:
 			handleLoadSave(renderDef, gameStateManager)
 		case GAME_STATE_SPECIAL_MENU:
-			handleSpecialMenu(mainMenuStateInput, gameStateManager)
+			handleSpecialMenu(specialMenuStateInput, gameStateManager)
 		default:
 			log.Fatal("Invalid game state: ", gameStateManager.GameState)
 		}

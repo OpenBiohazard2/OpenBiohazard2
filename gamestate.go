@@ -236,7 +236,6 @@ func handleMainGameInput(gameDef *game.GameDef,
 	if windowHandler.InputHandler.IsActive(client.PLAYER_VIEW_INVENTORY) {
 		if gameStateManager.CanUpdateGameState() {
 			gameStateManager.UpdateGameState(GAME_STATE_INVENTORY)
-			render.InitializeInventoryCursor()
 			gameStateManager.UpdateLastTimeChangeState()
 		}
 	}
