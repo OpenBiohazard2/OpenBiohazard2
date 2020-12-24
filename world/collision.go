@@ -1,4 +1,4 @@
-package game
+package world
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/samuelyuan/openbiohazard2/fileio"
 )
 
-func (gameDef *GameDef) RemoveCollisionEntity(collisionEntities []fileio.CollisionEntity, entityId int) {
+func RemoveCollisionEntity(collisionEntities []fileio.CollisionEntity, entityId int) {
 	for i, entity := range collisionEntities {
 		if entity.ScaIndex == entityId {
 			collisionEntities = append(collisionEntities[:i], collisionEntities[i+1:]...)
@@ -18,7 +18,7 @@ func (gameDef *GameDef) RemoveCollisionEntity(collisionEntities []fileio.Collisi
 	}
 }
 
-func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities []fileio.CollisionEntity) *fileio.CollisionEntity {
+func CheckCollision(newPosition mgl32.Vec3, collisionEntities []fileio.CollisionEntity) *fileio.CollisionEntity {
 	playerFloorNum := int(math.Round(float64(newPosition.Y()) / fileio.FLOOR_HEIGHT_UNIT))
 	for _, entity := range collisionEntities {
 		// The boundary is on a different floor than the player
@@ -122,11 +122,11 @@ func (gameDef *GameDef) CheckCollision(newPosition mgl32.Vec3, collisionEntities
 	return nil
 }
 
-func (gameDef *GameDef) CheckRamp(entity *fileio.CollisionEntity) bool {
+func CheckRamp(entity *fileio.CollisionEntity) bool {
 	return entity.Shape == fileio.SCA_TYPE_SLOPE || entity.Shape == fileio.SCA_TYPE_STAIRS
 }
 
-func (gameDef *GameDef) CheckNearbyBoxClimb(playerPosition mgl32.Vec3, collisionEntities []fileio.CollisionEntity) bool {
+func CheckNearbyBoxClimb(playerPosition mgl32.Vec3, collisionEntities []fileio.CollisionEntity) bool {
 	for _, entity := range collisionEntities {
 		switch entity.Shape {
 		case 9:

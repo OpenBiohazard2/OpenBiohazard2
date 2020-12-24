@@ -2,6 +2,10 @@ github.com/go-gl/gl v0.0.0-20190320180904-bf2b1f2f34d7 h1:SCYMcCJ89LjRGwEa0tRluN
 github.com/go-gl/gl v0.0.0-20190320180904-bf2b1f2f34d7/go.mod h1:482civXOzJJCPzJ4ZOX/pwvXBWSnzD4OKMdH4ClKGbk=
 github.com/go-gl/glfw v0.0.0-20200222043503-6f7a984d4dc4 h1:5Bg3HS4orH8S9vQARwWJHnEkz0dvhRKf3xxGlyDpjhE=
 github.com/go-gl/glfw v0.0.0-20200222043503-6f7a984d4dc4/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
+github.com/go-gl/glfw v0.0.0-20201108214237-06ea97f0c265 h1:y+9kl/LaBMwLfNwCg5BbnHIWBGKeYokXTSBhGnwWcB8=
+github.com/go-gl/glfw v0.0.0-20201108214237-06ea97f0c265/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20201108214237-06ea97f0c265 h1:BcbKYUZo/TKPsiSh7LymK3p+TNAJJW3OfGO/21sBbiA=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20201108214237-06ea97f0c265/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a h1:yoAEv7yeWqfL/l9A/J5QOndXIJCldv+uuQB1DSNQbS0=
 github.com/go-gl/mathgl v0.0.0-20190713194549-592312d8590a/go.mod h1:yhpkQzEiH9yPyxDUGzkmgScbaBVlhC06qodikEM0ZwQ=
 golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f h1:FO4MZ3N56GnxbqxGKqh+YTzUWQ2sDwtFQEZgLOxh9Jc=

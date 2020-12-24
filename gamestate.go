@@ -9,6 +9,7 @@ import (
 	"github.com/samuelyuan/openbiohazard2/game"
 	"github.com/samuelyuan/openbiohazard2/render"
 	"github.com/samuelyuan/openbiohazard2/script"
+	"github.com/samuelyuan/openbiohazard2/world"
 )
 
 type MainGameStateInput struct {
@@ -82,9 +83,8 @@ func loadRoomState(mainGameStateInput *MainGameStateInput) {
 		log.Fatal("Error loading RDT file. ", err)
 	}
 	fmt.Println("Loaded", roomFilename)
-	gameDef.MaxCamerasInRoom = int(rdtOutput.Header.NumCameras)
-	fmt.Println("Max cameras in room = ", gameDef.MaxCamerasInRoom)
-	gameDef.GameRoom = gameDef.NewGameRoom(rdtOutput)
+	gameDef.RoomScript = gameDef.NewRoomScript(rdtOutput)
+	gameDef.GameWorld.LoadNewRoom(rdtOutput)
 	mainGameRender.RenderRoom = render.NewRenderRoom(rdtOutput)
 
 	// Initialize room model objects
@@ -96,14 +96,14 @@ func loadRoomState(mainGameStateInput *MainGameStateInput) {
 
 	initScriptOnRoomLoad(scriptDef, gameDef, renderDef)
 
-	mainGameRender.DebugEntities = render.BuildAllDebugEntities(gameDef)
+	mainGameRender.DebugEntities = render.BuildAllDebugEntities(gameDef.GameWorld)
 }
 
 func initScriptOnRoomLoad(scriptDef *script.ScriptDef, gameDef *game.GameDef, renderDef *render.RenderDef) {
 	// Reset all state
 	scriptDef.Reset()
 
-	gameRoom := gameDef.GameRoom
+	gameRoom := gameDef.RoomScript
 
 	// Run initial script once when the room loads
 	threadNum := 0
@@ -135,7 +135,7 @@ func updateCameraView(mainGameRender *MainGameRender, gameDef *game.GameDef) {
 	renderDef := mainGameRender.RenderDef
 
 	// Update camera position
-	cameraPosition := gameDef.GameRoom.CameraPositionData[gameDef.CameraId]
+	cameraPosition := gameDef.GameWorld.GameRoom.CameraPositionData[gameDef.CameraId]
 	renderDef.Camera.Update(cameraPosition.CameraFrom, cameraPosition.CameraTo, cameraPosition.CameraFov)
 	renderDef.ViewMatrix = renderDef.Camera.BuildViewMatrix()
 
@@ -157,7 +157,7 @@ func updateRoomBackroundImage(mainGameRender *MainGameRender, gameDef *game.Game
 }
 
 func updateCameraSwitchZones(mainGameRender *MainGameRender, gameDef *game.GameDef) {
-	cameraSwitchHandler := gameDef.GameRoom.CameraSwitchHandler
+	cameraSwitchHandler := gameDef.GameWorld.GameRoom.CameraSwitchHandler
 	mainGameRender.CameraSwitchDebugEntity = render.NewCameraSwitchDebugEntity(gameDef.CameraId,
 		cameraSwitchHandler.CameraSwitches, cameraSwitchHandler.CameraSwitchTransitions)
 }
@@ -180,37 +180,41 @@ func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameS
 	}
 	renderDef.RenderFrame(*playerEntity, debugEntitiesRender, timeElapsedSeconds)
 
-	handleMainGameInput(gameDef, timeElapsedSeconds, gameDef.GameRoom.CollisionEntities, gameStateManager)
+	handleMainGameInput(gameDef, timeElapsedSeconds, gameDef.GameWorld, gameStateManager)
 	gameDef.HandleCameraSwitch(gameDef.Player.Position)
 	gameDef.HandleRoomSwitch(gameDef.Player.Position)
 	handleEventTrigger(scriptDef, gameDef)
 
-	scriptDef.RunScript(gameDef.GameRoom.RoomScriptData, timeElapsedSeconds, gameDef, renderDef)
+	scriptDef.RunScript(gameDef.RoomScript.RoomScriptData, timeElapsedSeconds, gameDef, renderDef)
 }
 
 func handleEventTrigger(scriptDef *script.ScriptDef, gameDef *game.GameDef) {
 	// Handles events like cutscenes
-	aot := gameDef.AotManager.GetAotTriggerNearPlayer(gameDef.Player.Position)
+	aot := gameDef.GameWorld.AotManager.GetAotTriggerNearPlayer(gameDef.Player.Position)
 	if aot != nil {
-		if aot.Header.Id == game.AOT_EVENT {
+		if aot.Header.Id == world.AOT_EVENT {
 			threadNum := aot.Data[0]
 			eventNum := aot.Data[3]
 			lineData := []byte{fileio.OP_EVT_EXEC, threadNum, 0, eventNum}
-			scriptDef.ScriptEvtExec(lineData, gameDef.GameRoom.RoomScriptData)
+			scriptDef.ScriptEvtExec(lineData, gameDef.RoomScript.RoomScriptData)
 		}
 	}
 }
 
-func handleMainGameInput(gameDef *game.GameDef,
+func handleMainGameInput(
+	gameDef *game.GameDef,
 	timeElapsedSeconds float64,
-	collisionEntities []fileio.CollisionEntity,
-	gameStateManager *GameStateManager) {
+	gameWorld *world.GameWorld,
+	gameStateManager *GameStateManager,
+) {
+	collisionEntities := gameWorld.GameRoom.CollisionEntities
+
 	if windowHandler.InputHandler.IsActive(client.PLAYER_FORWARD) {
-		gameDef.HandlePlayerInputForward(collisionEntities, timeElapsedSeconds)
+		gameDef.Player.HandlePlayerInputForward(collisionEntities, timeElapsedSeconds)
 	}
 
 	if windowHandler.InputHandler.IsActive(client.PLAYER_BACKWARD) {
-		gameDef.HandlePlayerInputBackward(collisionEntities, timeElapsedSeconds)
+		gameDef.Player.HandlePlayerInputBackward(collisionEntities, timeElapsedSeconds)
 	}
 
 	if !windowHandler.InputHandler.IsActive(client.PLAYER_FORWARD) &&
@@ -219,11 +223,11 @@ func handleMainGameInput(gameDef *game.GameDef,
 	}
 
 	if windowHandler.InputHandler.IsActive(client.PLAYER_ROTATE_LEFT) {
-		gameDef.RotatePlayerLeft(timeElapsedSeconds)
+		gameDef.Player.RotatePlayerLeft(timeElapsedSeconds)
 	}
 
 	if windowHandler.InputHandler.IsActive(client.PLAYER_ROTATE_RIGHT) {
-		gameDef.RotatePlayerRight(timeElapsedSeconds)
+		gameDef.Player.RotatePlayerRight(timeElapsedSeconds)
 	}
 
 	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {

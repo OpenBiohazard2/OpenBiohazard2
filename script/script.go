@@ -9,6 +9,7 @@ import (
 	"github.com/samuelyuan/openbiohazard2/fileio"
 	"github.com/samuelyuan/openbiohazard2/game"
 	"github.com/samuelyuan/openbiohazard2/render"
+	"github.com/samuelyuan/openbiohazard2/world"
 )
 
 const (
@@ -515,7 +516,7 @@ func (scriptDef *ScriptDef) ScriptScaIdSet(lineData []byte, gameDef *game.GameDe
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
 	if instruction.Flag == 0 {
-		gameDef.RemoveCollisionEntity(gameDef.GameRoom.CollisionEntities, int(instruction.Id))
+		world.RemoveCollisionEntity(gameDef.GameWorld.GameRoom.CollisionEntities, int(instruction.Id))
 	}
 	return 1
 }

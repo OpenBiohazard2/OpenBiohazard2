@@ -35,26 +35,26 @@ func (inventoryMenu *InventoryMenu) Reset() {
 }
 
 func (inventoryMenu *InventoryMenu) HandleSwitchMenuOption(windowHandler *client.WindowHandler) {
-	if windowHandler.InputHandler.IsActive(client.MENU_LEFT_BUTTON) {
-		if inventoryMenu.IsCursorOnTopMenu() {
+	if inventoryMenu.IsCursorOnTopMenu() {
+		if windowHandler.InputHandler.IsActive(client.MENU_LEFT_BUTTON) {
 			inventoryMenu.PrevTopMenuOption()
-		} else if inventoryMenu.IsEditingItemScreen() {
-			inventoryMenu.PrevItemInList()
-		}
-	} else if windowHandler.InputHandler.IsActive(client.MENU_RIGHT_BUTTON) {
-		if inventoryMenu.IsCursorOnTopMenu() {
+		} else if windowHandler.InputHandler.IsActive(client.MENU_RIGHT_BUTTON) {
 			inventoryMenu.NextTopMenuOption()
-		} else if inventoryMenu.IsEditingItemScreen() {
+		}
+		return
+	}
+
+	if inventoryMenu.IsEditingItemScreen() {
+		if windowHandler.InputHandler.IsActive(client.MENU_LEFT_BUTTON) {
+			inventoryMenu.PrevItemInList()
+		} else if windowHandler.InputHandler.IsActive(client.MENU_RIGHT_BUTTON) {
 			inventoryMenu.NextItemInList()
-		}
-	} else if windowHandler.InputHandler.IsActive(client.MENU_UP_BUTTON) {
-		if inventoryMenu.IsEditingItemScreen() {
+		} else if windowHandler.InputHandler.IsActive(client.MENU_UP_BUTTON) {
 			inventoryMenu.PrevRowInItemList()
-		}
-	} else if windowHandler.InputHandler.IsActive(client.MENU_DOWN_BUTTON) {
-		if inventoryMenu.IsEditingItemScreen() {
+		} else if windowHandler.InputHandler.IsActive(client.MENU_DOWN_BUTTON) {
 			inventoryMenu.NextRowInItemList()
 		}
+		return
 	}
 }
 

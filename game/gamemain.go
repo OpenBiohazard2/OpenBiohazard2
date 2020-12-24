@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/samuelyuan/openbiohazard2/world"
 )
 
 const (
@@ -19,45 +20,37 @@ const (
 )
 
 type GameDef struct {
-	StageId          int
-	RoomId           int
-	CameraId         int
-	MaxCamerasInRoom int
-	StateStatus      int
-	GameRoom         GameRoom
-	AotManager       *AotManager
-	Player           *Player
-	ScriptBitArray   map[int]map[int]int
-	ScriptVariable   map[int]int
+	StageId        int
+	RoomId         int
+	CameraId       int
+	StateStatus    int
+	RoomScript     RoomScript
+	GameWorld      *world.GameWorld
+	Player         *Player
+	ScriptBitArray map[int]map[int]int
+	ScriptVariable map[int]int
 }
 
 func NewGame(stageId int, roomId int, cameraId int) *GameDef {
 	return &GameDef{
-		StageId:          stageId,
-		RoomId:           roomId,
-		CameraId:         cameraId,
-		MaxCamerasInRoom: 0,
-		StateStatus:      GAME_LOAD_ROOM,
-		AotManager:       NewAotManager(),
-		ScriptBitArray:   make(map[int]map[int]int),
-		ScriptVariable:   make(map[int]int),
+		StageId:        stageId,
+		RoomId:         roomId,
+		CameraId:       cameraId,
+		StateStatus:    GAME_LOAD_ROOM,
+		GameWorld:      world.NewGameWorld(),
+		ScriptBitArray: make(map[int]map[int]int),
+		ScriptVariable: make(map[int]int),
 	}
 }
 
 func (gameDef *GameDef) ChangeCamera(newCamera int) {
 	gameDef.StateStatus = GAME_LOAD_CAMERA
-	gameDef.CameraId = newCamera
-	if gameDef.CameraId >= gameDef.MaxCamerasInRoom {
-		gameDef.CameraId = gameDef.MaxCamerasInRoom - 1
-	}
-	if gameDef.CameraId < 0 {
-		gameDef.CameraId = 0
-	}
+	gameDef.CameraId = gameDef.GameWorld.GameRoom.ClampNewCameraId(newCamera)
 }
 
 func (gameDef *GameDef) HandleCameraSwitch(position mgl32.Vec3) {
 	// Check is player entered a new region
-	cameraSwitchHandler := gameDef.GameRoom.CameraSwitchHandler
+	cameraSwitchHandler := gameDef.GameWorld.GameRoom.CameraSwitchHandler
 	cameraSwitchNewRegion := cameraSwitchHandler.GetCameraSwitchNewRegion(gameDef.Player.Position, gameDef.CameraId)
 	if cameraSwitchNewRegion != nil {
 		// Switch to a new camera
@@ -66,7 +59,7 @@ func (gameDef *GameDef) HandleCameraSwitch(position mgl32.Vec3) {
 }
 
 func (gameDef *GameDef) HandleRoomSwitch(position mgl32.Vec3) {
-	door := gameDef.AotManager.GetDoorNearPlayer(position)
+	door := gameDef.GameWorld.AotManager.GetDoorNearPlayer(position)
 	if door != nil {
 		// Switch to a new room
 		gameDef.StageId = 1 + int(door.Stage)
@@ -76,7 +69,7 @@ func (gameDef *GameDef) HandleRoomSwitch(position mgl32.Vec3) {
 		fmt.Println("New player position = ", gameDef.Player.Position)
 
 		gameDef.StateStatus = GAME_LOAD_ROOM
-		gameDef.AotManager = NewAotManager()
+		gameDef.GameWorld.AotManager = world.NewAotManager()
 	}
 }
 

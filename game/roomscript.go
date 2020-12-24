@@ -6,23 +6,15 @@ import (
 	"github.com/samuelyuan/openbiohazard2/fileio"
 )
 
-type GameRoom struct {
-	CameraPositionData  []fileio.CameraInfo
-	CameraSwitchHandler *CameraSwitchHandler
-	CollisionEntities   []fileio.CollisionEntity
-	InitScriptData      fileio.ScriptFunction
-	RoomScriptData      fileio.ScriptFunction
+type RoomScript struct {
+	InitScriptData fileio.ScriptFunction
+	RoomScriptData fileio.ScriptFunction
 }
 
-func (gameDef *GameDef) NewGameRoom(rdtOutput *fileio.RDTOutput) GameRoom {
-	cameraSwitches := rdtOutput.CameraSwitchData.CameraSwitches
-
-	return GameRoom{
-		CameraSwitchHandler: NewCameraSwitchHandler(cameraSwitches, gameDef.MaxCamerasInRoom),
-		CameraPositionData:  rdtOutput.RIDOutput.CameraPositions,
-		CollisionEntities:   rdtOutput.CollisionData.CollisionEntities,
-		InitScriptData:      rdtOutput.InitScriptData.ScriptData,
-		RoomScriptData:      rdtOutput.RoomScriptData.ScriptData,
+func (gameDef *GameDef) NewRoomScript(rdtOutput *fileio.RDTOutput) RoomScript {
+	return RoomScript{
+		InitScriptData: rdtOutput.InitScriptData.ScriptData,
+		RoomScriptData: rdtOutput.RoomScriptData.ScriptData,
 	}
 }
 

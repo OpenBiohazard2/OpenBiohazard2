@@ -14,7 +14,7 @@ func (scriptDef *ScriptDef) ScriptSceEsprOn(lineData []byte, gameDef *game.GameD
 	scriptSprite := fileio.ScriptInstrSceEsprOn{}
 	binary.Read(byteArr, binary.LittleEndian, &scriptSprite)
 
-	gameDef.AotManager.AddScriptSprite(scriptSprite)
+	gameDef.GameWorld.AotManager.AddScriptSprite(scriptSprite)
 	renderDef.AddSprite(scriptSprite)
 	return 1
 }

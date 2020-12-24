@@ -4,8 +4,8 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
-	"github.com/samuelyuan/openbiohazard2/game"
 	"github.com/samuelyuan/openbiohazard2/geometry"
+	"github.com/samuelyuan/openbiohazard2/world"
 )
 
 const (
@@ -67,13 +67,13 @@ func RenderDebugEntities(programShader uint32, debugEntities []*DebugEntity) {
 	}
 }
 
-func BuildAllDebugEntities(gameDef *game.GameDef) []*DebugEntity {
+func BuildAllDebugEntities(gameWorld *world.GameWorld) []*DebugEntity {
 	debugEntities := make([]*DebugEntity, 0)
-	debugEntities = append(debugEntities, NewDoorTriggerDebugEntity(gameDef.AotManager.Doors))
-	debugEntities = append(debugEntities, NewCollisionDebugEntity(gameDef.GameRoom.CollisionEntities))
-	debugEntities = append(debugEntities, NewSlopedSurfacesDebugEntity(gameDef.GameRoom.CollisionEntities))
-	debugEntities = append(debugEntities, NewItemTriggerDebugEntity(gameDef.AotManager.Items))
-	debugEntities = append(debugEntities, NewAotTriggerDebugEntity(gameDef.AotManager.AotTriggers))
+	debugEntities = append(debugEntities, NewDoorTriggerDebugEntity(gameWorld.AotManager.Doors))
+	debugEntities = append(debugEntities, NewCollisionDebugEntity(gameWorld.GameRoom.CollisionEntities))
+	debugEntities = append(debugEntities, NewSlopedSurfacesDebugEntity(gameWorld.GameRoom.CollisionEntities))
+	debugEntities = append(debugEntities, NewItemTriggerDebugEntity(gameWorld.AotManager.Items))
+	debugEntities = append(debugEntities, NewAotTriggerDebugEntity(gameWorld.AotManager.AotTriggers))
 	return debugEntities
 }
 
@@ -177,7 +177,7 @@ func NewCameraSwitchDebugEntity(curCameraId int,
 	}
 }
 
-func NewDoorTriggerDebugEntity(doors []game.AotDoor) *DebugEntity {
+func NewDoorTriggerDebugEntity(doors []world.AotDoor) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
 	for _, aot := range doors {
 		vertexBuffer = append(vertexBuffer, aot.Bounds.VertexBuffer...)
@@ -197,7 +197,7 @@ func NewDoorTriggerDebugEntity(doors []game.AotDoor) *DebugEntity {
 	}
 }
 
-func NewItemTriggerDebugEntity(items []game.AotItem) *DebugEntity {
+func NewItemTriggerDebugEntity(items []world.AotItem) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
 	for _, aot := range items {
 		vertexBuffer = append(vertexBuffer, aot.Bounds.VertexBuffer...)
@@ -217,7 +217,7 @@ func NewItemTriggerDebugEntity(items []game.AotItem) *DebugEntity {
 	}
 }
 
-func NewAotTriggerDebugEntity(aotTriggers []game.AotObject) *DebugEntity {
+func NewAotTriggerDebugEntity(aotTriggers []world.AotObject) *DebugEntity {
 	vertexBuffer := make([]float32, 0)
 	for _, aot := range aotTriggers {
 		vertexBuffer = append(vertexBuffer, aot.Bounds.VertexBuffer...)

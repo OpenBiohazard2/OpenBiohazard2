@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/samuelyuan/openbiohazard2/world"
 )
 
 const (
@@ -35,95 +36,92 @@ func (p *Player) GetModelMatrix() mgl32.Mat4 {
 	return modelMatrix
 }
 
-func (gameDef *GameDef) HandlePlayerInputForward(collisionEntities []fileio.CollisionEntity, timeElapsedSeconds float64) {
-	predictPosition := gameDef.PredictPositionForward(gameDef.Player.Position, gameDef.Player.RotationAngle, timeElapsedSeconds)
-	collidingEntity := gameDef.CheckCollision(predictPosition, collisionEntities)
+func (player *Player) HandlePlayerInputForward(collisionEntities []fileio.CollisionEntity, timeElapsedSeconds float64) {
+	predictPosition := player.PredictPositionForward(timeElapsedSeconds)
+	collidingEntity := world.CheckCollision(predictPosition, collisionEntities)
 	if collidingEntity == nil {
-		gameDef.Player.Position = predictPosition
-		gameDef.Player.PoseNumber = 0
+		player.Position = predictPosition
+		player.PoseNumber = 0
 	} else {
-		if gameDef.CheckRamp(collidingEntity) {
-			predictPosition := gameDef.PredictPositionForwardSlope(gameDef.Player.Position, gameDef.Player.RotationAngle, collidingEntity, timeElapsedSeconds)
-			gameDef.Player.Position = predictPosition
-			gameDef.Player.PoseNumber = 0
+		if world.CheckRamp(collidingEntity) {
+			player.Position = player.PredictPositionForwardSlope(collidingEntity, timeElapsedSeconds)
+			player.PoseNumber = 0
 		} else if collidingEntity.Shape == 9 {
-			playerFloorNum := int(math.Round(float64(gameDef.Player.Position.Y()) / fileio.FLOOR_HEIGHT_UNIT))
+			playerFloorNum := int(math.Round(float64(player.Position.Y()) / fileio.FLOOR_HEIGHT_UNIT))
 			if playerFloorNum == 0 {
 				// climb up
-				gameDef.Player.Position = mgl32.Vec3{gameDef.Player.Position.X(), fileio.FLOOR_HEIGHT_UNIT, gameDef.Player.Position.Z()}
+				player.Position = mgl32.Vec3{player.Position.X(), fileio.FLOOR_HEIGHT_UNIT, player.Position.Z()}
 			} else if playerFloorNum == 1 {
 				// climb down
-				gameDef.Player.Position = mgl32.Vec3{gameDef.Player.Position.X(), 0.0, gameDef.Player.Position.Z()}
+				player.Position = mgl32.Vec3{player.Position.X(), 0.0, player.Position.Z()}
 			}
 		} else if collidingEntity.Shape == 10 {
-			playerFloorNum := int(math.Round(float64(gameDef.Player.Position.Y()) / fileio.FLOOR_HEIGHT_UNIT))
+			playerFloorNum := int(math.Round(float64(player.Position.Y()) / fileio.FLOOR_HEIGHT_UNIT))
 			if playerFloorNum == 0 {
 				// climb up
-				gameDef.Player.Position = mgl32.Vec3{gameDef.Player.Position.X(), fileio.FLOOR_HEIGHT_UNIT, gameDef.Player.Position.Z()}
+				player.Position = mgl32.Vec3{player.Position.X(), fileio.FLOOR_HEIGHT_UNIT, player.Position.Z()}
 			} else if playerFloorNum == 1 {
 				// climb down
-				gameDef.Player.Position = mgl32.Vec3{gameDef.Player.Position.X(), 0.0, gameDef.Player.Position.Z()}
+				player.Position = mgl32.Vec3{player.Position.X(), 0.0, player.Position.Z()}
 			}
 		} else {
-			gameDef.Player.PoseNumber = -1
+			player.PoseNumber = -1
 		}
 	}
 }
 
-func (gameDef *GameDef) HandlePlayerInputBackward(collisionEntities []fileio.CollisionEntity, timeElapsedSeconds float64) {
-	predictPosition := gameDef.PredictPositionBackward(gameDef.Player.Position, gameDef.Player.RotationAngle, timeElapsedSeconds)
-	collidingEntity := gameDef.CheckCollision(predictPosition, collisionEntities)
+func (player *Player) HandlePlayerInputBackward(collisionEntities []fileio.CollisionEntity, timeElapsedSeconds float64) {
+	predictPosition := player.PredictPositionBackward(timeElapsedSeconds)
+	collidingEntity := world.CheckCollision(predictPosition, collisionEntities)
 	if collidingEntity == nil {
-		gameDef.Player.Position = predictPosition
-		gameDef.Player.PoseNumber = 1
+		player.Position = predictPosition
+		player.PoseNumber = 1
 	} else {
-		if gameDef.CheckRamp(collidingEntity) {
-			predictPosition := gameDef.PredictPositionBackwardSlope(gameDef.Player.Position, gameDef.Player.RotationAngle, collidingEntity, timeElapsedSeconds)
-			gameDef.Player.Position = predictPosition
-			gameDef.Player.PoseNumber = 1
+		if world.CheckRamp(collidingEntity) {
+			player.Position = player.PredictPositionBackwardSlope(collidingEntity, timeElapsedSeconds)
+			player.PoseNumber = 1
 		} else {
-			gameDef.Player.PoseNumber = -1
+			player.PoseNumber = -1
 		}
 	}
 }
 
-func (g *GameDef) PredictPositionForward(position mgl32.Vec3, rotationAngle float32, timeElapsedSeconds float64) mgl32.Vec3 {
+func (player *Player) PredictPositionForward(timeElapsedSeconds float64) mgl32.Vec3 {
 	modelMatrix := mgl32.Ident4()
-	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(rotationAngle)))
+	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(player.RotationAngle)))
 	movementDelta := modelMatrix.Mul4x1(mgl32.Vec4{PLAYER_FORWARD_SPEED * float32(timeElapsedSeconds), 0.0, 0.0, 0.0})
-	return position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
+	return player.Position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
 }
 
-func (g *GameDef) PredictPositionBackward(position mgl32.Vec3, rotationAngle float32, timeElapsedSeconds float64) mgl32.Vec3 {
+func (player *Player) PredictPositionBackward(timeElapsedSeconds float64) mgl32.Vec3 {
 	modelMatrix := mgl32.Ident4()
-	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(rotationAngle)))
+	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(player.RotationAngle)))
 	movementDelta := modelMatrix.Mul4x1(mgl32.Vec4{-1 * PLAYER_BACKWARD_SPEED * float32(timeElapsedSeconds), 0.0, 0.0, 0.0})
-	return position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
+	return player.Position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
 }
 
-func (gameDef *GameDef) RotatePlayerLeft(timeElapsedSeconds float64) {
-	gameDef.Player.RotationAngle -= 100 * float32(timeElapsedSeconds)
-	if gameDef.Player.RotationAngle < 0 {
-		gameDef.Player.RotationAngle += 360
+func (player *Player) RotatePlayerLeft(timeElapsedSeconds float64) {
+	player.RotationAngle -= 100 * float32(timeElapsedSeconds)
+	if player.RotationAngle < 0 {
+		player.RotationAngle += 360
 	}
 }
 
-func (gameDef *GameDef) RotatePlayerRight(timeElapsedSeconds float64) {
-	gameDef.Player.RotationAngle += 100 * float32(timeElapsedSeconds)
-	if gameDef.Player.RotationAngle > 360 {
-		gameDef.Player.RotationAngle -= 360
+func (player *Player) RotatePlayerRight(timeElapsedSeconds float64) {
+	player.RotationAngle += 100 * float32(timeElapsedSeconds)
+	if player.RotationAngle > 360 {
+		player.RotationAngle -= 360
 	}
 }
 
-func (g *GameDef) PredictPositionForwardSlope(
-	position mgl32.Vec3,
-	rotationAngle float32,
+func (player *Player) PredictPositionForwardSlope(
 	slopedEntity *fileio.CollisionEntity,
-	timeElapsedSeconds float64) mgl32.Vec3 {
+	timeElapsedSeconds float64,
+) mgl32.Vec3 {
 	modelMatrix := mgl32.Ident4()
-	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(rotationAngle)))
+	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(player.RotationAngle)))
 	movementDelta := modelMatrix.Mul4x1(mgl32.Vec4{PLAYER_FORWARD_SPEED * float32(timeElapsedSeconds), 0.0, 0.0, 0.0})
-	predictPositionFlat := position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
+	predictPositionFlat := player.Position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
 
 	distanceFromRampBottom := 0.0
 	if slopedEntity.SlopeType == 0 || slopedEntity.SlopeType == 1 {
@@ -137,15 +135,14 @@ func (g *GameDef) PredictPositionForwardSlope(
 	return mgl32.Vec3{predictPositionFlat.X(), float32(predictPositionY), predictPositionFlat.Z()}
 }
 
-func (g *GameDef) PredictPositionBackwardSlope(
-	position mgl32.Vec3,
-	rotationAngle float32,
+func (player *Player) PredictPositionBackwardSlope(
 	slopedEntity *fileio.CollisionEntity,
-	timeElapsedSeconds float64) mgl32.Vec3 {
+	timeElapsedSeconds float64,
+) mgl32.Vec3 {
 	modelMatrix := mgl32.Ident4()
-	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(rotationAngle)))
+	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(player.RotationAngle)))
 	movementDelta := modelMatrix.Mul4x1(mgl32.Vec4{-1 * PLAYER_BACKWARD_SPEED * float32(timeElapsedSeconds), 0.0, 0.0, 0.0})
-	predictPositionFlat := position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
+	predictPositionFlat := player.Position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
 	distanceFromRampBottom := 0.0
 	if slopedEntity.SlopeType == 0 || slopedEntity.SlopeType == 1 {
 		// ramp bottom is on the x-axis
