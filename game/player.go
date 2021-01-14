@@ -46,24 +46,8 @@ func (player *Player) HandlePlayerInputForward(collisionEntities []fileio.Collis
 		if world.CheckRamp(collidingEntity) {
 			player.Position = player.PredictPositionForwardSlope(collidingEntity, timeElapsedSeconds)
 			player.PoseNumber = 0
-		} else if collidingEntity.Shape == 9 {
-			playerFloorNum := int(math.Round(float64(player.Position.Y()) / fileio.FLOOR_HEIGHT_UNIT))
-			if playerFloorNum == 0 {
-				// climb up
-				player.Position = mgl32.Vec3{player.Position.X(), fileio.FLOOR_HEIGHT_UNIT, player.Position.Z()}
-			} else if playerFloorNum == 1 {
-				// climb down
-				player.Position = mgl32.Vec3{player.Position.X(), 0.0, player.Position.Z()}
-			}
-		} else if collidingEntity.Shape == 10 {
-			playerFloorNum := int(math.Round(float64(player.Position.Y()) / fileio.FLOOR_HEIGHT_UNIT))
-			if playerFloorNum == 0 {
-				// climb up
-				player.Position = mgl32.Vec3{player.Position.X(), fileio.FLOOR_HEIGHT_UNIT, player.Position.Z()}
-			} else if playerFloorNum == 1 {
-				// climb down
-				player.Position = mgl32.Vec3{player.Position.X(), 0.0, player.Position.Z()}
-			}
+		} else if collidingEntity.Shape == 9 || collidingEntity.Shape == 10 {
+			player.Position = player.PredictPositionClimbBox()
 		} else {
 			player.PoseNumber = -1
 		}
@@ -118,32 +102,23 @@ func (player *Player) PredictPositionForwardSlope(
 	slopedEntity *fileio.CollisionEntity,
 	timeElapsedSeconds float64,
 ) mgl32.Vec3 {
-	modelMatrix := mgl32.Ident4()
-	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(player.RotationAngle)))
-	movementDelta := modelMatrix.Mul4x1(mgl32.Vec4{PLAYER_FORWARD_SPEED * float32(timeElapsedSeconds), 0.0, 0.0, 0.0})
-	predictPositionFlat := player.Position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
-
-	distanceFromRampBottom := 0.0
-	if slopedEntity.SlopeType == 0 || slopedEntity.SlopeType == 1 {
-		// ramp bottom is on the x-axis
-		distanceFromRampBottom = math.Abs(float64(predictPositionFlat.X()-slopedEntity.RampBottom)) / float64(slopedEntity.Width)
-	} else if slopedEntity.SlopeType == 2 || slopedEntity.SlopeType == 3 {
-		// ramp bottom is on the z-axis
-		distanceFromRampBottom = math.Abs(float64(predictPositionFlat.Z()-slopedEntity.RampBottom)) / float64(slopedEntity.Density)
-	}
-	predictPositionY := float64(slopedEntity.SlopeHeight) * distanceFromRampBottom
-	return mgl32.Vec3{predictPositionFlat.X(), float32(predictPositionY), predictPositionFlat.Z()}
+	predictPositionFlat := player.PredictPositionForward(timeElapsedSeconds)
+	return player.PredictPositionSlope(predictPositionFlat, slopedEntity)
 }
 
 func (player *Player) PredictPositionBackwardSlope(
 	slopedEntity *fileio.CollisionEntity,
 	timeElapsedSeconds float64,
 ) mgl32.Vec3 {
-	modelMatrix := mgl32.Ident4()
-	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(player.RotationAngle)))
-	movementDelta := modelMatrix.Mul4x1(mgl32.Vec4{-1 * PLAYER_BACKWARD_SPEED * float32(timeElapsedSeconds), 0.0, 0.0, 0.0})
-	predictPositionFlat := player.Position.Add(mgl32.Vec3{movementDelta.X(), movementDelta.Y(), movementDelta.Z()})
+	predictPositionFlat := player.PredictPositionBackward(timeElapsedSeconds)
+	return player.PredictPositionSlope(predictPositionFlat, slopedEntity)
+}
+
+// Player walks up or down the stairs or ramp
+func (player *Player) PredictPositionSlope(predictPositionFlat mgl32.Vec3, slopedEntity *fileio.CollisionEntity) mgl32.Vec3 {
 	distanceFromRampBottom := 0.0
+
+	// Check slope type orientation
 	if slopedEntity.SlopeType == 0 || slopedEntity.SlopeType == 1 {
 		// ramp bottom is on the x-axis
 		distanceFromRampBottom = math.Abs(float64(predictPositionFlat.X()-slopedEntity.RampBottom)) / float64(slopedEntity.Width)
@@ -152,7 +127,24 @@ func (player *Player) PredictPositionBackwardSlope(
 		distanceFromRampBottom = math.Abs(float64(predictPositionFlat.Z()-slopedEntity.RampBottom)) / float64(slopedEntity.Density)
 	}
 	predictPositionY := float64(slopedEntity.SlopeHeight) * distanceFromRampBottom
+
 	return mgl32.Vec3{predictPositionFlat.X(), float32(predictPositionY), predictPositionFlat.Z()}
+}
+
+func (player *Player) PredictPositionClimbBox() mgl32.Vec3 {
+	playerFloorNum := int(math.Round(float64(player.Position.Y()) / fileio.FLOOR_HEIGHT_UNIT))
+
+	if playerFloorNum == 0 {
+		// player is on the ground
+		// climb up
+		return mgl32.Vec3{player.Position.X(), fileio.FLOOR_HEIGHT_UNIT, player.Position.Z()}
+	} else if playerFloorNum == 1 {
+		// player is on the box
+		// climb down
+		return mgl32.Vec3{player.Position.X(), 0.0, player.Position.Z()}
+	}
+
+	return player.Position
 }
 
 func (gameDef *GameDef) HandlePlayerActionButton(collisionEntities []fileio.CollisionEntity) {
