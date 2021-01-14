@@ -28,9 +28,15 @@ type MainGameRender struct {
 }
 
 func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *MainGameStateInput {
+	scriptDef := script.NewScriptDef()
+	// Set game difficulty (0 is easy, 1 is normal)
+	scriptDef.SetBitArray(0, 25, game.DIFFICULTY_EASY)
+	// Set camera id
+	scriptDef.SetScriptVariable(26, 0)
+
 	return &MainGameStateInput{
 		GameDef:        gameDef,
-		ScriptDef:      script.NewScriptDef(),
+		ScriptDef:      scriptDef,
 		MainGameRender: NewMainGameRender(renderDef),
 	}
 }

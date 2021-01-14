@@ -20,26 +20,22 @@ const (
 )
 
 type GameDef struct {
-	StageId        int
-	RoomId         int
-	CameraId       int
-	StateStatus    int
-	RoomScript     RoomScript
-	GameWorld      *world.GameWorld
-	Player         *Player
-	ScriptBitArray map[int]map[int]int
-	ScriptVariable map[int]int
+	StageId     int
+	RoomId      int
+	CameraId    int
+	StateStatus int
+	RoomScript  RoomScript
+	GameWorld   *world.GameWorld
+	Player      *Player
 }
 
 func NewGame(stageId int, roomId int, cameraId int) *GameDef {
 	return &GameDef{
-		StageId:        stageId,
-		RoomId:         roomId,
-		CameraId:       cameraId,
-		StateStatus:    GAME_LOAD_ROOM,
-		GameWorld:      world.NewGameWorld(),
-		ScriptBitArray: make(map[int]map[int]int),
-		ScriptVariable: make(map[int]int),
+		StageId:     stageId,
+		RoomId:      roomId,
+		CameraId:    cameraId,
+		StateStatus: GAME_LOAD_ROOM,
+		GameWorld:   world.NewGameWorld(),
 	}
 }
 
@@ -71,35 +67,4 @@ func (gameDef *GameDef) HandleRoomSwitch(position mgl32.Vec3) {
 		gameDef.StateStatus = GAME_LOAD_ROOM
 		gameDef.GameWorld.AotManager = world.NewAotManager()
 	}
-}
-
-func (gameDef *GameDef) GetBitArray(bitArrayIndex int, bitNumber int) int {
-	bitArray, exists := gameDef.ScriptBitArray[bitArrayIndex]
-	if !exists {
-		gameDef.ScriptBitArray[bitArrayIndex] = make(map[int]int)
-		bitArray = gameDef.ScriptBitArray[bitArrayIndex]
-		fmt.Println("Initialize bit array index", bitArrayIndex)
-	}
-	value, exists := bitArray[bitNumber]
-	if !exists {
-		bitArray[bitNumber] = 0
-		fmt.Println("Initialize bit array", bitArrayIndex, "with bit number ", bitNumber)
-	}
-	return value
-}
-
-func (gameDef *GameDef) SetBitArray(bitArrayIndex int, bitNumber int, value int) {
-	_, exists := gameDef.ScriptBitArray[bitArrayIndex]
-	if !exists {
-		gameDef.ScriptBitArray[bitArrayIndex] = make(map[int]int)
-	}
-	gameDef.ScriptBitArray[bitArrayIndex][bitNumber] = value
-}
-
-func (gameDef *GameDef) GetScriptVariable(id int) int {
-	return gameDef.ScriptVariable[id]
-}
-
-func (gameDef *GameDef) SetScriptVariable(id int, value int) {
-	gameDef.ScriptVariable[id] = value
 }

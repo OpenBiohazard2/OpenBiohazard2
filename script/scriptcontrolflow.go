@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/samuelyuan/openbiohazard2/fileio"
-	"github.com/samuelyuan/openbiohazard2/game"
 )
 
 func (scriptDef *ScriptDef) ScriptIfBlockStart(scriptThread *ScriptThread, lineData []byte) int {
@@ -97,7 +96,7 @@ func (scriptDef *ScriptDef) ScriptForLoopEnd(lineData []byte) int {
 func (scriptDef *ScriptDef) ScriptSwitchBegin(
 	lineData []byte,
 	instructions map[int][]byte,
-	gameDef *game.GameDef) int {
+) int {
 
 	byteArr := bytes.NewBuffer(lineData)
 	switchConditional := fileio.ScriptInstrSwitch{}
@@ -121,7 +120,7 @@ func (scriptDef *ScriptDef) ScriptSwitchBegin(
 			caseInstruction := fileio.ScriptInstrSwitchCase{}
 			binary.Read(byteArr, binary.LittleEndian, &caseInstruction)
 
-			switchValue := gameDef.GetScriptVariable(int(switchConditional.VarId))
+			switchValue := scriptDef.GetScriptVariable(int(switchConditional.VarId))
 			// Case matches
 			if int(caseInstruction.Value) == switchValue {
 				scriptThread.ProgramCounter = newProgramCounter + fileio.InstructionSize[newOpcode]

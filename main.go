@@ -35,11 +35,6 @@ func main() {
 	gameDef := game.NewGame(1, 0, 0)
 	gameDef.Player = game.NewPlayer(game.DebugLocations[game.RoomMapKey{gameDef.StageId, gameDef.RoomId}], 180)
 
-	// Set game difficulty (0 is easy, 1 is normal)
-	gameDef.SetBitArray(0, 25, game.DIFFICULTY_EASY)
-	// Set camera id
-	gameDef.SetScriptVariable(26, 0)
-
 	gameStateManager := NewGameStateManager()
 
 	// Initialize main game
