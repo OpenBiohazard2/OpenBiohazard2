@@ -3,7 +3,6 @@ package fileio
 // .sca - Collision data
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 )
@@ -52,18 +51,19 @@ type SCAOutput struct {
 }
 
 func LoadRDT_SCA(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets RDTOffsets) (*SCAOutput, error) {
-	offset := offsets.OffsetCollisionData
-	reader := io.NewSectionReader(r, int64(offset), fileLength-int64(offset))
+	reader := io.NewSectionReader(r, int64(0), fileLength)
+	fileStreamReader := NewStreamReader(reader)
+	fileStreamReader.SetPosition(int64(offsets.OffsetCollisionData))
 
 	scaHeader := SCAHeader{}
-	if err := binary.Read(reader, binary.LittleEndian, &scaHeader); err != nil {
+	if err := fileStreamReader.ReadData(&scaHeader); err != nil {
 		return nil, err
 	}
 
 	collisionEntities := make([]CollisionEntity, int(scaHeader.Count)-1)
 	for i := 0; i < int(scaHeader.Count)-1; i++ {
 		scaElement := SCAElement{}
-		if err := binary.Read(reader, binary.LittleEndian, &scaElement); err != nil {
+		if err := fileStreamReader.ReadData(&scaElement); err != nil {
 			return nil, err
 		}
 

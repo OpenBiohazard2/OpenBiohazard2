@@ -3,7 +3,6 @@ package fileio
 // .rvd - Camera switch data
 
 import (
-	"encoding/binary"
 	"io"
 )
 
@@ -29,12 +28,14 @@ type RVDOutput struct {
 // A camera switch is a flat zone in 3D space, where you switch from one camera to
 // another when the player crosses it
 func LoadRDT_RVD(r io.ReaderAt, fileLength int64, rdtHeader RDTHeader, offsets RDTOffsets) (*RVDOutput, error) {
-	reader := io.NewSectionReader(r, int64(offsets.OffsetCameraSwitches), fileLength-int64(offsets.OffsetCameraSwitches))
+	reader := io.NewSectionReader(r, int64(0), fileLength)
+	fileStreamReader := NewStreamReader(reader)
+	fileStreamReader.SetPosition(int64(offsets.OffsetCameraSwitches))
 
 	cameraSwitches := make([]RVDHeader, 0)
 	for i := 0; i < 100; i++ {
 		rvdHeader := RVDHeader{}
-		if err := binary.Read(reader, binary.LittleEndian, &rvdHeader); err != nil {
+		if err := fileStreamReader.ReadData(&rvdHeader); err != nil {
 			return nil, err
 		}
 

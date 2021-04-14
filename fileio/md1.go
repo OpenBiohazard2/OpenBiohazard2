@@ -3,7 +3,6 @@ package fileio
 // .md1 - 3D model file
 
 import (
-	"encoding/binary"
 	"io"
 )
 
@@ -110,16 +109,17 @@ type MD1Output struct {
 
 func LoadMD1Stream(r io.ReaderAt, fileLength int64) (*MD1Output, error) {
 	fileReader := io.NewSectionReader(r, int64(0), fileLength)
+	fileStreamReader := NewStreamReader(fileReader)
 
 	// Read header
 	md1Header := MD1Header{}
-	if err := binary.Read(fileReader, binary.LittleEndian, &md1Header); err != nil {
+	if err := fileStreamReader.ReadData(&md1Header); err != nil {
 		return nil, err
 	}
 
 	// Read header offsets
 	modelObjectHeaders := make([]MD1ObjectHeader, int(md1Header.NumObj)/2)
-	if err := binary.Read(fileReader, binary.LittleEndian, &modelObjectHeaders); err != nil {
+	if err := fileStreamReader.ReadData(&modelObjectHeaders); err != nil {
 		return nil, err
 	}
 
@@ -132,60 +132,60 @@ func LoadMD1Stream(r io.ReaderAt, fileLength int64) (*MD1Output, error) {
 		modelObjectHeader := modelObjectHeaders[i]
 		// Triangle data
 		offset := beginOffset + int64(modelObjectHeader.TrianglesHeader.VertexOffset)
-		reader := io.NewSectionReader(r, offset, fileLength-offset)
+		fileStreamReader.SetPosition(offset)
 		triangleVertices := make([]MD1Vertex, modelObjectHeader.TrianglesHeader.VertexCount)
-		if err := binary.Read(reader, binary.LittleEndian, &triangleVertices); err != nil {
+		if err := fileStreamReader.ReadData(&triangleVertices); err != nil {
 			return nil, err
 		}
 
 		offset = beginOffset + int64(modelObjectHeader.TrianglesHeader.NormalOffset)
-		reader = io.NewSectionReader(r, offset, fileLength-offset)
+		fileStreamReader.SetPosition(offset)
 		triangleNormals := make([]MD1Vertex, modelObjectHeader.TrianglesHeader.NormalCount)
-		if err := binary.Read(reader, binary.LittleEndian, &triangleNormals); err != nil {
+		if err := fileStreamReader.ReadData(&triangleNormals); err != nil {
 			return nil, err
 		}
 
 		offset = beginOffset + int64(modelObjectHeader.TrianglesHeader.TriangleIndexOffset)
-		reader = io.NewSectionReader(r, offset, fileLength-offset)
+		fileStreamReader.SetPosition(offset)
 		triangleIndices := make([]MD1TriangleIndex, modelObjectHeader.TrianglesHeader.TriangleIndexCount)
-		if err := binary.Read(reader, binary.LittleEndian, &triangleIndices); err != nil {
+		if err := fileStreamReader.ReadData(&triangleIndices); err != nil {
 			return nil, err
 		}
 
 		offset = beginOffset + int64(modelObjectHeader.TrianglesHeader.TextureOffset)
-		reader = io.NewSectionReader(r, offset, fileLength-offset)
+		fileStreamReader.SetPosition(offset)
 		triangleTextures := make([]MD1TriangleTexture, modelObjectHeader.TrianglesHeader.TriangleIndexCount)
-		if err := binary.Read(reader, binary.LittleEndian, &triangleTextures); err != nil {
+		if err := fileStreamReader.ReadData(&triangleTextures); err != nil {
 			return nil, err
 		}
 
 		// Quad data
 		offset = beginOffset + int64(modelObjectHeader.QuadsHeader.VertexOffset)
-		reader = io.NewSectionReader(r, offset, fileLength-offset)
+		fileStreamReader.SetPosition(offset)
 		quadVertices := make([]MD1Vertex, modelObjectHeader.QuadsHeader.VertexCount)
-		if err := binary.Read(reader, binary.LittleEndian, &quadVertices); err != nil {
+		if err := fileStreamReader.ReadData(&quadVertices); err != nil {
 			return nil, err
 		}
 
 		offset = beginOffset + int64(modelObjectHeader.QuadsHeader.NormalOffset)
-		reader = io.NewSectionReader(r, offset, fileLength-offset)
+		fileStreamReader.SetPosition(offset)
 		quadNormals := make([]MD1Vertex, modelObjectHeader.QuadsHeader.NormalCount)
-		if err := binary.Read(reader, binary.LittleEndian, &quadNormals); err != nil {
+		if err := fileStreamReader.ReadData(&quadNormals); err != nil {
 			return nil, err
 		}
 
 		// A quad has 2 triangles
 		offset = beginOffset + int64(modelObjectHeader.QuadsHeader.QuadIndexOffset)
-		reader = io.NewSectionReader(r, offset, fileLength-offset)
+		fileStreamReader.SetPosition(offset)
 		quadIndices := make([]MD1QuadIndex, modelObjectHeader.QuadsHeader.QuadIndexCount)
-		if err := binary.Read(reader, binary.LittleEndian, &quadIndices); err != nil {
+		if err := fileStreamReader.ReadData(&quadIndices); err != nil {
 			return nil, err
 		}
 
 		offset = beginOffset + int64(modelObjectHeader.QuadsHeader.TextureOffset)
-		reader = io.NewSectionReader(r, offset, fileLength-offset)
+		fileStreamReader.SetPosition(offset)
 		quadTextures := make([]MD1QuadTexture, modelObjectHeader.QuadsHeader.QuadIndexCount)
-		if err := binary.Read(reader, binary.LittleEndian, &quadTextures); err != nil {
+		if err := fileStreamReader.ReadData(&quadTextures); err != nil {
 			return nil, err
 		}
 

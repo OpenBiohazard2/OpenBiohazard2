@@ -3,7 +3,6 @@ package fileio
 // .tim - Playstation 1 Texture format
 
 import (
-	"encoding/binary"
 	"fmt"
 	"image"
 	"image/color"
@@ -70,10 +69,11 @@ func LoadTIMFile(filename string) *TIMOutput {
 }
 
 func LoadTIMStream(r io.ReaderAt, fileLength int64) (*TIMOutput, error) {
-	reader := io.NewSectionReader(r, int64(0), fileLength)
+	fileReader := io.NewSectionReader(r, int64(0), fileLength)
+	fileStreamReader := NewStreamReader(fileReader)
 
 	timHeader := TIMHeader{}
-	if err := binary.Read(reader, binary.LittleEndian, &timHeader); err != nil {
+	if err := fileStreamReader.ReadData(&timHeader); err != nil {
 		return nil, err
 	}
 
@@ -83,9 +83,9 @@ func LoadTIMStream(r io.ReaderAt, fileLength int64) (*TIMOutput, error) {
 
 	// Read TIM cluts
 	if timHeader.BPP == TIM_BPP_4 {
-		return read4BPP(reader, timHeader)
+		return read4BPP(fileStreamReader, timHeader)
 	} else if timHeader.BPP == TIM_BPP_8 {
-		return read8BPP(reader, timHeader)
+		return read8BPP(fileStreamReader, timHeader)
 	} else {
 		log.Fatal(fmt.Errorf("BPP %v is not supported.\n", timHeader.BPP))
 	}
@@ -93,7 +93,7 @@ func LoadTIMStream(r io.ReaderAt, fileLength int64) (*TIMOutput, error) {
 	return nil, nil
 }
 
-func read4BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error) {
+func read4BPP(streamReader *StreamReader, timHeader TIMHeader) (*TIMOutput, error) {
 	numColors := timHeader.NumColors
 	palettes := make([][]uint16, int(timHeader.NumCluts))
 
@@ -103,12 +103,12 @@ func read4BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error)
 
 	for i := 0; i < int(timHeader.NumCluts); i++ {
 		palettes[i] = make([]uint16, numColors)
-		if err := binary.Read(reader, binary.LittleEndian, &palettes[i]); err != nil {
+		if err := streamReader.ReadData(&palettes[i]); err != nil {
 			return nil, err
 		}
 	}
 	timImageHeader := TIMImageHeader{}
-	if err := binary.Read(reader, binary.LittleEndian, &timImageHeader); err != nil {
+	if err := streamReader.ReadData(&timImageHeader); err != nil {
 		return nil, err
 	}
 
@@ -117,7 +117,7 @@ func read4BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error)
 
 	imageDataLength := totalImageWidth * totalImageHeight
 	imageData := make([]uint8, imageDataLength/2)
-	if err := binary.Read(reader, binary.LittleEndian, &imageData); err != nil {
+	if err := streamReader.ReadData(&imageData); err != nil {
 		return nil, err
 	}
 
@@ -159,7 +159,7 @@ func read4BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error)
 	return timOutput, nil
 }
 
-func read8BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error) {
+func read8BPP(streamReader *StreamReader, timHeader TIMHeader) (*TIMOutput, error) {
 	numColors := timHeader.NumColors
 	palettes := make([][]uint16, int(timHeader.NumCluts))
 
@@ -169,12 +169,12 @@ func read8BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error)
 
 	for i := 0; i < int(timHeader.NumCluts); i++ {
 		palettes[i] = make([]uint16, numColors)
-		if err := binary.Read(reader, binary.LittleEndian, &palettes[i]); err != nil {
+		if err := streamReader.ReadData(&palettes[i]); err != nil {
 			return nil, err
 		}
 	}
 	timImageHeader := TIMImageHeader{}
-	if err := binary.Read(reader, binary.LittleEndian, &timImageHeader); err != nil {
+	if err := streamReader.ReadData(&timImageHeader); err != nil {
 		return nil, err
 	}
 
@@ -183,7 +183,7 @@ func read8BPP(reader *io.SectionReader, timHeader TIMHeader) (*TIMOutput, error)
 
 	imageDataLength := totalImageWidth * totalImageHeight
 	imageData := make([]uint8, imageDataLength)
-	if err := binary.Read(reader, binary.LittleEndian, &imageData); err != nil {
+	if err := streamReader.ReadData(&imageData); err != nil {
 		return nil, err
 	}
 
