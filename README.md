@@ -37,3 +37,14 @@ Open source re-implementation of the original Resident Evil 2 engine written in 
 - A/D to rotate left/right.
 - Tab to access inventory.
 - Enter is action button.
+
+### Other tools
+
+- [Bio2 script viewer](https://github.com/OpenBiohazard2/Bio2ScriptViewer)
+
+### References
+
+- https://github.com/pmandin
+- https://github.com/yanmingsohu/Biohazard2
+- https://github.com/MeganGrass/BioScript
+- https://github.com/mortician
