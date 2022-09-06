@@ -10,10 +10,10 @@ import (
 )
 
 type DO2FileFormat struct {
-	VHOffset int64 // .vab header
-	VHLength int64
-	VBOffset int64 // .vab data
-	VBLength int64
+	VHOffset  int64 // .vab header
+	VHLength  int64
+	VBOffset  int64 // .vab data
+	VBLength  int64
 	MD1Offset int64 // model file
 	MD1Length int64
 	TIMOffset int64 // texture file
@@ -112,10 +112,10 @@ func LoadDO2Stream(r io.ReaderAt, fileLength int64) (*DO2Output, error) {
 	}
 
 	do2FileFormat := &DO2FileFormat{
-		VHOffset: vabHeaderOffset,
-		VHLength: int64(vabHeaderOutput.NumBytes),
-		VBOffset: vabDataOffset,
-		VBLength: int64(vabDataOutput.NumBytes),
+		VHOffset:  vabHeaderOffset,
+		VHLength:  int64(vabHeaderOutput.NumBytes),
+		VBOffset:  vabDataOffset,
+		VBLength:  int64(vabDataOutput.NumBytes),
 		MD1Offset: md1Offset,
 		MD1Length: int64(md1Output.NumBytes),
 		TIMOffset: timOffset,

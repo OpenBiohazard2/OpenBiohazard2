@@ -105,7 +105,7 @@ func LoadVABHeaderStream(r io.ReaderAt, fileLength int64) (*VABHeaderOutput, err
 	headerSize := 32                                       // sizeof(VABHeader)
 	totalProgramSize := 128 * 16                           // 128 * sizeof(VABProgram)
 	totalToneSize := int(vabHeader.ProgramCount) * 16 * 32 // programCount * 16 * sizeof(VABTone)
-	totalWaveformSize := 256 * 2 // 256 * sizeof(uint16)
+	totalWaveformSize := 256 * 2                           // 256 * sizeof(uint16)
 	totalVabHeaderSize := headerSize + totalProgramSize + totalToneSize + totalWaveformSize
 	vabHeaderOutput := &VABHeaderOutput{
 		VABHeader:  vabHeader,

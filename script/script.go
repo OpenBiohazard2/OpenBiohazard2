@@ -3,6 +3,7 @@ package script
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"log"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -25,8 +26,9 @@ const (
 )
 
 var (
-	scriptThread    *ScriptThread
-	scriptDeltaTime = 0.0
+	scriptThread       *ScriptThread
+	scriptDeltaTime    = 0.0
+	scriptDebugEnabled = false
 )
 
 type ScriptDef struct {
@@ -58,6 +60,7 @@ func (scriptDef *ScriptDef) InitScript(
 	scriptData fileio.ScriptFunction,
 	threadNum int,
 	startFunction int) {
+	scriptDef.ScriptDebugLine(fmt.Sprintf("Initialize script thread %v, start function %v", threadNum, startFunction))
 	scriptDef.ScriptThreads[threadNum].RunStatus = true
 	scriptDef.ScriptThreads[threadNum].ProgramCounter = scriptData.StartProgramCounter[startFunction]
 }
@@ -76,11 +79,12 @@ func (scriptDef *ScriptDef) RunScript(
 			continue
 		}
 
-		scriptDef.RunScriptThread(scriptDef.ScriptThreads[i], scriptData, gameDef, renderDef)
+		scriptDef.RunScriptThread(i, scriptDef.ScriptThreads[i], scriptData, gameDef, renderDef)
 	}
 }
 
 func (scriptDef *ScriptDef) RunScriptThread(
+	threadNum int,
 	curScriptThread *ScriptThread,
 	scriptData fileio.ScriptFunction,
 	gameDef *game.GameDef,
@@ -93,7 +97,7 @@ func (scriptDef *ScriptDef) RunScriptThread(
 	}
 
 	for true {
-		sectionReturnValue := scriptDef.RunScriptUntilBreakControlFlow(scriptData, gameDef, renderDef)
+		sectionReturnValue := scriptDef.RunScriptUntilBreakControlFlow(threadNum, scriptData, gameDef, renderDef)
 
 		// End thread
 		if scriptThread.ShouldTerminate(sectionReturnValue) {
@@ -105,6 +109,7 @@ func (scriptDef *ScriptDef) RunScriptThread(
 }
 
 func (scriptDef *ScriptDef) RunScriptUntilBreakControlFlow(
+	threadNum int,
 	scriptData fileio.ScriptFunction,
 	gameDef *game.GameDef,
 	renderDef *render.RenderDef) int {
@@ -122,7 +127,7 @@ func (scriptDef *ScriptDef) RunScriptUntilBreakControlFlow(
 		// Override can be modified during execution
 		scriptThread.OverrideProgramCounter = false
 
-		instructionReturnValue := scriptDef.ExecuteSingleInstruction(lineData, scriptData, gameDef, renderDef)
+		instructionReturnValue := scriptDef.ExecuteSingleInstruction(threadNum, lineData, scriptData, gameDef, renderDef)
 
 		if !scriptThread.OverrideProgramCounter {
 			scriptThread.IncrementProgramCounter(opcode)
@@ -139,6 +144,7 @@ func (scriptDef *ScriptDef) RunScriptUntilBreakControlFlow(
 }
 
 func (scriptDef *ScriptDef) ExecuteSingleInstruction(
+	threadNum int,
 	lineData []byte,
 	scriptData fileio.ScriptFunction,
 	gameDef *game.GameDef,
@@ -146,6 +152,9 @@ func (scriptDef *ScriptDef) ExecuteSingleInstruction(
 	var returnValue int
 
 	opcode := lineData[0]
+
+	scriptDef.ScriptDebugFunction(threadNum, lineData)
+
 	switch opcode {
 	case fileio.OP_EVT_END:
 		returnValue = scriptDef.ScriptEvtEnd(lineData)
@@ -363,6 +372,10 @@ func (scriptDef *ScriptDef) ScriptMemberCompare(lineData []byte) int {
 }
 
 func (scriptDef *ScriptDef) ScriptSceEmSet(lineData []byte) int {
+	byteArr := bytes.NewBuffer(lineData)
+	instruction := fileio.ScriptInstrSceEmSet{}
+	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
 	return 1
 }
 

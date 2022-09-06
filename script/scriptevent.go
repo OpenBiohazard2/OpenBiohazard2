@@ -3,6 +3,7 @@ package script
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/samuelyuan/openbiohazard2/fileio"
 )
@@ -15,11 +16,14 @@ func (scriptDef *ScriptDef) ScriptEvtEnd(lineData []byte) int {
 		scriptThread.ProgramCounter = scriptThread.LevelState[scriptThread.SubLevel].ReturnAddress
 		scriptThread.OverrideProgramCounter = true
 		scriptThread.StackIndex = ifElseCounter + 1
+
+		scriptDef.ScriptDebugLine("Exit current function")
 		return INSTRUCTION_NORMAL
 	}
 
 	// The program is in the top level
 	scriptThread.RunStatus = false
+	scriptDef.ScriptDebugLine(fmt.Sprintf("End script thread"))
 	return INSTRUCTION_THREAD_END
 }
 
@@ -42,6 +46,8 @@ func (scriptDef *ScriptDef) ScriptEvtExec(lineData []byte, scriptData fileio.Scr
 			}
 		}
 	}
+
+	scriptDef.ScriptDebugLine(fmt.Sprintf("Start new script thread %v", nextThreadNum))
 
 	scriptDef.ScriptThreads[nextThreadNum].RunStatus = true
 	scriptDef.ScriptThreads[nextThreadNum].ProgramCounter = scriptData.StartProgramCounter[instruction.Event]

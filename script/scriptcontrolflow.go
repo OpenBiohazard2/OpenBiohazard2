@@ -3,6 +3,7 @@ package script
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"log"
 
 	"github.com/samuelyuan/openbiohazard2/fileio"
@@ -173,6 +174,7 @@ func (scriptDef *ScriptDef) ScriptGoSub(lineData []byte, scriptData fileio.Scrip
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
 	opcode := lineData[0]
+	scriptDef.ScriptDebugLine(fmt.Sprintf("Go to sub function %v", instruction.Event))
 	scriptThread.LevelState[scriptThread.SubLevel].ReturnAddress = scriptThread.ProgramCounter + fileio.InstructionSize[opcode]
 	scriptThread.LevelState[scriptThread.SubLevel+1].IfElseCounter = -1
 	scriptThread.LevelState[scriptThread.SubLevel+1].LoopLevel = -1

@@ -282,10 +282,10 @@ type ScriptInstrGoSub struct {
 }
 
 type ScriptInstrCheckBitTest struct {
-	Opcode   uint8 // 0x21
-	BitArray uint8 // Index of array of bits to use
-	Number   uint8 // Bit number to check
-	Value    uint8 // Value to compare (0 or 1)
+	Opcode    uint8 // 0x21
+	BitArray  uint8 // Index of array of bits to use
+	BitNumber uint8 // Bit number to check
+	Value     uint8 // Value to compare (0 or 1)
 }
 
 type ScriptInstrSetBit struct {
@@ -466,6 +466,23 @@ type ScriptInstrPlcFlag struct {
 	Flag      uint16
 }
 
+type ScriptInstrSceEmSet struct {
+	Opcode    uint8 // 0x44
+	Dummy     uint8
+	Aot       uint8
+	Id        uint8
+	Type      uint8
+	Status    uint8
+	Floor     uint8
+	SoundFlag uint8
+	ModelType uint8
+	EmSetFlag int8
+	X, Y, Z   int16
+	DirY      uint16
+	Motion    uint16
+	CtrFlag   uint16
+}
+
 type ScriptInstrAotReset struct {
 	Opcode uint8 // 0x46
 	Aot    uint8
@@ -581,7 +598,7 @@ type ScriptInstrAotSet4p struct {
 }
 
 type ScriptInstrDoorAotSet4p struct {
-	Opcode                       uint8 // 0x3b
+	Opcode                       uint8 // 0x68
 	Aot                          uint8 // Index of item in array of room objects list
 	Id                           uint8
 	Type                         uint8
@@ -603,7 +620,7 @@ type ScriptInstrDoorAotSet4p struct {
 }
 
 type ScriptInstrItemAotSet4p struct {
-	Opcode          uint8 // 0x4e
+	Opcode          uint8 // 0x69
 	Aot             uint8
 	Id              uint8
 	Type            uint8

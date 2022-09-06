@@ -45,7 +45,7 @@ func (scriptDef *ScriptDef) ScriptCheckBit(lineData []byte) int {
 	bitTest := fileio.ScriptInstrCheckBitTest{}
 	binary.Read(byteArr, binary.LittleEndian, &bitTest)
 
-	if scriptDef.GetBitArray(int(bitTest.BitArray), int(bitTest.Number)) == int(bitTest.Value) {
+	if scriptDef.GetBitArray(int(bitTest.BitArray), int(bitTest.BitNumber)) == int(bitTest.Value) {
 		return 1
 	}
 	return INSTRUCTION_BREAK_FLOW
