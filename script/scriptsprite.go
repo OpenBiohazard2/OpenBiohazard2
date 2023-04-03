@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/samuelyuan/openbiohazard2/fileio"
-	"github.com/samuelyuan/openbiohazard2/game"
-	"github.com/samuelyuan/openbiohazard2/render"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/game"
+	"github.com/OpenBiohazard2/OpenBiohazard2/render"
 )
 
 func (scriptDef *ScriptDef) ScriptSceEsprOn(lineData []byte, gameDef *game.GameDef, renderDef *render.RenderDef) int {

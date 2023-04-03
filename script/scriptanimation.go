@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 )
 
 // PLC commands are used for 3D model animation

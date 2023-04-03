@@ -1,7 +1,7 @@
 package geometry
 
 import (
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 )
 
 func NewMD1Geometry(meshData *fileio.MD1Output, textureData *fileio.TIMOutput) []float32 {

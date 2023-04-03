@@ -3,7 +3,7 @@ package script
 import (
 	"testing"
 
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 )
 
 func TestIfStatementTrue(t *testing.T) {

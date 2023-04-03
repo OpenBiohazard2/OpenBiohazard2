@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 )
 
 func (scriptDef *ScriptDef) GetBitArray(bitArrayIndex int, bitNumber int) int {

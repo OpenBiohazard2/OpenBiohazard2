@@ -5,9 +5,9 @@ import (
 	"encoding/binary"
 	"log"
 
-	"github.com/samuelyuan/openbiohazard2/fileio"
-	"github.com/samuelyuan/openbiohazard2/game"
-	"github.com/samuelyuan/openbiohazard2/world"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/game"
+	"github.com/OpenBiohazard2/OpenBiohazard2/world"
 )
 
 func (scriptDef *ScriptDef) ScriptAotSet(lineData []byte, gameDef *game.GameDef) int {

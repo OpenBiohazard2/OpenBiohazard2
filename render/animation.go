@@ -1,7 +1,7 @@
 package render
 
 import (
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 )
 
 const (

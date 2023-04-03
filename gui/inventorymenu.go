@@ -1,7 +1,7 @@
 package gui
 
 import (
-	"github.com/samuelyuan/openbiohazard2/client"
+	"github.com/OpenBiohazard2/OpenBiohazard2/client"
 )
 
 const (

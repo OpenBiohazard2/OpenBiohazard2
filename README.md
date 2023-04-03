@@ -2,8 +2,8 @@
 Open source re-implementation of the original Resident Evil 2 engine written in Go and OpenGL. You must own a copy of the original game.
 
 <div style="display:inline-block;">
-<img src="https://github.com/samuelyuan/OpenBiohazard2/raw/master/screenshots/beginning.png" alt="beginning" width="400" height="300" />
-<img src="https://github.com/samuelyuan/OpenBiohazard2/raw/master/screenshots/inventory.png" alt="inventory" width="400" height="300" />
+<img src="https://github.com/OpenBiohazard2/OpenBiohazard2/raw/master/screenshots/beginning.png" alt="beginning" width="400" height="300" />
+<img src="https://github.com/OpenBiohazard2/OpenBiohazard2/raw/master/screenshots/inventory.png" alt="inventory" width="400" height="300" />
 </div>
 
 ### Installation

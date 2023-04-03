@@ -4,7 +4,7 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/samuelyuan/openbiohazard2/gui"
+	"github.com/OpenBiohazard2/OpenBiohazard2/gui"
 )
 
 const (

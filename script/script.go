@@ -7,10 +7,10 @@ import (
 	"log"
 
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/samuelyuan/openbiohazard2/fileio"
-	"github.com/samuelyuan/openbiohazard2/game"
-	"github.com/samuelyuan/openbiohazard2/render"
-	"github.com/samuelyuan/openbiohazard2/world"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/game"
+	"github.com/OpenBiohazard2/OpenBiohazard2/render"
+	"github.com/OpenBiohazard2/OpenBiohazard2/world"
 )
 
 const (

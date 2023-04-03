@@ -2,7 +2,7 @@ package render
 
 import (
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/samuelyuan/openbiohazard2/geometry"
+	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
 )
 
 const (

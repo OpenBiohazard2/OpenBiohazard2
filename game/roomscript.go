@@ -3,7 +3,7 @@ package game
 import (
 	"fmt"
 
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 )
 
 type RoomScript struct {

@@ -1,4 +1,4 @@
-module github.com/samuelyuan/openbiohazard2
+module github.com/OpenBiohazard2/OpenBiohazard2
 
 go 1.14
 

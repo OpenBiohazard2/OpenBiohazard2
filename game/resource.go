@@ -2,7 +2,7 @@ package game
 
 const (
 	BASE_FOLDER         = "data/"
-	GAME_REGION         = "U" // Change this to your game's region
+	GAME_REGION         = "P" // Change this to your game's region
 	COMMON_BIN_FOLDER   = BASE_FOLDER + "Common/bin/"
 	ROOMCUT_FILE        = COMMON_BIN_FOLDER + "roomcut.bin"
 	ITEMDATA_FILE       = COMMON_BIN_FOLDER + "itemdata.bin"

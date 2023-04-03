@@ -3,9 +3,9 @@ package render
 import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/samuelyuan/openbiohazard2/fileio"
-	"github.com/samuelyuan/openbiohazard2/game"
-	"github.com/samuelyuan/openbiohazard2/geometry"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/game"
+	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
 )
 
 const (

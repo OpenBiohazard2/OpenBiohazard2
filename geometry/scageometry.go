@@ -2,7 +2,7 @@ package geometry
 
 import (
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/samuelyuan/openbiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 )
 
 func NewSlopedRectangle(entity fileio.CollisionEntity) *Quad {
