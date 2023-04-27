@@ -116,13 +116,14 @@ var (
 	}
 )
 
-func (scriptDef *ScriptDef) ScriptDebugFunction(threadNum int, lineBytes []byte) {
+func (scriptDef *ScriptDef) ScriptDebugFunction(threadNum int, functionIds []int, lineBytes []byte) {
 	if !scriptDebugEnabled {
 		return
 	}
 
-	functionData := fmt.Sprintf("[ScriptThread %v] %s%s",
-		threadNum, getFunctionNameFromOpcode(lineBytes[0]), showParameters(lineBytes))
+	currentFunctionId := functionIds[len(functionIds)-1]
+	functionData := fmt.Sprintf("[ScriptThread %v][Function %v] %s%s",
+		threadNum, currentFunctionId, getFunctionNameFromOpcode(lineBytes[0]), showParameters(lineBytes))
 	fmt.Println(functionData)
 }
 

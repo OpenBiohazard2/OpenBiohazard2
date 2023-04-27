@@ -8,7 +8,7 @@ import (
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 )
 
-func (scriptDef *ScriptDef) ScriptEvtEnd(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptEvtEnd(lineData []byte, threadNum int) int {
 	// The program is returning from a subroutine
 	if scriptThread.SubLevel != 0 {
 		ifElseCounter := scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter
@@ -17,13 +17,15 @@ func (scriptDef *ScriptDef) ScriptEvtEnd(lineData []byte) int {
 		scriptThread.OverrideProgramCounter = true
 		scriptThread.StackIndex = ifElseCounter + 1
 
-		scriptDef.ScriptDebugLine("Exit current function")
+		currentFunctionId := scriptThread.FunctionIds[len(scriptThread.FunctionIds)-1]
+		scriptDef.ScriptDebugLine(fmt.Sprintf("[ScriptThread %v][Function %v] Exit current function, continue running", threadNum, currentFunctionId))
+		scriptThread.FunctionIds = scriptThread.FunctionIds[0 : len(scriptThread.FunctionIds)-1]
 		return INSTRUCTION_NORMAL
 	}
 
 	// The program is in the top level
 	scriptThread.RunStatus = false
-	scriptDef.ScriptDebugLine(fmt.Sprintf("End script thread"))
+	scriptDef.ScriptDebugLine(fmt.Sprintf("[ScriptThread %v] End script thread", threadNum))
 	return INSTRUCTION_THREAD_END
 }
 
@@ -47,11 +49,12 @@ func (scriptDef *ScriptDef) ScriptEvtExec(lineData []byte, scriptData fileio.Scr
 		}
 	}
 
-	scriptDef.ScriptDebugLine(fmt.Sprintf("Start new script thread %v", nextThreadNum))
+	scriptDef.ScriptDebugLine(fmt.Sprintf("(EvtExec) Start new script thread %v for function %v", nextThreadNum, instruction.Event))
 
 	scriptDef.ScriptThreads[nextThreadNum].RunStatus = true
 	scriptDef.ScriptThreads[nextThreadNum].ProgramCounter = scriptData.StartProgramCounter[instruction.Event]
 	scriptDef.ScriptThreads[nextThreadNum].LevelState[0].IfElseCounter = -1
 	scriptDef.ScriptThreads[nextThreadNum].LevelState[0].LoopLevel = -1
+	scriptDef.ScriptThreads[nextThreadNum].FunctionIds = []int{int(instruction.Event)}
 	return INSTRUCTION_NORMAL
 }

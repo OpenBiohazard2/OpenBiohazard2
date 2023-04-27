@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/game"
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
 	"github.com/OpenBiohazard2/OpenBiohazard2/world"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 const (
@@ -63,6 +63,7 @@ func (scriptDef *ScriptDef) InitScript(
 	scriptDef.ScriptDebugLine(fmt.Sprintf("Initialize script thread %v, start function %v", threadNum, startFunction))
 	scriptDef.ScriptThreads[threadNum].RunStatus = true
 	scriptDef.ScriptThreads[threadNum].ProgramCounter = scriptData.StartProgramCounter[startFunction]
+	scriptDef.ScriptThreads[threadNum].FunctionIds = []int{startFunction}
 }
 
 func (scriptDef *ScriptDef) RunScript(
@@ -97,7 +98,7 @@ func (scriptDef *ScriptDef) RunScriptThread(
 	}
 
 	for true {
-		sectionReturnValue := scriptDef.RunScriptUntilBreakControlFlow(threadNum, scriptData, gameDef, renderDef)
+		sectionReturnValue := scriptDef.RunScriptUntilBreakControlFlow(threadNum, curScriptThread, scriptData, gameDef, renderDef)
 
 		// End thread
 		if scriptThread.ShouldTerminate(sectionReturnValue) {
@@ -110,6 +111,7 @@ func (scriptDef *ScriptDef) RunScriptThread(
 
 func (scriptDef *ScriptDef) RunScriptUntilBreakControlFlow(
 	threadNum int,
+	curScriptThread *ScriptThread,
 	scriptData fileio.ScriptFunction,
 	gameDef *game.GameDef,
 	renderDef *render.RenderDef) int {
@@ -127,7 +129,7 @@ func (scriptDef *ScriptDef) RunScriptUntilBreakControlFlow(
 		// Override can be modified during execution
 		scriptThread.OverrideProgramCounter = false
 
-		instructionReturnValue := scriptDef.ExecuteSingleInstruction(threadNum, lineData, scriptData, gameDef, renderDef)
+		instructionReturnValue := scriptDef.ExecuteSingleInstruction(threadNum, curScriptThread, lineData, scriptData, gameDef, renderDef)
 
 		if !scriptThread.OverrideProgramCounter {
 			scriptThread.IncrementProgramCounter(opcode)
@@ -145,6 +147,7 @@ func (scriptDef *ScriptDef) RunScriptUntilBreakControlFlow(
 
 func (scriptDef *ScriptDef) ExecuteSingleInstruction(
 	threadNum int,
+	curScriptThread *ScriptThread,
 	lineData []byte,
 	scriptData fileio.ScriptFunction,
 	gameDef *game.GameDef,
@@ -153,11 +156,11 @@ func (scriptDef *ScriptDef) ExecuteSingleInstruction(
 
 	opcode := lineData[0]
 
-	scriptDef.ScriptDebugFunction(threadNum, lineData)
+	scriptDef.ScriptDebugFunction(threadNum, curScriptThread.FunctionIds, lineData)
 
 	switch opcode {
 	case fileio.OP_EVT_END:
-		returnValue = scriptDef.ScriptEvtEnd(lineData)
+		returnValue = scriptDef.ScriptEvtEnd(lineData, threadNum)
 	case fileio.OP_EVT_EXEC:
 		returnValue = scriptDef.ScriptEvtExec(lineData, scriptData)
 	case fileio.OP_IF_START:

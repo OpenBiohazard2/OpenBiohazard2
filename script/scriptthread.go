@@ -15,6 +15,7 @@ type ScriptThread struct {
 	SubLevel               int
 	LevelState             []*LevelState
 	OverrideProgramCounter bool
+	FunctionIds            []int // Only used for debugging
 }
 
 type LevelState struct {
@@ -78,6 +79,7 @@ func NewScriptThread() *ScriptThread {
 		SubLevel:               0,
 		LevelState:             levelState,
 		OverrideProgramCounter: false,
+		FunctionIds:            []int{-1},
 	}
 }
 
@@ -103,6 +105,7 @@ func (thread *ScriptThread) Reset() {
 	thread.LevelState[0].LoopLevel = -1
 
 	thread.OverrideProgramCounter = false
+	thread.FunctionIds = []int{-1}
 }
 
 func (thread *ScriptThread) IncrementProgramCounter(opcode byte) {
