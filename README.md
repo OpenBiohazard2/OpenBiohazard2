@@ -9,7 +9,7 @@ Open source re-implementation of the original Resident Evil 2 engine written in 
 ### Installation
 
 1. Clone this project.
-2. Get the game data from your installed location. Copy all the files to the `data/` folder in this repository. If the region of the game is different, you will need to go to game/resource.go and change the value of GAME_REGION.
+2. Get the game data from your installed location. Copy all the files to the `data/` folder in this repository.
 3. Run `go build`.
 
 ### Task list

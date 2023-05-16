@@ -22,7 +22,9 @@ var (
 )
 
 func main() {
+	fmt.Println("Validating game folders exist...")
 	game.ValidateFilesExist()
+	fmt.Println("Validated game folders exist")
 
 	// Run OpenGL code
 	runtime.LockOSThread()

@@ -2,17 +2,24 @@ package game
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 )
 
 func ValidateFilesExist() {
-	folderList := []string{COMMON_FOLDER, COMMON_BIN_FOLDER, COMMON_DOOR_FOLDER, PL_FOLDER}
+	folderList := []string{BASE_FOLDER, COMMON_FOLDER, COMMON_BIN_FOLDER, COMMON_DOOR_FOLDER, PL_FOLDER}
 	for _, folderName := range folderList {
 		folderExists, err := PathExists(folderName)
 		if !folderExists {
 			log.Fatal(fmt.Sprintf("Missing data error: Unable to find folder: %v. Error: ", folderName), err)
 		}
+
+		files, err := ioutil.ReadDir(folderName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(fmt.Sprintf("Folder %v exists and has %v files", folderName, len(files)))
 	}
 
 	regionSpecificFolders := map[string]string{
@@ -32,6 +39,12 @@ func ValidateFilesExist() {
 				err,
 			)
 		}
+
+		files, err := ioutil.ReadDir(folderName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(fmt.Sprintf("Folder %v exists and has %v files", folderName, len(files)))
 	}
 }
 
