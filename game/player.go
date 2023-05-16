@@ -3,9 +3,9 @@ package game
 import (
 	"math"
 
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/world"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 const (

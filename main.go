@@ -22,6 +22,8 @@ var (
 )
 
 func main() {
+	game.ValidateFilesExist()
+
 	// Run OpenGL code
 	runtime.LockOSThread()
 	if err := glfw.Init(); err != nil {
