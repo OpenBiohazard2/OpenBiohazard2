@@ -40,7 +40,7 @@ Open source re-implementation of the original Resident Evil 2 engine written in 
 
 ### Other tools
 
-- [Bio2 script viewer](https://github.com/OpenBiohazard2/Bio2ScriptViewer)
+- [Bio2 script viewer](https://github.com/OpenBiohazard2/Bio2ScriptIde)
 
 ### References
 
