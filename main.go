@@ -5,11 +5,11 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/go-gl/glfw/v3.2/glfw"
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"
 	"github.com/OpenBiohazard2/OpenBiohazard2/game"
 	"github.com/OpenBiohazard2/OpenBiohazard2/gui"
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
+	"github.com/go-gl/glfw/v3.2/glfw"
 )
 
 const (

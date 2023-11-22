@@ -18,6 +18,7 @@ const (
 	PLAYER_ROTATE_LEFT    Action = iota
 	PLAYER_ROTATE_RIGHT   Action = iota
 	PLAYER_VIEW_INVENTORY Action = iota
+	DEBUG_DUMP            Action = iota
 	PROGRAM_QUIT          Action = iota
 )
 
@@ -45,6 +46,7 @@ func NewInputHandler() *InputHandler {
 		PLAYER_ROTATE_LEFT:    glfw.KeyA,
 		PLAYER_ROTATE_RIGHT:   glfw.KeyD,
 		PLAYER_VIEW_INVENTORY: glfw.KeyTab,
+		DEBUG_DUMP:            glfw.KeyBackslash,
 		PROGRAM_QUIT:          glfw.KeyEscape,
 	}
 

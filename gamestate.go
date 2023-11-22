@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"time"
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
@@ -26,6 +29,17 @@ type MainGameRender struct {
 	DebugEntities           []*render.DebugEntity
 	CameraSwitchDebugEntity *render.DebugEntity
 }
+
+type DebugDumpJson struct {
+	StageId    int
+	RoomId     int
+	AotManager *world.AotManager
+	GameRoom   *world.Room
+}
+
+var (
+	enableDebugDump = false // only enabled for development
+)
 
 func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *MainGameStateInput {
 	scriptDef := script.NewScriptDef()
@@ -174,6 +188,31 @@ func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameS
 	mainGameRender := mainGameStateInput.MainGameRender
 	renderDef := mainGameRender.RenderDef
 	playerEntity := mainGameRender.PlayerEntity
+
+	if enableDebugDump {
+		if windowHandler.InputHandler.IsActive(client.DEBUG_DUMP) {
+			const layout = "01-02-2006"
+			t := time.Now()
+			debugOutputFilename := fmt.Sprintf("debugdump-" + t.Format(layout) + ".json")
+
+			debugDumpJson := &DebugDumpJson{
+				StageId:    gameDef.StageId,
+				RoomId:     gameDef.RoomId,
+				AotManager: gameDef.GameWorld.AotManager,
+				GameRoom:   gameDef.GameWorld.GameRoom,
+			}
+			file, err := json.MarshalIndent(debugDumpJson, "", " ")
+			if err != nil {
+				log.Fatal("Failed to marshal data: ", err)
+			}
+
+			err = ioutil.WriteFile(debugOutputFilename, file, 0644)
+			if err != nil {
+				log.Fatal("Error writing to ", debugOutputFilename)
+			}
+			fmt.Println(fmt.Sprintf("Dumped debug data to %v", debugOutputFilename))
+		}
+	}
 
 	// Update screen
 	playerEntity.UpdatePlayerEntity(gameDef.Player, gameDef.Player.PoseNumber)
