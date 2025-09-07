@@ -47,25 +47,23 @@ type TIMOutput struct {
 	NumBytes    int
 }
 
-func LoadTIMFile(filename string) *TIMOutput {
-	timFile, _ := os.Open(filename)
-	defer timFile.Close()
-	if timFile == nil {
-		log.Fatal("TIM file doesn't exist: ", filename)
-		return nil
+func LoadTIMFile(filename string) (*TIMOutput, error) {
+	timFile, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open TIM file %s: %w", filename, err)
 	}
+	defer timFile.Close()
+
 	fi, err := timFile.Stat()
 	if err != nil {
-		log.Fatal(err)
-		return nil
+		return nil, fmt.Errorf("failed to stat TIM file %s: %w", filename, err)
 	}
 	fileLength := fi.Size()
 	timOutput, err := LoadTIMStream(timFile, fileLength)
 	if err != nil {
-		log.Fatal("Failed to load TIM file: ", err)
-		return nil
+		return nil, fmt.Errorf("failed to load TIM file %s: %w", filename, err)
 	}
-	return timOutput
+	return timOutput, nil
 }
 
 func LoadTIMStream(r io.ReaderAt, fileLength int64) (*TIMOutput, error) {

@@ -3,9 +3,9 @@ package world
 import (
 	"fmt"
 
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 // Handle script doors, items, events
@@ -125,8 +125,8 @@ func (aotManager *AotManager) AddDoorAot(aotInstruction fileio.ScriptInstrDoorAo
 	}
 
 	fmt.Println("Create new door aot", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-	fmt.Println(fmt.Sprintf("AOT index %v has origin (%v, %v), dimensions (%v, %v)",
-		aotInstruction.Aot, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth))
+	fmt.Printf("AOT index %v has origin (%v, %v), dimensions (%v, %v)\n",
+		aotInstruction.Aot, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth)
 	aotManager.Doors = append(aotManager.Doors, doorAot)
 }
 
@@ -139,10 +139,10 @@ func (aotManager *AotManager) AddDoorAot4p(aotInstruction fileio.ScriptInstrDoor
 		Super: aotInstruction.Super,
 	}
 	rect := geometry.NewQuadFourPoints([4][]float32{
-		[]float32{float32(aotInstruction.X1), float32(aotInstruction.Z1)},
-		[]float32{float32(aotInstruction.X2), float32(aotInstruction.Z2)},
-		[]float32{float32(aotInstruction.X3), float32(aotInstruction.Z3)},
-		[]float32{float32(aotInstruction.X4), float32(aotInstruction.Z4)},
+		{float32(aotInstruction.X1), float32(aotInstruction.Z1)},
+		{float32(aotInstruction.X2), float32(aotInstruction.Z2)},
+		{float32(aotInstruction.X3), float32(aotInstruction.Z3)},
+		{float32(aotInstruction.X4), float32(aotInstruction.Z4)},
 	})
 	doorAot := AotDoor{
 		Header:      aotHeader,
@@ -164,9 +164,9 @@ func (aotManager *AotManager) AddDoorAot4p(aotInstruction fileio.ScriptInstrDoor
 	}
 
 	fmt.Println("Create new door aot 4p", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-	fmt.Println(fmt.Sprintf("AOT index %v has 4 points. P1: (%v, %v), P2: (%v, %v), P3: (%v, %v), P4: (%v, %v)",
+	fmt.Printf("AOT index %v has 4 points. P1: (%v, %v), P2: (%v, %v), P3: (%v, %v), P4: (%v, %v)\n",
 		aotInstruction.Aot, aotInstruction.X1, aotInstruction.Z1, aotInstruction.X2, aotInstruction.Z2,
-		aotInstruction.X3, aotInstruction.Z3, aotInstruction.X4, aotInstruction.Z4))
+		aotInstruction.X3, aotInstruction.Z3, aotInstruction.X4, aotInstruction.Z4)
 	aotManager.Doors = append(aotManager.Doors, doorAot)
 }
 
@@ -192,8 +192,8 @@ func (aotManager *AotManager) AddItemAot(aotInstruction fileio.ScriptInstrItemAo
 	}
 
 	fmt.Println("Create new item aot", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-	fmt.Println(fmt.Sprintf("AOT index %v has origin (%v, %v), dimensions (%v, %v)",
-		aotInstruction.Aot, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth))
+	fmt.Printf("AOT index %v has origin (%v, %v), dimensions (%v, %v)\n",
+		aotInstruction.Aot, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth)
 	aotManager.Items = append(aotManager.Items, itemAot)
 }
 
@@ -206,10 +206,10 @@ func (aotManager *AotManager) AddItemAot4p(aotInstruction fileio.ScriptInstrItem
 		Super: aotInstruction.Super,
 	}
 	rect := geometry.NewQuadFourPoints([4][]float32{
-		[]float32{float32(aotInstruction.X1), float32(aotInstruction.Z1)},
-		[]float32{float32(aotInstruction.X2), float32(aotInstruction.Z2)},
-		[]float32{float32(aotInstruction.X3), float32(aotInstruction.Z3)},
-		[]float32{float32(aotInstruction.X4), float32(aotInstruction.Z4)},
+		{float32(aotInstruction.X1), float32(aotInstruction.Z1)},
+		{float32(aotInstruction.X2), float32(aotInstruction.Z2)},
+		{float32(aotInstruction.X3), float32(aotInstruction.Z3)},
+		{float32(aotInstruction.X4), float32(aotInstruction.Z4)},
 	})
 	itemAot := AotItem{
 		Header:          aotHeader,
@@ -222,9 +222,9 @@ func (aotManager *AotManager) AddItemAot4p(aotInstruction fileio.ScriptInstrItem
 	}
 
 	fmt.Println("Create new item aot 4p", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-	fmt.Println(fmt.Sprintf("AOT index %v has 4 points. P1: (%v, %v), P2: (%v, %v), P3: (%v, %v), P4: (%v, %v)",
+	fmt.Printf("AOT index %v has 4 points. P1: (%v, %v), P2: (%v, %v), P3: (%v, %v), P4: (%v, %v)\n",
 		aotInstruction.Aot, aotInstruction.X1, aotInstruction.Z1, aotInstruction.X2, aotInstruction.Z2,
-		aotInstruction.X3, aotInstruction.Z3, aotInstruction.X4, aotInstruction.Z4))
+		aotInstruction.X3, aotInstruction.Z3, aotInstruction.X4, aotInstruction.Z4)
 	aotManager.Items = append(aotManager.Items, itemAot)
 }
 
@@ -245,9 +245,9 @@ func (aotManager *AotManager) AddAotTrigger(aotInstruction fileio.ScriptInstrAot
 		Data:   aotInstruction.Data,
 	}
 
-	fmt.Println(fmt.Sprintf("Create new aot index %v with aot type %v", aotInstruction.Aot, aotInstruction.Id))
-	fmt.Println(fmt.Sprintf("AOT index %v has origin (%v, %v), dimensions (%v, %v)",
-		aotInstruction.Aot, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth))
+	fmt.Printf("Create new aot index %v with aot type %v\n", aotInstruction.Aot, aotInstruction.Id)
+	fmt.Printf("AOT index %v has origin (%v, %v), dimensions (%v, %v)\n",
+		aotInstruction.Aot, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth)
 	aotManager.AotTriggers = append(aotManager.AotTriggers, aotTrigger)
 }
 
@@ -260,10 +260,10 @@ func (aotManager *AotManager) AddAotTrigger4p(aotInstruction fileio.ScriptInstrA
 		Super: aotInstruction.Super,
 	}
 	rect := geometry.NewQuadFourPoints([4][]float32{
-		[]float32{float32(aotInstruction.X1), float32(aotInstruction.Z1)},
-		[]float32{float32(aotInstruction.X2), float32(aotInstruction.Z2)},
-		[]float32{float32(aotInstruction.X3), float32(aotInstruction.Z3)},
-		[]float32{float32(aotInstruction.X4), float32(aotInstruction.Z4)},
+		{float32(aotInstruction.X1), float32(aotInstruction.Z1)},
+		{float32(aotInstruction.X2), float32(aotInstruction.Z2)},
+		{float32(aotInstruction.X3), float32(aotInstruction.Z3)},
+		{float32(aotInstruction.X4), float32(aotInstruction.Z4)},
 	})
 	aotTrigger := AotObject{
 		Header: aotHeader,
@@ -272,9 +272,9 @@ func (aotManager *AotManager) AddAotTrigger4p(aotInstruction fileio.ScriptInstrA
 	}
 
 	fmt.Println("Create new aot 4p index", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-	fmt.Println(fmt.Sprintf("AOT index %v has 4 points. P1: (%v, %v), P2: (%v, %v), P3: (%v, %v), P4: (%v, %v)",
+	fmt.Printf("AOT index %v has 4 points. P1: (%v, %v), P2: (%v, %v), P3: (%v, %v), P4: (%v, %v)\n",
 		aotInstruction.Aot, aotInstruction.X1, aotInstruction.Z1, aotInstruction.X2, aotInstruction.Z2,
-		aotInstruction.X3, aotInstruction.Z3, aotInstruction.X4, aotInstruction.Z4))
+		aotInstruction.X3, aotInstruction.Z3, aotInstruction.X4, aotInstruction.Z4)
 	aotManager.AotTriggers = append(aotManager.AotTriggers, aotTrigger)
 }
 

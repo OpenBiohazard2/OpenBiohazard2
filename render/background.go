@@ -12,16 +12,16 @@ func NewBackgroundImageEntity() *SceneEntity {
 	z := float32(0.999)
 
 	vertices := [4][]float32{
-		[]float32{-1.0, 1.0, z},
-		[]float32{-1.0, -1.0, z},
-		[]float32{1.0, -1.0, z},
-		[]float32{1.0, 1.0, z},
+		{-1.0, 1.0, z},
+		{-1.0, -1.0, z},
+		{1.0, -1.0, z},
+		{1.0, 1.0, z},
 	}
 	uvs := [4][]float32{
-		[]float32{0.0, 0.0},
-		[]float32{0.0, 1.0},
-		[]float32{1.0, 1.0},
-		[]float32{1.0, 0.0},
+		{0.0, 0.0},
+		{0.0, 1.0},
+		{1.0, 1.0},
+		{1.0, 0.0},
 	}
 	rect := geometry.NewTexturedRectangle(vertices, uvs)
 	backgroundImageEntity.SetMesh(rect.VertexBuffer)

@@ -4,8 +4,8 @@ package fileio
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -29,15 +29,15 @@ type PLDOutput struct {
 }
 
 func LoadPLDFile(filename string) (*PLDOutput, error) {
-	file, _ := os.Open(filename)
-	defer file.Close()
-	if file == nil {
-		log.Fatal("PLD file doesn't exist:", filename)
-		return nil, nil
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open PLD file %s: %w", filename, err)
 	}
+	defer file.Close()
+
 	fi, err := file.Stat()
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("failed to stat PLD file %s: %w", filename, err)
 	}
 	fileLength := fi.Size()
 	return LoadPLDStream(file, fileLength)

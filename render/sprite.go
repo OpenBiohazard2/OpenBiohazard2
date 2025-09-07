@@ -1,10 +1,10 @@
 package render
 
 import (
-	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
+	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 const (
@@ -99,10 +99,10 @@ func (renderDef *RenderDef) AddSprite(sprite fileio.ScriptInstrSceEsprOn) {
 	// Generate billboard sprite
 	spriteCenter := mgl32.Vec3{float32(sprite.X), float32(sprite.Y), float32(sprite.Z)}
 	squareVertices := [4]mgl32.Vec3{
-		mgl32.Vec3{0, 1, 0},
-		mgl32.Vec3{1, 1, 0},
-		mgl32.Vec3{1, 0, 0},
-		mgl32.Vec3{0, 0, 0},
+		{0, 1, 0},
+		{1, 1, 0},
+		{1, 0, 0},
+		{0, 0, 0},
 	}
 
 	viewMatrix := renderDef.Camera.BuildViewMatrix()
@@ -126,9 +126,9 @@ func (renderDef *RenderDef) AddSprite(sprite fileio.ScriptInstrSceEsprOn) {
 	renderDef.SpriteGroupEntity.VertexBuffer = append(renderDef.SpriteGroupEntity.VertexBuffer, rect.VertexBuffer...)
 }
 
-func RenderSprites(programShader uint32, spriteGroupEntity *SpriteGroupEntity, timeElapsedSeconds float64) {
-	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
-	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_SPRITE)
+func RenderSprites(r *RenderDef, spriteGroupEntity *SpriteGroupEntity, timeElapsedSeconds float64) {
+	// Use cached uniform location for better performance
+	gl.Uniform1i(r.UniformLocations.RenderType, RENDER_TYPE_SPRITE)
 
 	vertexBuffer := spriteGroupEntity.VertexBuffer
 	if len(vertexBuffer) == 0 {
@@ -172,8 +172,8 @@ func RenderSprites(programShader uint32, spriteGroupEntity *SpriteGroupEntity, t
 	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, stride, gl.PtrOffset(3*floatSize))
 	gl.EnableVertexAttribArray(1)
 
-	diffuseUniform := gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
-	gl.Uniform1i(diffuseUniform, 0)
+	// Use cached uniform location for better performance
+	gl.Uniform1i(r.UniformLocations.Diffuse, 0)
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, textureIds[spriteIndex][curSpriteFrame])

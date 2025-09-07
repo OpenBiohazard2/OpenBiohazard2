@@ -1,11 +1,11 @@
 package render
 
 import (
-	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/game"
 	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
+	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 const (
@@ -25,6 +25,12 @@ type PlayerEntity struct {
 	AnimationPoseNumber int
 	VertexArrayObject   uint32
 	VertexBufferObject  uint32
+
+	// Pre-allocated arrays to avoid allocations every frame
+	Transforms       []mgl32.Mat4
+	ComponentOffsets []ComponentOffsets
+	LastPoseNumber   int  // Track when pose changes
+	BufferUploaded   bool // Track if buffer has been uploaded to GPU
 }
 
 // Offset in vertex buffer
@@ -44,6 +50,10 @@ func NewPlayerEntity(pldOutput *fileio.PLDOutput) *PlayerEntity {
 	textureId := NewTextureTIM(pldOutput.TextureData)
 	vertexBuffer := geometry.NewMD1Geometry(pldOutput.MeshData, pldOutput.TextureData)
 
+	// Pre-allocate arrays based on mesh data
+	transforms := make([]mgl32.Mat4, len(pldOutput.MeshData.Components))
+	componentOffsets := calculateComponentOffsets(pldOutput.MeshData)
+
 	return &PlayerEntity{
 		TextureId:           textureId,
 		VertexBuffer:        vertexBuffer,
@@ -52,6 +62,10 @@ func NewPlayerEntity(pldOutput *fileio.PLDOutput) *PlayerEntity {
 		AnimationPoseNumber: -1,
 		VertexArrayObject:   vao,
 		VertexBufferObject:  vbo,
+		Transforms:          transforms,
+		ComponentOffsets:    componentOffsets,
+		LastPoseNumber:      -1,
+		BufferUploaded:      false,
 	}
 }
 
@@ -60,73 +74,104 @@ func (playerEntity *PlayerEntity) UpdatePlayerEntity(player *game.Player, animat
 	playerEntity.AnimationPoseNumber = animationPoseNumber
 }
 
-func RenderAnimatedEntity(programShader uint32, playerEntity PlayerEntity, timeElapsedSeconds float64) {
-	texId := playerEntity.TextureId
-	pldOutput := playerEntity.PLDOutput
-	entityVertexBuffer := playerEntity.VertexBuffer
+func RenderAnimatedEntity(r *RenderDef, playerEntity PlayerEntity, timeElapsedSeconds float64) {
+	// Early return if no player
+	if playerEntity.Player == nil {
+		return
+	}
 
-	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
-	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_ENTITY)
+	// Update animation and transforms
+	playerEntity.updateAnimation(timeElapsedSeconds)
+	playerEntity.updateTransforms()
 
-	modelLoc := gl.GetUniformLocation(programShader, gl.Str("model\x00"))
-	modelMatrix := playerEntity.Player.GetModelMatrix()
-	gl.UniformMatrix4fv(modelLoc, 1, false, &modelMatrix[0])
+	// Set up rendering state
+	playerEntity.setupRendering(r)
 
-	animation.UpdateAnimationFrame(playerEntity.AnimationPoseNumber, playerEntity.PLDOutput.AnimationData, timeElapsedSeconds)
+	// Render all components
+	playerEntity.renderComponents(r)
 
-	// The root of the skeleton is component 0
-	transforms := make([]mgl32.Mat4, len(pldOutput.MeshData.Components))
-	buildComponentTransforms(pldOutput.SkeletonData, 0, -1, transforms)
+	// Clean up
+	playerEntity.cleanup()
+}
 
-	// Build vertex and texture data
-	componentOffsets := calculateComponentOffsets(pldOutput.MeshData)
-	floatSize := 4
+// updateAnimation handles animation frame updates
+func (pe *PlayerEntity) updateAnimation(timeElapsedSeconds float64) {
+	animation.UpdateAnimationFrame(pe.AnimationPoseNumber, pe.PLDOutput.AnimationData, timeElapsedSeconds)
+}
 
-	// 3 floats for vertex, 2 floats for texture UV, 3 float for normals
-	stride := int32(VERTEX_LEN * floatSize)
+// updateTransforms recalculates bone transforms when needed
+func (pe *PlayerEntity) updateTransforms() {
+	needsUpdate := pe.LastPoseNumber != pe.AnimationPoseNumber || !pe.BufferUploaded
+	if needsUpdate {
+		buildComponentTransforms(pe.PLDOutput.SkeletonData, 0, -1, pe.Transforms)
+		pe.LastPoseNumber = pe.AnimationPoseNumber
+	}
+}
 
-	vao := playerEntity.VertexArrayObject
-	gl.BindVertexArray(vao)
+// setupRendering configures OpenGL state for rendering
+func (pe *PlayerEntity) setupRendering(r *RenderDef) {
+	// Set uniforms
+	gl.Uniform1i(r.UniformLocations.RenderType, RENDER_TYPE_ENTITY)
+	modelMatrix := pe.Player.GetModelMatrix()
+	gl.UniformMatrix4fv(r.UniformLocations.Model, 1, false, &modelMatrix[0])
+	gl.Uniform1i(r.UniformLocations.Diffuse, 0)
 
-	vbo := playerEntity.VertexBufferObject
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(entityVertexBuffer)*floatSize, gl.Ptr(entityVertexBuffer), gl.STATIC_DRAW)
+	// Bind buffers
+	gl.BindVertexArray(pe.VertexArrayObject)
+	gl.BindBuffer(gl.ARRAY_BUFFER, pe.VertexBufferObject)
 
-	// Position attribute
+	// Upload buffer data if needed
+	if !pe.BufferUploaded {
+		const floatSize = FLOAT_SIZE_BYTES
+		gl.BufferData(gl.ARRAY_BUFFER, len(pe.VertexBuffer)*floatSize, gl.Ptr(pe.VertexBuffer), gl.STATIC_DRAW)
+		pe.BufferUploaded = true
+	}
+
+	// Set up vertex attributes
+	pe.setupVertexAttributes()
+
+	// Bind texture
+	gl.ActiveTexture(gl.TEXTURE0)
+	gl.BindTexture(gl.TEXTURE_2D, pe.TextureId)
+}
+
+// setupVertexAttributes configures vertex attribute pointers
+func (pe *PlayerEntity) setupVertexAttributes() {
+	const (
+		floatSize = FLOAT_SIZE_BYTES
+		stride    = int32(VERTEX_LEN * floatSize)
+	)
+
+	// Position (3 floats)
 	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
 	gl.EnableVertexAttribArray(0)
 
-	// Texture
+	// Texture UV (2 floats)
 	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, stride, gl.PtrOffset(3*floatSize))
 	gl.EnableVertexAttribArray(1)
 
-	// Normal
+	// Normal (3 floats)
 	gl.VertexAttribPointer(2, 3, gl.FLOAT, false, stride, gl.PtrOffset(5*floatSize))
 	gl.EnableVertexAttribArray(2)
+}
 
-	diffuseUniform := gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
-	gl.Uniform1i(diffuseUniform, 0)
+// renderComponents draws all mesh components
+func (pe *PlayerEntity) renderComponents(r *RenderDef) {
+	for i, offset := range pe.ComponentOffsets {
+		// Set bone transform
+		gl.UniformMatrix4fv(r.UniformLocations.BoneOffset, 1, false, &pe.Transforms[i][0])
 
-	gl.ActiveTexture(gl.TEXTURE0)
-	gl.BindTexture(gl.TEXTURE_2D, texId)
+		// Calculate vertex range
+		vertOffset := int32(offset.StartIndex / VERTEX_LEN)
+		numVertices := int32((offset.EndIndex - offset.StartIndex) / VERTEX_LEN)
 
-	// Draw triangles
-	for i := 0; i < len(componentOffsets); i++ {
-		// Set offset to translate each component relative to model origin
-		boneOffsetLoc := gl.GetUniformLocation(programShader, gl.Str("boneOffset\x00"))
-		boneOffset := transforms[i]
-		gl.UniformMatrix4fv(boneOffsetLoc, 1, false, &boneOffset[0])
-
-		startIndex := componentOffsets[i].StartIndex
-		endIndex := componentOffsets[i].EndIndex
-
-		// Render model component
-		vertOffset := int32(startIndex / VERTEX_LEN)
-		numVertices := int32((endIndex - startIndex) / VERTEX_LEN)
+		// Draw component
 		gl.DrawArrays(gl.TRIANGLES, vertOffset, numVertices)
 	}
+}
 
-	// Cleanup
+// cleanup disables vertex attributes
+func (pe *PlayerEntity) cleanup() {
 	gl.DisableVertexAttribArray(0)
 	gl.DisableVertexAttribArray(1)
 	gl.DisableVertexAttribArray(2)

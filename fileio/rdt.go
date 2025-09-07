@@ -66,18 +66,15 @@ type RDTOutput struct {
 }
 
 func LoadRDTFile(filename string) (*RDTOutput, error) {
-	rdtFile, _ := os.Open(filename)
-	defer rdtFile.Close()
-
-	if rdtFile == nil {
-		log.Fatal("RDT file doesn't exist. Filename:", filename)
-		return nil, fmt.Errorf("RDT file doesn't exist")
+	rdtFile, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open RDT file %s: %w", filename, err)
 	}
+	defer rdtFile.Close()
 
 	fi, err := rdtFile.Stat()
 	if err != nil {
-		log.Fatal(err)
-		return nil, err
+		return nil, fmt.Errorf("failed to stat RDT file %s: %w", filename, err)
 	}
 
 	fileLength := fi.Size()

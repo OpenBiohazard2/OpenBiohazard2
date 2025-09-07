@@ -7,7 +7,6 @@ import (
 	"image/color"
 	"image/png"
 	"io"
-	"log"
 	"os"
 	"strconv"
 	"unsafe"
@@ -40,36 +39,33 @@ type ADTOutput struct {
 	RawData   []uint8
 }
 
-func LoadADTFile(inputFilename string) *ADTOutput {
-	imgFile, _ := os.Open(inputFilename)
-	defer imgFile.Close()
-
-	if imgFile == nil {
-		log.Fatal("ADT file doesn't exist")
-		return nil
+func LoadADTFile(inputFilename string) (*ADTOutput, error) {
+	imgFile, err := os.Open(inputFilename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open ADT file %s: %w", inputFilename, err)
 	}
+	defer imgFile.Close()
 
 	return LoadADTStream(imgFile)
 }
 
-func LoadADTStream(adtReader io.ReaderAt) *ADTOutput {
+func LoadADTStream(adtReader io.ReaderAt) (*ADTOutput, error) {
 	imgArr, rawData, err := unpackADT(adtReader)
 	if err != nil {
-		fmt.Println("Error unpacking ADT:", err)
-		return nil
+		return nil, fmt.Errorf("failed to unpack ADT: %w", err)
 	}
 
 	if len(imgArr) < 320*256 {
 		fmt.Println("Warning: the ADT file doesn't contain a 320x240 image")
 		return &ADTOutput{
 			RawData: rawData,
-		}
+		}, nil
 	}
 	pixelData := restoreImage(imgArr)
 	return &ADTOutput{
 		PixelData: pixelData,
 		RawData:   rawData,
-	}
+	}, nil
 }
 
 func newUnpackArray(arrayLength int) UnpackArray {

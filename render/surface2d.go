@@ -1,8 +1,8 @@
 package render
 
 import (
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
+	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
 const (
@@ -45,8 +45,8 @@ func (renderDef *RenderDef) RenderSolidVideoBuffer() {
 	// Activate shader
 	gl.UseProgram(programShader)
 
-	renderGameStateUniform := gl.GetUniformLocation(programShader, gl.Str("gameState\x00"))
-	gl.Uniform1i(renderGameStateUniform, RENDER_GAME_STATE_BACKGROUND_SOLID)
+	// Use cached uniform location for better performance
+	gl.Uniform1i(renderDef.UniformLocations.GameState, RENDER_GAME_STATE_BACKGROUND_SOLID)
 
 	renderDef.RenderSurface2D(renderDef.VideoBuffer)
 }
@@ -59,8 +59,8 @@ func (renderDef *RenderDef) RenderTransparentVideoBuffer() {
 	// Activate shader
 	gl.UseProgram(programShader)
 
-	renderGameStateUniform := gl.GetUniformLocation(programShader, gl.Str("gameState\x00"))
-	gl.Uniform1i(renderGameStateUniform, RENDER_GAME_STATE_BACKGROUND_TRANSPARENT)
+	// Use cached uniform location for better performance
+	gl.Uniform1i(renderDef.UniformLocations.GameState, RENDER_GAME_STATE_BACKGROUND_TRANSPARENT)
 
 	renderDef.RenderSurface2D(renderDef.VideoBuffer)
 }
@@ -75,8 +75,6 @@ func (r *RenderDef) RenderSurface2D(surface *Surface2D) {
 	if len(vertexBuffer) == 0 {
 		return
 	}
-
-	programShader := r.ProgramShader
 
 	floatSize := 4
 
@@ -98,8 +96,8 @@ func (r *RenderDef) RenderSurface2D(surface *Surface2D) {
 	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, stride, gl.PtrOffset(3*floatSize))
 	gl.EnableVertexAttribArray(1)
 
-	diffuseUniform := gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
-	gl.Uniform1i(diffuseUniform, 0)
+	// Use cached uniform location for better performance
+	gl.Uniform1i(r.UniformLocations.Diffuse, 0)
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, surface.TextureId)

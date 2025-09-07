@@ -720,7 +720,7 @@ func generateScriptLine(streamReader *io.SectionReader, totalByteSize int, opcod
 
 	parameters, err := readRemainingBytes(streamReader, totalByteSize-1)
 	if err != nil {
-		log.Fatal("Error reading script for opcode %v\n", opcode)
+		log.Fatalf("Error reading script for opcode %v\n", opcode)
 	}
 	scriptLine = append(scriptLine, parameters...)
 	return scriptLine

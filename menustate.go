@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/game"
@@ -85,7 +87,7 @@ func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 	inventoryItemImages := inventoryStateInput.InventoryItemImages
 	inventoryMenu := inventoryStateInput.InventoryMenu
 
-	if gameStateManager.ImageResourcesLoaded == false {
+	if !gameStateManager.ImageResourcesLoaded {
 		inventoryMenu.Reset()
 		gameStateManager.ImageResourcesLoaded = true
 		gameStateManager.UpdateLastTimeChangeState()
@@ -123,8 +125,11 @@ func handleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 
 func handleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *GameStateManager) {
 	renderDef := mainMenuStateInput.RenderDef
-	if gameStateManager.ImageResourcesLoaded == false {
-		menuBackgroundImageADTOutput := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
+	if !gameStateManager.ImageResourcesLoaded {
+		menuBackgroundImageADTOutput, err := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
+		if err != nil {
+			log.Fatal("Error loading menu image: ", err)
+		}
 		menuBackgroundImage := render.ConvertPixelsToImage16Bit(menuBackgroundImageADTOutput.PixelData)
 
 		menuBackgroundTextImagesTIMOutput, _ := fileio.LoadTIMImages(game.MENU_TEXT_FILE)
@@ -172,9 +177,12 @@ func handleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *Ga
 }
 
 func handleLoadSave(renderDef *render.RenderDef, gameStateManager *GameStateManager) {
-	if gameStateManager.ImageResourcesLoaded == false {
+	if !gameStateManager.ImageResourcesLoaded {
 		// Initialize load save screen
-		saveScreenImageADTOutput := fileio.LoadADTFile(game.SAVE_SCREEN_FILE)
+		saveScreenImageADTOutput, err := fileio.LoadADTFile(game.SAVE_SCREEN_FILE)
+		if err != nil {
+			log.Fatal("Error loading save screen image: ", err)
+		}
 		saveScreenImageRender := render.ConvertPixelsToImage16Bit(saveScreenImageADTOutput.PixelData)
 		renderDef.GenerateSaveScreenImage(saveScreenImageRender)
 
@@ -193,8 +201,11 @@ func handleLoadSave(renderDef *render.RenderDef, gameStateManager *GameStateMana
 
 func handleSpecialMenu(specialMenuStateInput *MainMenuStateInput, gameStateManager *GameStateManager) {
 	renderDef := specialMenuStateInput.RenderDef
-	if gameStateManager.ImageResourcesLoaded == false {
-		menuBackgroundImageADTOutput := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
+	if !gameStateManager.ImageResourcesLoaded {
+		menuBackgroundImageADTOutput, err := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
+		if err != nil {
+			log.Fatal("Error loading menu image: ", err)
+		}
 		menuBackgroundImage := render.ConvertPixelsToImage16Bit(menuBackgroundImageADTOutput.PixelData)
 
 		menuBackgroundTextImagesTIMOutput, _ := fileio.LoadTIMImages(game.MENU_TEXT_FILE)

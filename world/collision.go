@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 func RemoveCollisionEntity(collisionEntities []fileio.CollisionEntity, entityId int) {

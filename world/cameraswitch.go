@@ -3,8 +3,8 @@ package world
 import (
 	"math"
 
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 type CameraSwitchHandler struct {

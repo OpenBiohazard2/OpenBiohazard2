@@ -1,11 +1,11 @@
 package render
 
 import (
-	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
 	"github.com/OpenBiohazard2/OpenBiohazard2/world"
+	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 const (
@@ -19,16 +19,16 @@ type DebugEntity struct {
 	VertexBufferObject uint32
 }
 
-func RenderCameraSwitches(programShader uint32, cameraSwitchDebugEntity *DebugEntity) {
-	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
-	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_DEBUG)
+func RenderCameraSwitches(r *RenderDef, cameraSwitchDebugEntity *DebugEntity) {
+	// Use cached uniform location for better performance
+	gl.Uniform1i(r.UniformLocations.RenderType, RENDER_TYPE_DEBUG)
 
-	RenderDebugEntities(programShader, []*DebugEntity{cameraSwitchDebugEntity})
+	RenderDebugEntities(r, []*DebugEntity{cameraSwitchDebugEntity})
 }
 
-func RenderDebugEntities(programShader uint32, debugEntities []*DebugEntity) {
-	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
-	gl.Uniform1i(renderTypeUniform, RENDER_TYPE_DEBUG)
+func RenderDebugEntities(r *RenderDef, debugEntities []*DebugEntity) {
+	// Use cached uniform location for better performance
+	gl.Uniform1i(r.UniformLocations.RenderType, RENDER_TYPE_DEBUG)
 
 	floatSize := 4
 
@@ -52,12 +52,12 @@ func RenderDebugEntities(programShader uint32, debugEntities []*DebugEntity) {
 		gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
 		gl.EnableVertexAttribArray(0)
 
-		diffuseUniform := gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
-		gl.Uniform1i(diffuseUniform, 0)
+		// Use cached uniform location for better performance
+		gl.Uniform1i(r.UniformLocations.Diffuse, 0)
 
-		debugColorLoc := gl.GetUniformLocation(programShader, gl.Str("debugColor\x00"))
+		// Use cached uniform location for better performance
 		color := debugEntity.Color
-		gl.Uniform4f(debugColorLoc, color[0], color[1], color[2], color[3])
+		gl.Uniform4f(r.UniformLocations.DebugColor, color[0], color[1], color[2], color[3])
 
 		// Draw triangles
 		gl.DrawArrays(gl.TRIANGLES, 0, int32(len(entityVertexBuffer)/3))
@@ -154,10 +154,10 @@ func NewCameraSwitchDebugEntity(curCameraId int,
 	for _, regionIndex := range cameraSwitchTransitions[curCameraId] {
 		cameraSwitch := cameraSwitches[regionIndex]
 		corners := [4][]float32{
-			[]float32{float32(cameraSwitch.X1), float32(cameraSwitch.Z1)},
-			[]float32{float32(cameraSwitch.X2), float32(cameraSwitch.Z2)},
-			[]float32{float32(cameraSwitch.X3), float32(cameraSwitch.Z3)},
-			[]float32{float32(cameraSwitch.X4), float32(cameraSwitch.Z4)},
+			{float32(cameraSwitch.X1), float32(cameraSwitch.Z1)},
+			{float32(cameraSwitch.X2), float32(cameraSwitch.Z2)},
+			{float32(cameraSwitch.X3), float32(cameraSwitch.Z3)},
+			{float32(cameraSwitch.X4), float32(cameraSwitch.Z4)},
 		}
 		rect := geometry.NewQuadFourPoints(corners)
 		vertexBuffer = append(vertexBuffer, rect.VertexBuffer...)

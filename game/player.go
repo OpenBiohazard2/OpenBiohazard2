@@ -9,8 +9,17 @@ import (
 )
 
 const (
+	// Player Movement Speeds (units per second)
 	PLAYER_FORWARD_SPEED  = 4000
 	PLAYER_BACKWARD_SPEED = 1000
+
+	// Player Animation States
+	PLAYER_IDLE_POSE    = -1
+	PLAYER_WALKING_POSE = 0
+
+	// Collision Shape Types
+	COLLISION_SHAPE_RAMP  = 9
+	COLLISION_SHAPE_CLIMB = 10
 )
 
 type Player struct {
@@ -25,7 +34,7 @@ func NewPlayer(initialPosition mgl32.Vec3, initialRotationAngle float32) *Player
 	return &Player{
 		Position:      initialPosition,
 		RotationAngle: initialRotationAngle,
-		PoseNumber:    -1,
+		PoseNumber:    PLAYER_IDLE_POSE,
 	}
 }
 
@@ -41,15 +50,15 @@ func (player *Player) HandlePlayerInputForward(collisionEntities []fileio.Collis
 	collidingEntity := world.CheckCollision(predictPosition, collisionEntities)
 	if collidingEntity == nil {
 		player.Position = predictPosition
-		player.PoseNumber = 0
+		player.PoseNumber = PLAYER_WALKING_POSE
 	} else {
 		if world.CheckRamp(collidingEntity) {
 			player.Position = player.PredictPositionForwardSlope(collidingEntity, timeElapsedSeconds)
-			player.PoseNumber = 0
-		} else if collidingEntity.Shape == 9 || collidingEntity.Shape == 10 {
+			player.PoseNumber = PLAYER_WALKING_POSE
+		} else if collidingEntity.Shape == COLLISION_SHAPE_RAMP || collidingEntity.Shape == COLLISION_SHAPE_CLIMB {
 			player.Position = player.PredictPositionClimbBox()
 		} else {
-			player.PoseNumber = -1
+			player.PoseNumber = PLAYER_IDLE_POSE
 		}
 	}
 }
@@ -65,7 +74,7 @@ func (player *Player) HandlePlayerInputBackward(collisionEntities []fileio.Colli
 			player.Position = player.PredictPositionBackwardSlope(collidingEntity, timeElapsedSeconds)
 			player.PoseNumber = 1
 		} else {
-			player.PoseNumber = -1
+			player.PoseNumber = PLAYER_IDLE_POSE
 		}
 	}
 }

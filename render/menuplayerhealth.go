@@ -35,53 +35,77 @@ type HealthECGView struct {
 }
 
 func buildHealthECG(inventoryMenuImages []*Image16Bit, backgroundColor color.RGBA) {
+	healthStatus := HEALTH_FINE
+
+	drawHealthBackground(inventoryMenuImages, backgroundColor)
+	updateECGAnimation()
+	drawECGLines(healthStatus)
+	drawPlayerCondition(inventoryMenuImages, healthStatus)
+}
+
+// drawHealthBackground draws the health background and sloped line
+func drawHealthBackground(inventoryMenuImages []*Image16Bit, backgroundColor color.RGBA) {
 	// Draw health background
 	screenImage.WriteSubImage(image.Point{HEALTH_POS_X + 2, HEALTH_POS_Y}, inventoryMenuImages[0], image.Rect(0, 92, 99, 92+47))
+
 	// Sloped line to the right of Condition
 	for i := 0; i < 8; i++ {
 		screenImage.FillPixels(image.Point{129 - i, 68 + i}, image.Rect(129-i, 68+i, 159, 69+i), backgroundColor)
 	}
+}
 
-	// Draw ECG lines
-	healthStatus := HEALTH_FINE
-	ecgView := healthECGViews[healthStatus]
-
+// updateECGAnimation updates the ECG animation timing
+func updateECGAnimation() {
 	if totalHealthTime >= updateHealthTime {
 		ecgOffsetX = (ecgOffsetX + 1) % 128
 		totalHealthTime = 0
 	}
+}
+
+// drawECGLines draws the animated ECG lines with gradient colors
+func drawECGLines(healthStatus int) {
+	ecgView := healthECGViews[healthStatus]
 
 	for columnNum := 0; columnNum < 32; columnNum++ {
 		startX := ecgOffsetX - columnNum
 		if startX < 0 || startX >= len(ecgView.Lines) {
 			continue
 		}
-		// Draw a vertical line
+
+		// Calculate line position and size
 		destX := startX + HEALTH_POS_X + 12
 		destY := ecgView.Lines[startX][0] + HEALTH_POS_Y + 2
 		width := 1
 		height := ecgView.Lines[startX][1] + 1
 
-		// lines to the left will have a darker color
-		lineColor := ecgView.Color
-		gradientColor := ecgView.Gradient
-		red := lineColor[0] - (gradientColor[0] * columnNum)
-		if red < 0 {
-			red = 0
-		}
-		green := lineColor[1] - (gradientColor[1] * columnNum)
-		if green < 0 {
-			green = 0
-		}
-		blue := lineColor[2] - (gradientColor[2] * columnNum)
-		if blue < 0 {
-			blue = 0
-		}
-		finalColor := color.RGBA{uint8(red), uint8(green), uint8(blue), 255}
+		// Calculate gradient color
+		finalColor := calculateECGLineColor(ecgView, columnNum)
+
+		// Draw the line
 		screenImage.FillPixels(image.Point{destX, destY}, image.Rect(destX, destY, destX+width, destY+height), finalColor)
 	}
+}
 
-	drawPlayerCondition(inventoryMenuImages, healthStatus)
+// calculateECGLineColor calculates the gradient color for an ECG line
+func calculateECGLineColor(ecgView HealthECGView, columnNum int) color.RGBA {
+	lineColor := ecgView.Color
+	gradientColor := ecgView.Gradient
+
+	// Lines to the left will have a darker color
+	red := lineColor[0] - (gradientColor[0] * columnNum)
+	if red < 0 {
+		red = 0
+	}
+	green := lineColor[1] - (gradientColor[1] * columnNum)
+	if green < 0 {
+		green = 0
+	}
+	blue := lineColor[2] - (gradientColor[2] * columnNum)
+	if blue < 0 {
+		blue = 0
+	}
+
+	return color.RGBA{uint8(red), uint8(green), uint8(blue), 255}
 }
 
 func drawPlayerCondition(inventoryMenuImages []*Image16Bit, healthStatus int) {

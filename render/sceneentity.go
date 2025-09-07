@@ -40,9 +40,8 @@ func (r *RenderDef) RenderSceneEntity(entity *SceneEntity, renderType int32) {
 		return
 	}
 
-	programShader := r.ProgramShader
-	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
-	gl.Uniform1i(renderTypeUniform, renderType)
+	// Use cached uniform location for better performance
+	gl.Uniform1i(r.UniformLocations.RenderType, renderType)
 
 	floatSize := 4
 
@@ -64,8 +63,8 @@ func (r *RenderDef) RenderSceneEntity(entity *SceneEntity, renderType int32) {
 	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, stride, gl.PtrOffset(3*floatSize))
 	gl.EnableVertexAttribArray(1)
 
-	diffuseUniform := gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
-	gl.Uniform1i(diffuseUniform, 0)
+	// Use cached uniform location for better performance
+	gl.Uniform1i(r.UniformLocations.Diffuse, 0)
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, entity.TextureId)

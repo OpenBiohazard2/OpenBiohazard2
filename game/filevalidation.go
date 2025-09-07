@@ -2,24 +2,22 @@ package game
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 )
 
-func ValidateFilesExist() {
+func ValidateFilesExist() error {
 	folderList := []string{BASE_FOLDER, COMMON_FOLDER, COMMON_BIN_FOLDER, COMMON_DOOR_FOLDER, PL_FOLDER}
 	for _, folderName := range folderList {
 		folderExists, err := PathExists(folderName)
 		if !folderExists {
-			log.Fatal(fmt.Sprintf("Missing data error: Unable to find folder: %v. Error: ", folderName), err)
+			return fmt.Errorf("missing data error: unable to find folder %v: %w", folderName, err)
 		}
 
-		files, err := ioutil.ReadDir(folderName)
+		files, err := os.ReadDir(folderName)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("failed to read directory %v: %w", folderName, err)
 		}
-		fmt.Println(fmt.Sprintf("Folder %v exists and has %v files", folderName, len(files)))
+		fmt.Printf("Folder %v exists and has %v files\n", folderName, len(files))
 	}
 
 	regionSpecificFolders := map[string]string{
@@ -30,22 +28,21 @@ func ValidateFilesExist() {
 		folderName := regionSpecificFolders[folderKey]
 		folderExists, err := PathExists(folderName)
 		if !folderExists {
-			log.Fatal(
-				fmt.Sprintf(
-					"Missing data error: Unable to find region specific folder. "+
-						"You might need to change the value of this variable of %v in resource.go. Current value of key %v = %v. Error: ",
-					folderKey, folderKey, folderName,
-				),
-				err,
+			return fmt.Errorf(
+				"missing data error: unable to find region specific folder %v. "+
+					"You might need to change the value of this variable in resource.go. Current value of key %v = %v: %w",
+				folderKey, folderKey, folderName, err,
 			)
 		}
 
-		files, err := ioutil.ReadDir(folderName)
+		files, err := os.ReadDir(folderName)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("failed to read directory %v: %w", folderName, err)
 		}
-		fmt.Println(fmt.Sprintf("Folder %v exists and has %v files", folderName, len(files)))
+		fmt.Printf("Folder %v exists and has %v files\n", folderName, len(files))
 	}
+
+	return nil
 }
 
 func PathExists(path string) (bool, error) {

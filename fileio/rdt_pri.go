@@ -113,7 +113,7 @@ func LoadRDT_PRI(r io.ReaderAt, fileLength int64) (*PRIOutput, error) {
 
 				rectSizeBytes := int64(12)
 				if maskRect.DestX+maskRect.Width > 320 || maskRect.DestY+maskRect.Height > 240 {
-					return nil, fmt.Errorf("Mask rect is out of bounds. ", maskRect)
+					return nil, fmt.Errorf("Mask rect is out of bounds: %+v", maskRect)
 				}
 
 				maskData = append(maskData, maskRect)
@@ -137,7 +137,7 @@ func LoadRDT_PRI(r io.ReaderAt, fileLength int64) (*PRIOutput, error) {
 
 				squareSizeBytes := int64(8)
 				if maskRect.DestX+maskRect.Width > 320 || maskRect.DestY+maskRect.Height > 240 {
-					return nil, fmt.Errorf("Mask rect is out of bounds. ", maskRect)
+					return nil, fmt.Errorf("Mask rect is out of bounds: %+v", maskRect)
 				}
 
 				maskData = append(maskData, maskRect)

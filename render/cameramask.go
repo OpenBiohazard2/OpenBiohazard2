@@ -3,9 +3,9 @@ package render
 import (
 	"image"
 
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 const (

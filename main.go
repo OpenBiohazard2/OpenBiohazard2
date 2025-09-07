@@ -23,7 +23,9 @@ var (
 
 func main() {
 	fmt.Println("Validating game folders exist...")
-	game.ValidateFilesExist()
+	if err := game.ValidateFilesExist(); err != nil {
+		log.Fatal("File validation failed: ", err)
+	}
 	fmt.Println("Validated game folders exist")
 
 	// Run OpenGL code

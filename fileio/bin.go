@@ -24,30 +24,28 @@ type RoomImageOutput struct {
 	ImageMask       *TIMOutput
 }
 
-func LoadBINFile(inputFilename string) *BinOutput {
-	binFile, _ := os.Open(inputFilename)
-	defer binFile.Close()
-
-	if binFile == nil {
-		log.Fatal("Load BIN file failed. BIN file doesn't exist: ", inputFilename)
-		return nil
+func LoadBINFile(inputFilename string) (*BinOutput, error) {
+	binFile, err := os.Open(inputFilename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open BIN file %s: %w", inputFilename, err)
 	}
+	defer binFile.Close()
 
 	fi, err := binFile.Stat()
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("failed to stat BIN file %s: %w", inputFilename, err)
 	}
 	archiveLength := fi.Size()
 
 	imagesIndex, err := LoadBIN(binFile, archiveLength)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("failed to load BIN data from %s: %w", inputFilename, err)
 	}
 
 	return &BinOutput{
 		ImagesIndex: imagesIndex,
 		FileLength:  archiveLength,
-	}
+	}, nil
 }
 
 func LoadBIN(r io.ReaderAt, archiveLength int64) ([]ImageFile, error) {
@@ -122,20 +120,19 @@ func LoadTIMImages(inputFilename string) ([]*TIMOutput, error) {
 	return images, nil
 }
 
-func ExtractItemImage(inputFilename string, binOutput *BinOutput, imageId int) *RoomImageOutput {
-	binFile, _ := os.Open(inputFilename)
+func ExtractItemImage(inputFilename string, binOutput *BinOutput, imageId int) (*RoomImageOutput, error) {
+	binFile, err := os.Open(inputFilename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open BIN file %s: %w", inputFilename, err)
+	}
 	defer binFile.Close()
 
-	if binFile == nil {
-		log.Fatal("Item BIN file doesn't exist: ", inputFilename)
-		return nil
-	}
 	binReader := io.NewSectionReader(binFile, int64(0), binOutput.FileLength)
 
 	imageBlock := binOutput.ImagesIndex[imageId]
 	if imageBlock.Length == 0 {
 		fmt.Println("Warning: Image has no data")
-		return nil
+		return nil, nil
 	}
 
 	blockLength := int(imageBlock.Length)
@@ -144,39 +141,44 @@ func ExtractItemImage(inputFilename string, binOutput *BinOutput, imageId int) *
 	}
 
 	adtReader := io.NewSectionReader(binReader, int64(imageBlock.Offset), int64(blockLength))
-	adtOutput := LoadADTStream(adtReader)
+	adtOutput, err := LoadADTStream(adtReader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load ADT stream: %w", err)
+	}
 	timReader := bytes.NewReader(adtOutput.RawData)
 	timOutput, err := LoadTIMStream(timReader, int64(len(adtOutput.RawData)))
 	if err != nil {
-		log.Fatal("Invalid BIN data. ", err)
+		return nil, fmt.Errorf("invalid BIN data: %w", err)
 	}
 
 	return &RoomImageOutput{
 		BackgroundImage: nil,
 		ImageMask:       timOutput,
-	}
+	}, nil
 }
 
 // Room image is stored as an ADT file
-func ExtractRoomBackground(inputFilename string, binOutput *BinOutput, roomId int) *RoomImageOutput {
-	binFile, _ := os.Open(inputFilename)
+func ExtractRoomBackground(inputFilename string, binOutput *BinOutput, roomId int) (*RoomImageOutput, error) {
+	binFile, err := os.Open(inputFilename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open BIN file %s: %w", inputFilename, err)
+	}
 	defer binFile.Close()
 
-	if binFile == nil {
-		log.Fatal("Room BIN file doesn't exist: ", inputFilename)
-		return nil
-	}
 	binReader := io.NewSectionReader(binFile, int64(0), binOutput.FileLength)
 
 	imageBlock := binOutput.ImagesIndex[roomId]
 	if imageBlock.Length == 0 {
 		fmt.Println("Warning: Room has no data")
-		return nil
+		return nil, nil
 	}
 
 	// The first part is the background image, which is an .adt file
 	adtReader := io.NewSectionReader(binReader, int64(imageBlock.Offset), int64(imageBlock.Length))
-	adtOutput := LoadADTStream(adtReader)
+	adtOutput, err := LoadADTStream(adtReader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load ADT stream: %w", err)
+	}
 
 	// The next part is an image mask, which is a .tim file
 	beginOffset := (320 * 256 * 2)
@@ -186,16 +188,16 @@ func ExtractRoomBackground(inputFilename string, binOutput *BinOutput, roomId in
 		return &RoomImageOutput{
 			BackgroundImage: adtOutput,
 			ImageMask:       nil,
-		}
+		}, nil
 	}
 	timReader := bytes.NewReader(adtOutput.RawData[beginOffset:])
 	timOutput, err := LoadTIMStream(timReader, int64(len(adtOutput.RawData))-int64(beginOffset))
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("failed to load TIM stream: %w", err)
 	}
 
 	return &RoomImageOutput{
 		BackgroundImage: adtOutput,
 		ImageMask:       timOutput,
-	}
+	}, nil
 }

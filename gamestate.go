@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"time"
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"
@@ -64,11 +64,19 @@ func NewMainGameRender(renderDef *render.RenderDef) *MainGameRender {
 
 	// Core sprite file has sprite ids 0-7
 	// All other sprites are loaded based on the room
-	fileio.LoadESPFile(game.CORE_SPRITE_FILE)
+	_, err = fileio.LoadESPFile(game.CORE_SPRITE_FILE)
+	if err != nil {
+		log.Fatal("Error loading core sprite file: ", err)
+	}
+
+	roomcutBinOutput, err := fileio.LoadBINFile(game.ROOMCUT_FILE)
+	if err != nil {
+		log.Fatal("Error loading roomcut BIN file: ", err)
+	}
 
 	return &MainGameRender{
 		RenderDef:               renderDef,
-		RoomcutBinOutput:        fileio.LoadBINFile(game.ROOMCUT_FILE),
+		RoomcutBinOutput:        roomcutBinOutput,
 		PlayerEntity:            render.NewPlayerEntity(pldOutput),
 		DebugEntities:           make([]*render.DebugEntity, 0),
 		CameraSwitchDebugEntity: nil,
@@ -165,7 +173,11 @@ func updateCameraView(mainGameRender *MainGameRender, gameDef *game.GameDef) {
 
 func updateRoomBackroundImage(mainGameRender *MainGameRender, gameDef *game.GameDef) {
 	// Update background image
-	roomOutput := fileio.ExtractRoomBackground(game.ROOMCUT_FILE, mainGameRender.RoomcutBinOutput, gameDef.GetBackgroundImageNumber())
+	roomOutput, err := fileio.ExtractRoomBackground(game.ROOMCUT_FILE, mainGameRender.RoomcutBinOutput, gameDef.GetBackgroundImageNumber())
+	if err != nil {
+		log.Printf("Warning: failed to load room background: %v", err)
+		return
+	}
 
 	if roomOutput.BackgroundImage != nil {
 		renderDef := mainGameRender.RenderDef
@@ -206,11 +218,11 @@ func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameS
 				log.Fatal("Failed to marshal data: ", err)
 			}
 
-			err = ioutil.WriteFile(debugOutputFilename, file, 0644)
+			err = os.WriteFile(debugOutputFilename, file, 0644)
 			if err != nil {
 				log.Fatal("Error writing to ", debugOutputFilename)
 			}
-			fmt.Println(fmt.Sprintf("Dumped debug data to %v", debugOutputFilename))
+			fmt.Printf("Dumped debug data to %v\n", debugOutputFilename)
 		}
 	}
 

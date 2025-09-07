@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -41,7 +41,7 @@ func main() {
 		}
 		defer file.Close()
 
-		data, err := ioutil.ReadAll(file)
+		data, err := io.ReadAll(file)
 		baseOutputFilename := filepath.Join(outputFolder, inputBase)
 		do2FileFormat := do2Output.DO2FileFormat
 		writeFile(baseOutputFilename+".vh", getBufferSubset(data, do2FileFormat.VHOffset, do2FileFormat.VHLength))
@@ -58,7 +58,7 @@ func getBufferSubset(data []byte, offset int64, length int64) []byte {
 }
 
 func writeFile(outputFilename string, buffer []byte) {
-	err := ioutil.WriteFile(outputFilename, buffer, 0644)
+	err := os.WriteFile(outputFilename, buffer, 0644)
 	if err != nil {
 		log.Panicf("Error creating %s, error: %s ", outputFilename, err)
 	}

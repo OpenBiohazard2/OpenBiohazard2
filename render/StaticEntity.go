@@ -27,12 +27,11 @@ func (r *RenderDef) RenderStaticEntity(entity SceneMD1Entity, renderType int32) 
 		return
 	}
 
-	programShader := r.ProgramShader
-	renderTypeUniform := gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
-	gl.Uniform1i(renderTypeUniform, renderType)
+	// Use cached uniform location for better performance
+	gl.Uniform1i(r.UniformLocations.RenderType, renderType)
 
-	modelLoc := gl.GetUniformLocation(programShader, gl.Str("model\x00"))
-	gl.UniformMatrix4fv(modelLoc, 1, false, &modelMatrix[0])
+	// Use cached uniform location for better performance
+	gl.UniformMatrix4fv(r.UniformLocations.Model, 1, false, &modelMatrix[0])
 
 	floatSize := 4
 
@@ -58,8 +57,8 @@ func (r *RenderDef) RenderStaticEntity(entity SceneMD1Entity, renderType int32) 
 	gl.VertexAttribPointer(2, 3, gl.FLOAT, false, stride, gl.PtrOffset(5*floatSize))
 	gl.EnableVertexAttribArray(2)
 
-	diffuseUniform := gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
-	gl.Uniform1i(diffuseUniform, 0)
+	// Use cached uniform location for better performance
+	gl.Uniform1i(r.UniformLocations.Diffuse, 0)
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, textureId)

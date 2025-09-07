@@ -42,10 +42,10 @@ func NewQuadFourPoints(xzPairs [4][]float32) *Quad {
 
 func NewRectangle(x float32, z float32, width float32, depth float32) *Quad {
 	corners := [4]mgl32.Vec3{
-		mgl32.Vec3{x, 0, z},
-		mgl32.Vec3{x, 0, z + depth},
-		mgl32.Vec3{x + width, 0, z + depth},
-		mgl32.Vec3{x + width, 0, z},
+		{x, 0, z},
+		{x, 0, z + depth},
+		{x + width, 0, z + depth},
+		{x + width, 0, z},
 	}
 	return NewQuad(corners)
 }

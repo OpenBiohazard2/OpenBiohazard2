@@ -10,10 +10,10 @@ import (
 
 func main() {
 	if len(os.Args) < 4 {
-		log.Fatal("You only entered ", len(os.Args), " arguments. Command format is invalid.")
-		log.Fatal("The syntax of this command is: fileconv [toolName] [inputFilename] [outputFilename]")
-		log.Fatal("Tool names supported: tim2png, adt2png, sap2wav")
-		log.Fatal("Example command: fileconv tim2png test.tim test.png")
+		log.Fatalf(`Invalid arguments. You entered %d arguments.
+Usage: fileconv [toolName] [inputFilename] [outputFilename]
+Tool names supported: tim2png, adt2png, sap2wav
+Example: fileconv tim2png test.tim test.png`, len(os.Args))
 	}
 
 	toolName := os.Args[1]
@@ -24,15 +24,24 @@ func main() {
 
 	switch toolName {
 	case "tim2png":
-		timOutput := fileio.LoadTIMFile(inputFilename)
+		timOutput, err := fileio.LoadTIMFile(inputFilename)
+		if err != nil {
+			log.Fatal("Error loading TIM file: ", err)
+		}
 		timOutput.ConvertToPNG(outputFilename)
 	case "adt2png":
-		adtOutput := fileio.LoadADTFile(inputFilename)
+		adtOutput, err := fileio.LoadADTFile(inputFilename)
+		if err != nil {
+			log.Fatal("Error loading ADT file: ", err)
+		}
 		adtOutput.ConvertToPNG(outputFilename)
 	case "sap2wav":
-		sapOutput := fileio.LoadSAPFile(inputFilename)
+		sapOutput, err := fileio.LoadSAPFile(inputFilename)
+		if err != nil {
+			log.Fatal("Error loading SAP file: ", err)
+		}
 		sapOutput.ConvertToWAV(outputFilename)
 	default:
-		log.Fatal("You entered an invalid tool name: ", toolName, ". Conversion failed.")
+		log.Fatalf("Invalid tool name: %s. Conversion failed.", toolName)
 	}
 }

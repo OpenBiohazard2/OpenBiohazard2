@@ -4,8 +4,8 @@ package fileio
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -64,26 +64,24 @@ type SpriteData struct {
 	ImageData      *TIMOutput
 }
 
-func LoadESPFile(filename string) *ESPOutput {
-	espFile, _ := os.Open(filename)
-	defer espFile.Close()
-	if espFile == nil {
-		log.Fatal("ESP file doesn't exist: ", filename)
-		return nil
+func LoadESPFile(filename string) (*ESPOutput, error) {
+	espFile, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open ESP file %s: %w", filename, err)
 	}
+	defer espFile.Close()
+
 	fi, err := espFile.Stat()
 	if err != nil {
-		log.Fatal(err)
-		return nil
+		return nil, fmt.Errorf("failed to stat ESP file %s: %w", filename, err)
 	}
 	fileLength := fi.Size()
 	espOutput, err := LoadESPStream(espFile, fileLength, fileLength-4)
 	if err != nil {
-		log.Fatal("Failed to load ESP file: ", err)
-		return nil
+		return nil, fmt.Errorf("failed to load ESP file %s: %w", filename, err)
 	}
 
-	return espOutput
+	return espOutput, nil
 }
 
 func LoadESPStream(r io.ReaderAt, fileLength int64, eofOffset int64) (*ESPOutput, error) {
