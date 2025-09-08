@@ -2,7 +2,6 @@ package fileio
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -49,10 +48,11 @@ func LoadBINFile(inputFilename string) (*BinOutput, error) {
 }
 
 func LoadBIN(r io.ReaderAt, archiveLength int64) ([]ImageFile, error) {
-	reader := io.NewSectionReader(r, int64(0), archiveLength)
-	firstOffset := uint32(0)
-	if err := binary.Read(reader, binary.LittleEndian, &firstOffset); err != nil {
-		return []ImageFile{}, err
+	streamReader := NewStreamReader(io.NewSectionReader(r, int64(0), archiveLength))
+
+	firstOffset, err := streamReader.ReadUint32()
+	if err != nil {
+		return []ImageFile{}, fmt.Errorf("failed to read first offset: %w", err)
 	}
 
 	numImages := firstOffset / 4
@@ -65,9 +65,9 @@ func LoadBIN(r io.ReaderAt, archiveLength int64) ([]ImageFile, error) {
 	}
 	imagesIndex = append(imagesIndex, imageFile)
 	for i := 1; i < int(numImages); i++ {
-		offset := uint32(0)
-		if err := binary.Read(reader, binary.LittleEndian, &offset); err != nil {
-			return []ImageFile{}, err
+		offset, err := streamReader.ReadUint32()
+		if err != nil {
+			return []ImageFile{}, fmt.Errorf("failed to read offset %d: %w", i, err)
 		}
 
 		// Zero offset is invalid

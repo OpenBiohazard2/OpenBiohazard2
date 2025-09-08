@@ -3,7 +3,6 @@ package fileio
 // .scd - Script data
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -647,18 +646,18 @@ type ScriptFunction struct {
 }
 
 func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64) (*SCDOutput, error) {
-	streamReader := io.NewSectionReader(fileReader, int64(0), fileLength)
-	firstOffset := uint16(0)
-	if err := binary.Read(streamReader, binary.LittleEndian, &firstOffset); err != nil {
-		return nil, err
+	streamReader := NewStreamReader(io.NewSectionReader(fileReader, int64(0), fileLength))
+	firstOffset, err := streamReader.ReadUint16()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read first offset: %w", err)
 	}
 
 	functionOffsets := make([]uint16, 0)
 	functionOffsets = append(functionOffsets, firstOffset)
 	for i := 2; i < int(firstOffset); i += 2 {
-		nextOffset := uint16(0)
-		if err := binary.Read(streamReader, binary.LittleEndian, &nextOffset); err != nil {
-			return nil, err
+		nextOffset, err := streamReader.ReadUint16()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read offset at position %d: %w", i, err)
 		}
 		functionOffsets = append(functionOffsets, nextOffset)
 	}
@@ -677,11 +676,11 @@ func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64) (*SCDOutput, er
 			functionLength = fileLength - int64(functionOffsets[functionNum])
 		}
 
-		streamReader = io.NewSectionReader(fileReader, int64(functionOffsets[functionNum]), functionLength)
+		streamReader = NewStreamReader(io.NewSectionReader(fileReader, int64(functionOffsets[functionNum]), functionLength))
 		for lineNum := 0; lineNum < int(functionLength); lineNum++ {
-			opcode := byte(0)
-			if err := binary.Read(streamReader, binary.LittleEndian, &opcode); err != nil {
-				return nil, err
+			opcode, err := streamReader.ReadUint8()
+			if err != nil {
+				return nil, fmt.Errorf("failed to read opcode at line %d: %w", lineNum, err)
 			}
 
 			byteSize, exists := InstructionSize[opcode]
@@ -710,7 +709,7 @@ func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64) (*SCDOutput, er
 	return output, nil
 }
 
-func generateScriptLine(streamReader *io.SectionReader, totalByteSize int, opcode byte) []byte {
+func generateScriptLine(streamReader *StreamReader, totalByteSize int, opcode byte) []byte {
 	scriptLine := make([]byte, 0)
 	scriptLine = append(scriptLine, opcode)
 
@@ -726,10 +725,10 @@ func generateScriptLine(streamReader *io.SectionReader, totalByteSize int, opcod
 	return scriptLine
 }
 
-func readRemainingBytes(streamReader *io.SectionReader, byteSize int) ([]byte, error) {
-	parameters := make([]byte, byteSize)
-	if err := binary.Read(streamReader, binary.LittleEndian, &parameters); err != nil {
-		return nil, err
+func readRemainingBytes(streamReader *StreamReader, byteSize int) ([]byte, error) {
+	parameters, err := streamReader.ReadBytes(byteSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %d bytes: %w", byteSize, err)
 	}
 	return parameters, nil
 }

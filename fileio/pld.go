@@ -3,7 +3,6 @@ package fileio
 // .pld - Player models
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -44,19 +43,19 @@ func LoadPLDFile(filename string) (*PLDOutput, error) {
 }
 
 func LoadPLDStream(r io.ReaderAt, fileLength int64) (*PLDOutput, error) {
-	reader := io.NewSectionReader(r, int64(0), fileLength)
+	streamReader := NewStreamReader(io.NewSectionReader(r, int64(0), fileLength))
 
 	pldHeader := PLDHeader{}
-	if err := binary.Read(reader, binary.LittleEndian, &pldHeader); err != nil {
-		return nil, err
+	if err := streamReader.ReadData(&pldHeader); err != nil {
+		return nil, fmt.Errorf("failed to read PLD header: %w", err)
 	}
 
 	// Read the offset for each section
 	offset := int64(pldHeader.DirOffset)
-	reader = io.NewSectionReader(r, offset, fileLength-offset)
+	streamReader = NewStreamReader(io.NewSectionReader(r, offset, fileLength-offset))
 	pldOffsets := PLDOffsets{}
-	if err := binary.Read(reader, binary.LittleEndian, &pldOffsets); err != nil {
-		return nil, err
+	if err := streamReader.ReadData(&pldOffsets); err != nil {
+		return nil, fmt.Errorf("failed to read PLD offsets: %w", err)
 	}
 
 	animationData, err := loadAnimationData(r, fileLength, int64(pldOffsets.OffsetAnimation))

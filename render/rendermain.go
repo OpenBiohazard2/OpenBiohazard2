@@ -78,7 +78,10 @@ func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	fmt.Println("OpenGL version", version)
 
-	shader := NewShader("render/openbiohazard2.vert", "render/openbiohazard2.frag")
+	shader, err := NewShader("render/openbiohazard2.vert", "render/openbiohazard2.frag")
+	if err != nil {
+		panic(err)
+	}
 
 	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
 	gl.Enable(gl.DEPTH_TEST)
