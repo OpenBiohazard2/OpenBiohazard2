@@ -36,13 +36,13 @@ func (scriptDef *ScriptDef) ScriptElseCheck(scriptThread *ScriptThread, lineData
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptEndIf() int {
-	scriptThread.StackIndex--
-	scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter--
+func (scriptDef *ScriptDef) ScriptEndIf(thread *ScriptThread) int {
+	thread.StackIndex--
+	thread.LevelState[thread.SubLevel].IfElseCounter--
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptForLoopBegin(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptForLoopBegin(thread *ScriptThread, lineData []byte) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrForStart{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
@@ -51,8 +51,8 @@ func (scriptDef *ScriptDef) ScriptForLoopBegin(lineData []byte) int {
 	if instruction.Count != 0 {
 		// Set the program counter to after the instruction
 		// so that this instruction is only run once to initialize for loop
-		newProgramCounter := scriptThread.ProgramCounter + fileio.InstructionSize[opcode]
-		curLevelState := scriptThread.LevelState[scriptThread.SubLevel]
+		newProgramCounter := thread.ProgramCounter + fileio.InstructionSize[opcode]
+		curLevelState := thread.LevelState[thread.SubLevel]
 
 		curLevelState.LoopLevel++
 		newLoopState := curLevelState.LoopState[curLevelState.LoopLevel]
@@ -61,40 +61,41 @@ func (scriptDef *ScriptDef) ScriptForLoopBegin(lineData []byte) int {
 		newLoopState.StackValue = newProgramCounter
 		newLoopState.LevelIfCounter = curLevelState.IfElseCounter
 
-		scriptThread.ProgramCounter = newProgramCounter
-		scriptThread.OverrideProgramCounter = true
+		thread.ProgramCounter = newProgramCounter
+		thread.OverrideProgramCounter = true
 		return 1
 	}
 
 	// Jump to end of for loop
-	newProgramCounter := (scriptThread.ProgramCounter + fileio.InstructionSize[opcode]) + int(instruction.BlockLength)
-	scriptThread.ProgramCounter = newProgramCounter
+	newProgramCounter := (thread.ProgramCounter + fileio.InstructionSize[opcode]) + int(instruction.BlockLength)
+	thread.ProgramCounter = newProgramCounter
 
-	scriptThread.OverrideProgramCounter = true
+	thread.OverrideProgramCounter = true
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptForLoopEnd(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptForLoopEnd(thread *ScriptThread, lineData []byte) int {
 	opcode := lineData[0]
-	curLevelState := scriptThread.LevelState[scriptThread.SubLevel]
+	curLevelState := thread.LevelState[thread.SubLevel]
 	curLoopState := curLevelState.LoopState[curLevelState.LoopLevel]
 	curLoopState.Counter--
 
 	if curLoopState.Counter != 0 {
 		// Go back to beginning of for loop
-		scriptThread.ProgramCounter = curLoopState.StackValue
-		scriptThread.OverrideProgramCounter = true
+		thread.ProgramCounter = curLoopState.StackValue
+		thread.OverrideProgramCounter = true
 		return 1
 	}
 
 	// Exit for loop block
 	curLevelState.LoopLevel--
-	scriptThread.ProgramCounter += fileio.InstructionSize[opcode]
-	scriptThread.OverrideProgramCounter = true
+	thread.ProgramCounter += fileio.InstructionSize[opcode]
+	thread.OverrideProgramCounter = true
 	return 1
 }
 
 func (scriptDef *ScriptDef) ScriptSwitchBegin(
+	thread *ScriptThread,
 	lineData []byte,
 	instructions map[int][]byte,
 ) int {
@@ -104,11 +105,11 @@ func (scriptDef *ScriptDef) ScriptSwitchBegin(
 	binary.Read(byteArr, binary.LittleEndian, &switchConditional)
 
 	opcode := lineData[0]
-	curLevelState := scriptThread.LevelState[scriptThread.SubLevel]
+	curLevelState := thread.LevelState[thread.SubLevel]
 
 	curLevelState.LoopLevel++
 	newLoopLevel := curLevelState.LoopLevel
-	newProgramCounter := scriptThread.ProgramCounter + fileio.InstructionSize[opcode]
+	newProgramCounter := thread.ProgramCounter + fileio.InstructionSize[opcode]
 	curLevelState.LoopState[newLoopLevel].Break = newProgramCounter + int(switchConditional.BlockLength)
 	curLevelState.LoopState[newLoopLevel].LevelIfCounter = curLevelState.IfElseCounter
 
@@ -124,21 +125,21 @@ func (scriptDef *ScriptDef) ScriptSwitchBegin(
 			switchValue := scriptDef.GetScriptVariable(int(switchConditional.VarId))
 			// Case matches
 			if int(caseInstruction.Value) == switchValue {
-				scriptThread.ProgramCounter = newProgramCounter + fileio.InstructionSize[newOpcode]
-				scriptThread.OverrideProgramCounter = true
+				thread.ProgramCounter = newProgramCounter + fileio.InstructionSize[newOpcode]
+				thread.OverrideProgramCounter = true
 				return 1
 			} else {
 				// Move to the next case statement
 				newProgramCounter += fileio.InstructionSize[newOpcode] + int(caseInstruction.BlockLength)
 			}
 		} else if newOpcode == fileio.OP_DEFAULT {
-			scriptThread.ProgramCounter = newProgramCounter + fileio.InstructionSize[newOpcode]
-			scriptThread.OverrideProgramCounter = true
+			thread.ProgramCounter = newProgramCounter + fileio.InstructionSize[newOpcode]
+			thread.OverrideProgramCounter = true
 			return 1
 		} else if newOpcode == fileio.OP_END_SWITCH {
 			curLevelState.LoopLevel--
-			scriptThread.ProgramCounter = newProgramCounter + fileio.InstructionSize[newOpcode]
-			scriptThread.OverrideProgramCounter = true
+			thread.ProgramCounter = newProgramCounter + fileio.InstructionSize[newOpcode]
+			thread.OverrideProgramCounter = true
 			return 1
 		} else {
 			log.Fatal("Switch statement has unknown opcode: ", newOpcode)
@@ -148,51 +149,51 @@ func (scriptDef *ScriptDef) ScriptSwitchBegin(
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptSwitchEnd() int {
-	scriptThread.LevelState[scriptThread.SubLevel].LoopLevel--
+func (scriptDef *ScriptDef) ScriptSwitchEnd(thread *ScriptThread) int {
+	thread.LevelState[thread.SubLevel].LoopLevel--
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptGoto(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptGoto(thread *ScriptThread, lineData []byte) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrGoto{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
 	// Disable due to infinite loop
-	/*scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter = int(instruction.IfElseCounter)
-	scriptThread.StackIndex = int(instruction.IfElseCounter) + 1
-	scriptThread.LevelState[scriptThread.SubLevel].LoopLevel = int(instruction.LoopLevel)
-	scriptThread.ProgramCounter += int(instruction.Offset)
-	scriptThread.OverrideProgramCounter = true*/
+	/*thread.LevelState[thread.SubLevel].IfElseCounter = int(instruction.IfElseCounter)
+	thread.StackIndex = int(instruction.IfElseCounter) + 1
+	thread.LevelState[thread.SubLevel].LoopLevel = int(instruction.LoopLevel)
+	thread.ProgramCounter += int(instruction.Offset)
+	thread.OverrideProgramCounter = true*/
 
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptGoSub(lineData []byte, scriptData fileio.ScriptFunction) int {
+func (scriptDef *ScriptDef) ScriptGoSub(thread *ScriptThread, lineData []byte, scriptData fileio.ScriptFunction) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrGoSub{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
 	opcode := lineData[0]
 	scriptDef.ScriptDebugLine(fmt.Sprintf("(Gosub) Go to sub function %v", instruction.Event))
-	scriptThread.LevelState[scriptThread.SubLevel].ReturnAddress = scriptThread.ProgramCounter + fileio.InstructionSize[opcode]
-	scriptThread.LevelState[scriptThread.SubLevel+1].IfElseCounter = -1
-	scriptThread.LevelState[scriptThread.SubLevel+1].LoopLevel = -1
-	scriptThread.StackIndex = 0
-	scriptThread.SubLevel++
+	thread.LevelState[thread.SubLevel].ReturnAddress = thread.ProgramCounter + fileio.InstructionSize[opcode]
+	thread.LevelState[thread.SubLevel+1].IfElseCounter = -1
+	thread.LevelState[thread.SubLevel+1].LoopLevel = -1
+	thread.StackIndex = 0
+	thread.SubLevel++
 
-	scriptThread.ProgramCounter = scriptData.StartProgramCounter[instruction.Event]
-	scriptThread.OverrideProgramCounter = true
-	scriptThread.FunctionIds = append(scriptThread.FunctionIds, int(instruction.Event))
+	thread.ProgramCounter = scriptData.StartProgramCounter[instruction.Event]
+	thread.OverrideProgramCounter = true
+	thread.FunctionIds = append(thread.FunctionIds, int(instruction.Event))
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptBreak(lineData []byte) int {
-	curLevelState := scriptThread.LevelState[scriptThread.SubLevel]
+func (scriptDef *ScriptDef) ScriptBreak(thread *ScriptThread, lineData []byte) int {
+	curLevelState := thread.LevelState[thread.SubLevel]
 	curLoopState := curLevelState.LoopState[curLevelState.LoopLevel]
 
-	scriptThread.OverrideProgramCounter = true
-	scriptThread.ProgramCounter = curLoopState.Break
+	thread.OverrideProgramCounter = true
+	thread.ProgramCounter = curLoopState.Break
 	curLevelState.IfElseCounter = curLoopState.LevelIfCounter
 	curLevelState.LoopLevel--
 	return 1

@@ -8,23 +8,23 @@ import (
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 )
 
-func (scriptDef *ScriptDef) ScriptEvtEnd(lineData []byte, threadNum int) int {
+func (scriptDef *ScriptDef) ScriptEvtEnd(thread *ScriptThread, lineData []byte, threadNum int) int {
 	// The program is returning from a subroutine
-	if scriptThread.SubLevel != 0 {
-		ifElseCounter := scriptThread.LevelState[scriptThread.SubLevel].IfElseCounter
-		scriptThread.SubLevel--
-		scriptThread.ProgramCounter = scriptThread.LevelState[scriptThread.SubLevel].ReturnAddress
-		scriptThread.OverrideProgramCounter = true
-		scriptThread.StackIndex = ifElseCounter + 1
+	if thread.SubLevel != 0 {
+		ifElseCounter := thread.LevelState[thread.SubLevel].IfElseCounter
+		thread.SubLevel--
+		thread.ProgramCounter = thread.LevelState[thread.SubLevel].ReturnAddress
+		thread.OverrideProgramCounter = true
+		thread.StackIndex = ifElseCounter + 1
 
-		currentFunctionId := scriptThread.FunctionIds[len(scriptThread.FunctionIds)-1]
+		currentFunctionId := thread.FunctionIds[len(thread.FunctionIds)-1]
 		scriptDef.ScriptDebugLine(fmt.Sprintf("[ScriptThread %v][Function %v] Exit current function, continue running", threadNum, currentFunctionId))
-		scriptThread.FunctionIds = scriptThread.FunctionIds[0 : len(scriptThread.FunctionIds)-1]
+		thread.FunctionIds = thread.FunctionIds[0 : len(thread.FunctionIds)-1]
 		return INSTRUCTION_NORMAL
 	}
 
 	// The program is in the top level
-	scriptThread.RunStatus = false
+	thread.RunStatus = false
 	scriptDef.ScriptDebugLine(fmt.Sprintf("[ScriptThread %v] End script thread", threadNum))
 	return INSTRUCTION_THREAD_END
 }

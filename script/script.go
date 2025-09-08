@@ -26,7 +26,6 @@ const (
 )
 
 var (
-	scriptThread       *ScriptThread
 	scriptDeltaTime    = 0.0
 	scriptDebugEnabled = false
 )
@@ -90,10 +89,9 @@ func (scriptDef *ScriptDef) RunScriptThread(
 	scriptData fileio.ScriptFunction,
 	gameDef *game.GameDef,
 	renderDef *render.RenderDef) {
-	scriptThread = curScriptThread
 
 	// Thread should not run
-	if scriptThread.RunStatus == false {
+	if curScriptThread.RunStatus == false {
 		return
 	}
 
@@ -101,11 +99,11 @@ func (scriptDef *ScriptDef) RunScriptThread(
 		sectionReturnValue := scriptDef.RunScriptUntilBreakControlFlow(threadNum, curScriptThread, scriptData, gameDef, renderDef)
 
 		// End thread
-		if scriptThread.ShouldTerminate(sectionReturnValue) {
+		if curScriptThread.ShouldTerminate(sectionReturnValue) {
 			break
 		}
 
-		scriptThread.JumpToNextLocationOnStack()
+		curScriptThread.JumpToNextLocationOnStack()
 	}
 }
 
@@ -117,24 +115,24 @@ func (scriptDef *ScriptDef) RunScriptUntilBreakControlFlow(
 	renderDef *render.RenderDef) int {
 	scriptReturnValue := 0
 	for true {
-		lineData := scriptData.Instructions[scriptThread.ProgramCounter]
+		lineData := scriptData.Instructions[curScriptThread.ProgramCounter]
 		if len(lineData) == 0 {
-			scriptThread.RunStatus = false
-			log.Print("Warning: terminate script thread at program counter ", scriptThread.ProgramCounter)
+			curScriptThread.RunStatus = false
+			log.Print("Warning: terminate script thread at program counter ", curScriptThread.ProgramCounter)
 			break
 		}
 
 		opcode := lineData[0]
 
 		// Override can be modified during execution
-		scriptThread.OverrideProgramCounter = false
+		curScriptThread.OverrideProgramCounter = false
 
 		instructionReturnValue := scriptDef.ExecuteSingleInstruction(threadNum, curScriptThread, lineData, scriptData, gameDef, renderDef)
 
-		if !scriptThread.OverrideProgramCounter {
-			scriptThread.IncrementProgramCounter(opcode)
+		if !curScriptThread.OverrideProgramCounter {
+			curScriptThread.IncrementProgramCounter(opcode)
 		}
-		scriptThread.OverrideProgramCounter = false
+		curScriptThread.OverrideProgramCounter = false
 
 		// Control flow is broken
 		if instructionReturnValue != INSTRUCTION_NORMAL {
@@ -160,37 +158,37 @@ func (scriptDef *ScriptDef) ExecuteSingleInstruction(
 
 	switch opcode {
 	case fileio.OP_EVT_END:
-		returnValue = scriptDef.ScriptEvtEnd(lineData, threadNum)
+		returnValue = scriptDef.ScriptEvtEnd(curScriptThread, lineData, threadNum)
 	case fileio.OP_EVT_EXEC:
 		returnValue = scriptDef.ScriptEvtExec(lineData, scriptData)
 	case fileio.OP_IF_START:
-		returnValue = scriptDef.ScriptIfBlockStart(scriptThread, lineData)
+		returnValue = scriptDef.ScriptIfBlockStart(curScriptThread, lineData)
 	case fileio.OP_ELSE_START:
-		returnValue = scriptDef.ScriptElseCheck(scriptThread, lineData)
+		returnValue = scriptDef.ScriptElseCheck(curScriptThread, lineData)
 	case fileio.OP_END_IF:
-		returnValue = scriptDef.ScriptEndIf()
+		returnValue = scriptDef.ScriptEndIf(curScriptThread)
 	case fileio.OP_SLEEP:
-		returnValue = scriptDef.ScriptSleep(lineData)
+		returnValue = scriptDef.ScriptSleep(curScriptThread, lineData)
 	case fileio.OP_SLEEPING:
-		returnValue = scriptDef.ScriptSleeping(lineData)
+		returnValue = scriptDef.ScriptSleeping(curScriptThread, lineData)
 	case fileio.OP_FOR:
-		returnValue = scriptDef.ScriptForLoopBegin(lineData)
+		returnValue = scriptDef.ScriptForLoopBegin(curScriptThread, lineData)
 	case fileio.OP_FOR_END:
-		returnValue = scriptDef.ScriptForLoopEnd(lineData)
+		returnValue = scriptDef.ScriptForLoopEnd(curScriptThread, lineData)
 	case fileio.OP_SWITCH:
-		returnValue = scriptDef.ScriptSwitchBegin(lineData, scriptData.Instructions)
+		returnValue = scriptDef.ScriptSwitchBegin(curScriptThread, lineData, scriptData.Instructions)
 	case fileio.OP_CASE:
 		returnValue = 1 // already implemented in switch statement
 	case fileio.OP_DEFAULT:
 		returnValue = 1 // already implemented in switch statement
 	case fileio.OP_END_SWITCH:
-		returnValue = scriptDef.ScriptSwitchEnd()
+		returnValue = scriptDef.ScriptSwitchEnd(curScriptThread)
 	case fileio.OP_GOTO:
-		returnValue = scriptDef.ScriptGoto(lineData)
+		returnValue = scriptDef.ScriptGoto(curScriptThread, lineData)
 	case fileio.OP_GOSUB:
-		returnValue = scriptDef.ScriptGoSub(lineData, scriptData)
+		returnValue = scriptDef.ScriptGoSub(curScriptThread, lineData, scriptData)
 	case fileio.OP_BREAK:
-		returnValue = scriptDef.ScriptBreak(lineData)
+		returnValue = scriptDef.ScriptBreak(curScriptThread, lineData)
 	case fileio.OP_CHECK: // 0x21
 		returnValue = scriptDef.ScriptCheckBit(lineData)
 	case fileio.OP_SET_BIT: // 0x22
@@ -212,11 +210,11 @@ func (scriptDef *ScriptDef) ExecuteSingleInstruction(
 	case fileio.OP_OBJ_MODEL_SET:
 		returnValue = scriptDef.ScriptObjectModelSet(lineData, renderDef)
 	case fileio.OP_WORK_SET:
-		returnValue = scriptDef.ScriptWorkSet(lineData)
+		returnValue = scriptDef.ScriptWorkSet(curScriptThread, lineData)
 	case fileio.OP_POS_SET:
-		returnValue = scriptDef.ScriptPositionSet(lineData, gameDef)
+		returnValue = scriptDef.ScriptPositionSet(curScriptThread, lineData, gameDef)
 	case fileio.OP_MEMBER_SET:
-		returnValue = scriptDef.ScriptMemberSet(lineData, gameDef, renderDef)
+		returnValue = scriptDef.ScriptMemberSet(curScriptThread, lineData, gameDef, renderDef)
 	case fileio.OP_SCA_ID_SET:
 		returnValue = scriptDef.ScriptScaIdSet(lineData, gameDef)
 	case fileio.OP_SCE_ESPR_ON:
@@ -254,16 +252,16 @@ func (scriptDef *ScriptDef) ExecuteSingleInstruction(
 	return returnValue
 }
 
-func (scriptDef *ScriptDef) ScriptSleep(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptSleep(thread *ScriptThread, lineData []byte) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrSleep{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
 	// goes to sleeping instruction (0xa)
-	curLevelState := scriptThread.LevelState[scriptThread.SubLevel]
+	curLevelState := thread.LevelState[thread.SubLevel]
 
-	scriptThread.ProgramCounter = scriptThread.ProgramCounter + 1
-	scriptThread.OverrideProgramCounter = true
+	thread.ProgramCounter = thread.ProgramCounter + 1
+	thread.OverrideProgramCounter = true
 
 	curLevelState.LoopLevel++
 	newLoopLevel := curLevelState.LoopLevel
@@ -271,18 +269,18 @@ func (scriptDef *ScriptDef) ScriptSleep(lineData []byte) int {
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptSleeping(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptSleeping(thread *ScriptThread, lineData []byte) int {
 	opcode := lineData[0]
-	curLevelState := scriptThread.LevelState[scriptThread.SubLevel]
+	curLevelState := thread.LevelState[thread.SubLevel]
 	curLoopState := curLevelState.LoopState[curLevelState.LoopLevel]
 
 	curLoopState.Counter--
 	if curLoopState.Counter == 0 {
-		scriptThread.ProgramCounter += fileio.InstructionSize[opcode]
+		thread.ProgramCounter += fileio.InstructionSize[opcode]
 		curLevelState.LoopLevel--
 	}
 
-	scriptThread.OverrideProgramCounter = true
+	thread.OverrideProgramCounter = true
 
 	return INSTRUCTION_THREAD_END
 }
@@ -307,22 +305,22 @@ func (scriptDef *ScriptDef) ScriptObjectModelSet(lineData []byte,
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptWorkSet(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptWorkSet(thread *ScriptThread, lineData []byte) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrWorkSet{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-	scriptThread.WorkSetComponent = int(instruction.Component)
-	scriptThread.WorkSetIndex = int(instruction.Index)
+	thread.WorkSetComponent = int(instruction.Component)
+	thread.WorkSetIndex = int(instruction.Index)
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptPositionSet(lineData []byte, gameDef *game.GameDef) int {
+func (scriptDef *ScriptDef) ScriptPositionSet(thread *ScriptThread, lineData []byte, gameDef *game.GameDef) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrPosSet{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-	if scriptThread.WorkSetComponent == WORKSET_PLAYER {
+	if thread.WorkSetComponent == WORKSET_PLAYER {
 		gameDef.Player.Position = mgl32.Vec3{float32(instruction.X), float32(instruction.Y), float32(instruction.Z)}
 	} else {
 		// TODO: set position of object
@@ -331,19 +329,19 @@ func (scriptDef *ScriptDef) ScriptPositionSet(lineData []byte, gameDef *game.Gam
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptMemberSet(lineData []byte, gameDef *game.GameDef, renderDef *render.RenderDef) int {
+func (scriptDef *ScriptDef) ScriptMemberSet(thread *ScriptThread, lineData []byte, gameDef *game.GameDef, renderDef *render.RenderDef) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrMemberSet{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
 
-	if scriptThread.WorkSetComponent == WORKSET_PLAYER {
+	if thread.WorkSetComponent == WORKSET_PLAYER {
 		switch int(instruction.MemberIndex) {
 		case 15:
 			// convert to angle in degrees
 			gameDef.Player.RotationAngle = (float32(instruction.Value) / 4096.0) * 360.0
 		}
-	} else if scriptThread.WorkSetComponent == WORKSET_OBJECT {
-		modelObject := renderDef.ItemGroupEntity.ModelObjectData[int(scriptThread.WorkSetIndex)]
+	} else if thread.WorkSetComponent == WORKSET_OBJECT {
+		modelObject := renderDef.ItemGroupEntity.ModelObjectData[int(thread.WorkSetIndex)]
 		switch int(instruction.MemberIndex) {
 		case 15:
 			// convert to angle in degrees
