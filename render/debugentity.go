@@ -27,10 +27,8 @@ func RenderCameraSwitches(r *RenderDef, cameraSwitchDebugEntity *DebugEntity) {
 }
 
 func RenderDebugEntities(r *RenderDef, debugEntities []*DebugEntity) {
-	// Use cached uniform location for better performance
-	gl.Uniform1i(r.UniformLocations.RenderType, RENDER_TYPE_DEBUG)
-
-	floatSize := 4
+	// Create renderer
+	renderer := NewOpenGLRenderer(&r.UniformLocations)
 
 	for _, debugEntity := range debugEntities {
 		entityVertexBuffer := debugEntity.VertexBuffer
@@ -38,32 +36,20 @@ func RenderDebugEntities(r *RenderDef, debugEntities []*DebugEntity) {
 			continue
 		}
 
-		// 3 floats for vertex
-		stride := int32(3 * floatSize)
+		// Create render config for debug entity (position only)
+		config := renderer.CreateDebugEntityConfig(
+			debugEntity.VertexArrayObject,
+			debugEntity.VertexBufferObject,
+			entityVertexBuffer,
+			RENDER_TYPE_DEBUG,
+		)
 
-		vao := debugEntity.VertexArrayObject
-		gl.BindVertexArray(vao)
-
-		vbo := debugEntity.VertexBufferObject
-		gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-		gl.BufferData(gl.ARRAY_BUFFER, len(entityVertexBuffer)*floatSize, gl.Ptr(entityVertexBuffer), gl.STATIC_DRAW)
-
-		// Position attribute
-		gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
-		gl.EnableVertexAttribArray(0)
-
-		// Use cached uniform location for better performance
-		gl.Uniform1i(r.UniformLocations.Diffuse, 0)
-
-		// Use cached uniform location for better performance
+		// Set debug color uniform before rendering
 		color := debugEntity.Color
 		gl.Uniform4f(r.UniformLocations.DebugColor, color[0], color[1], color[2], color[3])
 
-		// Draw triangles
-		gl.DrawArrays(gl.TRIANGLES, 0, int32(len(entityVertexBuffer)/3))
-
-		// Cleanup
-		gl.DisableVertexAttribArray(0)
+		// Render the debug entity
+		renderer.RenderEntity(config)
 	}
 }
 

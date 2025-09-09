@@ -30,50 +30,26 @@ func NewSceneEntity() *SceneEntity {
 }
 
 func (r *RenderDef) RenderSceneEntity(entity *SceneEntity, renderType int32) {
-	// Skip
-	if entity == nil {
+	// Skip if entity is nil or has no vertex data
+	if entity == nil || len(entity.VertexBuffer) == 0 {
 		return
 	}
 
-	vertexBuffer := entity.VertexBuffer
-	if len(vertexBuffer) == 0 {
-		return
-	}
+	// Create renderer
+	renderer := NewOpenGLRenderer(&r.UniformLocations)
 
-	// Use cached uniform location for better performance
-	gl.Uniform1i(r.UniformLocations.RenderType, renderType)
+	// Create render config for 2D entity (position + texture)
+	config := renderer.Create2DEntityConfig(
+		entity.VertexArrayObject,
+		entity.VertexBufferObject,
+		entity.VertexBuffer,
+		entity.TextureId,
+		nil, // No model matrix for scene entities
+		renderType,
+	)
 
-	floatSize := 4
-
-	// 3 floats for vertex, 2 floats for texture UV
-	stride := int32(5 * floatSize)
-
-	vao := entity.VertexArrayObject
-	gl.BindVertexArray(vao)
-
-	vbo := entity.VertexBufferObject
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertexBuffer)*floatSize, gl.Ptr(vertexBuffer), gl.STATIC_DRAW)
-
-	// Position attribute
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
-	gl.EnableVertexAttribArray(0)
-
-	// Texture
-	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, stride, gl.PtrOffset(3*floatSize))
-	gl.EnableVertexAttribArray(1)
-
-	// Use cached uniform location for better performance
-	gl.Uniform1i(r.UniformLocations.Diffuse, 0)
-
-	gl.ActiveTexture(gl.TEXTURE0)
-	gl.BindTexture(gl.TEXTURE_2D, entity.TextureId)
-
-	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(vertexBuffer)/5))
-
-	// Cleanup
-	gl.DisableVertexAttribArray(0)
-	gl.DisableVertexAttribArray(1)
+	// Render the entity
+	renderer.RenderEntity(config)
 }
 
 func (entity *SceneEntity) DeleteSceneEntity() {

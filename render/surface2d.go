@@ -66,47 +66,26 @@ func (renderDef *RenderDef) RenderTransparentVideoBuffer() {
 }
 
 func (r *RenderDef) RenderSurface2D(surface *Surface2D) {
-	// Skip
-	if surface == nil {
+	// Skip if surface is nil or has no vertex data
+	if surface == nil || len(surface.VertexBuffer) == 0 {
 		return
 	}
 
-	vertexBuffer := surface.VertexBuffer
-	if len(vertexBuffer) == 0 {
-		return
-	}
+	// Create renderer
+	renderer := NewOpenGLRenderer(&r.UniformLocations)
 
-	floatSize := 4
+	// Create render config for 2D surface (position + texture)
+	config := renderer.Create2DEntityConfig(
+		surface.VertexArrayObject,
+		surface.VertexBufferObject,
+		surface.VertexBuffer,
+		surface.TextureId,
+		nil, // No model matrix for surfaces
+		RENDER_GAME_STATE_BACKGROUND_TRANSPARENT,
+	)
 
-	// 3 floats for vertex, 2 floats for texture UV
-	stride := int32(5 * floatSize)
-
-	vao := surface.VertexArrayObject
-	gl.BindVertexArray(vao)
-
-	vbo := surface.VertexBufferObject
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertexBuffer)*floatSize, gl.Ptr(vertexBuffer), gl.STATIC_DRAW)
-
-	// Position attribute
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
-	gl.EnableVertexAttribArray(0)
-
-	// Texture
-	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, stride, gl.PtrOffset(3*floatSize))
-	gl.EnableVertexAttribArray(1)
-
-	// Use cached uniform location for better performance
-	gl.Uniform1i(r.UniformLocations.Diffuse, 0)
-
-	gl.ActiveTexture(gl.TEXTURE0)
-	gl.BindTexture(gl.TEXTURE_2D, surface.TextureId)
-
-	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(vertexBuffer)/5))
-
-	// Cleanup
-	gl.DisableVertexAttribArray(0)
-	gl.DisableVertexAttribArray(1)
+	// Render the surface
+	renderer.RenderEntity(config)
 }
 
 func (surface *Surface2D) UpdateSurface(newImage *Image16Bit) {

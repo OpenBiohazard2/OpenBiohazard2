@@ -1,4 +1,4 @@
-package main
+package state
 
 import (
 	"encoding/json"
@@ -14,6 +14,8 @@ import (
 	"github.com/OpenBiohazard2/OpenBiohazard2/script"
 	"github.com/OpenBiohazard2/OpenBiohazard2/world"
 )
+
+var enableDebugDump = false // only enabled for development
 
 type MainGameStateInput struct {
 	GameDef        *game.GameDef
@@ -36,10 +38,6 @@ type DebugDumpJson struct {
 	AotManager *world.AotManager
 	GameRoom   *world.Room
 }
-
-var (
-	enableDebugDump = false // only enabled for development
-)
 
 func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *MainGameStateInput {
 	scriptDef := script.NewScriptDef()
@@ -83,7 +81,7 @@ func NewMainGameRender(renderDef *render.RenderDef) *MainGameRender {
 	}
 }
 
-func handleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *GameStateManager) {
+func HandleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *GameStateManager, windowHandler *client.WindowHandler) {
 	gameDef := mainGameStateInput.GameDef
 
 	switch gameDef.StateStatus {
@@ -94,7 +92,7 @@ func handleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *Ga
 		loadCameraState(mainGameStateInput)
 		gameDef.StateStatus = game.GAME_LOOP
 	case game.GAME_LOOP:
-		runGameLoop(mainGameStateInput, gameStateManager)
+		runGameLoop(mainGameStateInput, gameStateManager, windowHandler)
 	}
 }
 
@@ -194,7 +192,7 @@ func updateCameraSwitchZones(mainGameRender *MainGameRender, gameDef *game.GameD
 		cameraSwitchHandler.CameraSwitches, cameraSwitchHandler.CameraSwitchTransitions)
 }
 
-func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameStateManager) {
+func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameStateManager, windowHandler *client.WindowHandler) {
 	gameDef := mainGameStateInput.GameDef
 	scriptDef := mainGameStateInput.ScriptDef
 	mainGameRender := mainGameStateInput.MainGameRender
@@ -237,7 +235,8 @@ func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameS
 	}
 	renderDef.RenderFrame(*playerEntity, debugEntitiesRender, timeElapsedSeconds)
 
-	handleMainGameInput(gameDef, timeElapsedSeconds, gameDef.GameWorld, gameStateManager)
+	inputHandler := NewInputHandler(windowHandler, gameStateManager)
+	inputHandler.HandleAllInput(gameDef, timeElapsedSeconds, gameDef.GameWorld)
 	gameDef.HandleCameraSwitch(gameDef.Player.Position)
 	gameDef.HandleRoomSwitch(gameDef.Player.Position)
 	handleEventTrigger(scriptDef, gameDef)
@@ -254,50 +253,6 @@ func handleEventTrigger(scriptDef *script.ScriptDef, gameDef *game.GameDef) {
 			eventNum := aot.Data[3]
 			lineData := []byte{fileio.OP_EVT_EXEC, threadNum, 0, eventNum}
 			scriptDef.ScriptEvtExec(lineData, gameDef.RoomScript.RoomScriptData)
-		}
-	}
-}
-
-func handleMainGameInput(
-	gameDef *game.GameDef,
-	timeElapsedSeconds float64,
-	gameWorld *world.GameWorld,
-	gameStateManager *GameStateManager,
-) {
-	collisionEntities := gameWorld.GameRoom.CollisionEntities
-
-	if windowHandler.InputHandler.IsActive(client.PLAYER_FORWARD) {
-		gameDef.Player.HandlePlayerInputForward(collisionEntities, timeElapsedSeconds)
-	}
-
-	if windowHandler.InputHandler.IsActive(client.PLAYER_BACKWARD) {
-		gameDef.Player.HandlePlayerInputBackward(collisionEntities, timeElapsedSeconds)
-	}
-
-	if !windowHandler.InputHandler.IsActive(client.PLAYER_FORWARD) &&
-		!windowHandler.InputHandler.IsActive(client.PLAYER_BACKWARD) {
-		gameDef.Player.PoseNumber = -1
-	}
-
-	if windowHandler.InputHandler.IsActive(client.PLAYER_ROTATE_LEFT) {
-		gameDef.Player.RotatePlayerLeft(timeElapsedSeconds)
-	}
-
-	if windowHandler.InputHandler.IsActive(client.PLAYER_ROTATE_RIGHT) {
-		gameDef.Player.RotatePlayerRight(timeElapsedSeconds)
-	}
-
-	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
-		if gameStateManager.CanUpdateGameState() {
-			gameDef.HandlePlayerActionButton(collisionEntities)
-			gameStateManager.UpdateLastTimeChangeState()
-		}
-	}
-
-	if windowHandler.InputHandler.IsActive(client.PLAYER_VIEW_INVENTORY) {
-		if gameStateManager.CanUpdateGameState() {
-			gameStateManager.UpdateGameState(GAME_STATE_INVENTORY)
-			gameStateManager.UpdateLastTimeChangeState()
 		}
 	}
 }

@@ -127,9 +127,6 @@ func (renderDef *RenderDef) AddSprite(sprite fileio.ScriptInstrSceEsprOn) {
 }
 
 func RenderSprites(r *RenderDef, spriteGroupEntity *SpriteGroupEntity, timeElapsedSeconds float64) {
-	// Use cached uniform location for better performance
-	gl.Uniform1i(r.UniformLocations.RenderType, RENDER_TYPE_SPRITE)
-
 	vertexBuffer := spriteGroupEntity.VertexBuffer
 	if len(vertexBuffer) == 0 {
 		return
@@ -152,35 +149,19 @@ func RenderSprites(r *RenderDef, spriteGroupEntity *SpriteGroupEntity, timeElaps
 		}
 	}
 
-	floatSize := 4
+	// Create renderer
+	renderer := NewOpenGLRenderer(&r.UniformLocations)
 
-	// 3 floats for vertex, 2 floats for texture UV
-	stride := int32(5 * floatSize)
+	// Create render config for 2D sprite (position + texture)
+	config := renderer.Create2DEntityConfig(
+		spriteGroupEntity.VertexArrayObject,
+		spriteGroupEntity.VertexBufferObject,
+		vertexBuffer,
+		textureIds[spriteIndex][curSpriteFrame],
+		nil, // No model matrix for sprites
+		RENDER_TYPE_SPRITE,
+	)
 
-	vao := spriteGroupEntity.VertexArrayObject
-	gl.BindVertexArray(vao)
-
-	vbo := spriteGroupEntity.VertexBufferObject
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertexBuffer)*floatSize, gl.Ptr(vertexBuffer), gl.STATIC_DRAW)
-
-	// Position attribute
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
-	gl.EnableVertexAttribArray(0)
-
-	// Texture
-	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, stride, gl.PtrOffset(3*floatSize))
-	gl.EnableVertexAttribArray(1)
-
-	// Use cached uniform location for better performance
-	gl.Uniform1i(r.UniformLocations.Diffuse, 0)
-
-	gl.ActiveTexture(gl.TEXTURE0)
-	gl.BindTexture(gl.TEXTURE_2D, textureIds[spriteIndex][curSpriteFrame])
-
-	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(vertexBuffer)/5))
-
-	// Cleanup
-	gl.DisableVertexAttribArray(0)
-	gl.DisableVertexAttribArray(1)
+	// Render the sprite
+	renderer.RenderEntity(config)
 }
