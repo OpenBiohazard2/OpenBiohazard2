@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/shader"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -22,39 +23,14 @@ const (
 )
 
 type RenderDef struct {
-	ProgramShader    uint32
-	Camera           *Camera
-	ProjectionMatrix mgl32.Mat4
-	ViewMatrix       mgl32.Mat4
+	ShaderSystem     *shader.ShaderSystem // Grouped shader management
+	ViewSystem       *ViewSystem          // Grouped camera/view components
+	SceneSystem      *SceneSystem         // Grouped scene entities
 	EnvironmentLight [3]float32
-	WindowWidth      int
-	WindowHeight     int
 	VideoBuffer      *Surface2D
 
-	SpriteGroupEntity     *SpriteGroupEntity
-	BackgroundImageEntity *SceneEntity
-	CameraMaskEntity      *SceneEntity
-	ItemGroupEntity       *ItemGroupEntity
-
-	// Cached uniform locations for performance
-	UniformLocations UniformLocations
-}
-
-type UniformLocations struct {
-	// Main rendering uniforms
-	GameState  int32
-	View       int32
-	Projection int32
-	EnvLight   int32
-
-	// Entity rendering uniforms
-	RenderType int32
-	Model      int32
-	Diffuse    int32
-
-	// Debug rendering uniforms
-	DebugColor int32
-	BoneOffset int32
+	// Screen image management for menu rendering
+	ScreenImageManager *ScreenImageManager
 }
 
 type DebugEntities struct {
@@ -78,7 +54,9 @@ func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	fmt.Println("OpenGL version", version)
 
-	shader, err := NewShader("render/openbiohazard2.vert", "render/openbiohazard2.frag")
+	// Initialize shader system
+	shaderSystem := shader.NewShaderSystem()
+	err := shaderSystem.Initialize("shader/openbiohazard2.vert", "shader/openbiohazard2.frag")
 	if err != nil {
 		panic(err)
 	}
@@ -89,75 +67,42 @@ func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-	cameraUp := mgl32.Vec3{0, -1, 0}
-	camera := NewCamera(mgl32.Vec3{0, 0, 0}, mgl32.Vec3{0, 0, 0}, cameraUp, DEFAULT_FOV_DEGREES)
 	renderDef := &RenderDef{
-		ProgramShader:    shader.ProgramShader,
-		Camera:           camera,
-		ProjectionMatrix: mgl32.Perspective(mgl32.DegToRad(DEFAULT_FOV_DEGREES), float32(ASPECT_RATIO), NEAR_PLANE, FAR_PLANE),
-		ViewMatrix:       mgl32.Ident4(),
-		WindowWidth:      windowWidth,
-		WindowHeight:     windowHeight,
-		VideoBuffer:      NewSurface2D(),
-
-		BackgroundImageEntity: NewBackgroundImageEntity(),
-		CameraMaskEntity:      NewSceneEntity(),
-		ItemGroupEntity:       NewItemGroupEntity(),
+		ShaderSystem:       shaderSystem,
+		ViewSystem:         NewViewSystem(windowWidth, windowHeight),
+		SceneSystem:        NewSceneSystem(),
+		VideoBuffer:        NewSurface2D(),
+		ScreenImageManager: NewScreenImageManager(),
 	}
 
-	// Cache all uniform locations for performance
-	renderDef.cacheUniformLocations()
-
 	return renderDef
-}
-
-// cacheUniformLocations caches all uniform locations to avoid expensive gl.GetUniformLocation calls every frame
-func (r *RenderDef) cacheUniformLocations() {
-	programShader := r.ProgramShader
-
-	// Main rendering uniforms
-	r.UniformLocations.GameState = gl.GetUniformLocation(programShader, gl.Str("gameState\x00"))
-	r.UniformLocations.View = gl.GetUniformLocation(programShader, gl.Str("view\x00"))
-	r.UniformLocations.Projection = gl.GetUniformLocation(programShader, gl.Str("projection\x00"))
-	r.UniformLocations.EnvLight = gl.GetUniformLocation(programShader, gl.Str("envLight\x00"))
-
-	// Entity rendering uniforms
-	r.UniformLocations.RenderType = gl.GetUniformLocation(programShader, gl.Str("renderType\x00"))
-	r.UniformLocations.Model = gl.GetUniformLocation(programShader, gl.Str("model\x00"))
-	r.UniformLocations.Diffuse = gl.GetUniformLocation(programShader, gl.Str("diffuse\x00"))
-
-	// Debug rendering uniforms
-	r.UniformLocations.DebugColor = gl.GetUniformLocation(programShader, gl.Str("debugColor\x00"))
-	r.UniformLocations.BoneOffset = gl.GetUniformLocation(programShader, gl.Str("boneOffset\x00"))
 }
 
 func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 	debugEntities DebugEntities,
 	timeElapsedSeconds float64) {
 
-	programShader := r.ProgramShader
-
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	// Activate shader
-	gl.UseProgram(programShader)
+	r.ShaderSystem.Use()
 
 	// Use cached uniform locations for better performance
-	gl.Uniform1i(r.UniformLocations.GameState, RENDER_GAME_STATE_MAIN)
+	r.ShaderSystem.SetGameState(RENDER_GAME_STATE_MAIN)
 
-	r.ProjectionMatrix = r.GetPerspectiveMatrix(r.Camera.CameraFov)
+	r.ViewSystem.UpdateMatrices()
 
 	// Pass the matrices to the shader using cached locations
-	gl.UniformMatrix4fv(r.UniformLocations.View, 1, false, &r.ViewMatrix[0])
-	gl.UniformMatrix4fv(r.UniformLocations.Projection, 1, false, &r.ProjectionMatrix[0])
+	viewMatrix := r.ViewSystem.GetViewMatrix()
+	projectionMatrix := r.ViewSystem.GetProjectionMatrix()
+	r.ShaderSystem.SetViewMatrix(viewMatrix)
+	r.ShaderSystem.SetProjectionMatrix(projectionMatrix)
 
-	r.RenderBackground()
-	for _, itemEntity := range r.ItemGroupEntity.ModelObjectData {
-		r.RenderStaticEntity(*itemEntity, RENDER_TYPE_ITEM)
-	}
+	r.SceneSystem.RenderBackground(r)
+	r.SceneSystem.RenderItems(r)
 
 	// Use cached uniform location for environment light
-	gl.Uniform3fv(r.UniformLocations.EnvLight, 1, &r.EnvironmentLight[0])
+	r.ShaderSystem.SetEnvironmentLight(r.EnvironmentLight)
 	RenderAnimatedEntity(r, playerEntity, timeElapsedSeconds)
 
 	// RenderSprites(r, r.SpriteGroupEntity, timeElapsedSeconds)
@@ -167,9 +112,9 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 	RenderDebugEntities(r, debugEntities.DebugEntities)
 }
 
-func (r *RenderDef) RenderBackground() {
-	r.RenderSceneEntity(r.BackgroundImageEntity, RENDER_GAME_STATE_BACKGROUND_SOLID)
-	r.RenderSceneEntity(r.CameraMaskEntity, RENDER_GAME_STATE_BACKGROUND_TRANSPARENT)
+// UpdateCameraMask updates the camera mask entity
+func (r *RenderDef) UpdateCameraMask(roomOutput *fileio.RoomImageOutput, masks []fileio.MaskRectangle) {
+	r.SceneSystem.UpdateCameraMask(r, roomOutput, masks)
 }
 
 func NewRenderRoom(rdtOutput *fileio.RDTOutput) RenderRoom {
@@ -192,6 +137,5 @@ func BuildEnvironmentLight(light fileio.LITCameraLight) [3]float32 {
 }
 
 func (r *RenderDef) GetPerspectiveMatrix(fovDegrees float32) mgl32.Mat4 {
-	ratio := float64(r.WindowWidth) / float64(r.WindowHeight)
-	return mgl32.Perspective(mgl32.DegToRad(fovDegrees), float32(ratio), NEAR_PLANE, FAR_PLANE)
+	return r.ViewSystem.GetPerspectiveMatrix(fovDegrees)
 }

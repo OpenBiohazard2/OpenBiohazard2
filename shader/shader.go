@@ -1,4 +1,4 @@
-package render
+package shader
 
 import (
 	"bufio"

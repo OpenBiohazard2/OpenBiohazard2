@@ -20,15 +20,15 @@ type DebugEntity struct {
 }
 
 func RenderCameraSwitches(r *RenderDef, cameraSwitchDebugEntity *DebugEntity) {
-	// Use cached uniform location for better performance
-	gl.Uniform1i(r.UniformLocations.RenderType, RENDER_TYPE_DEBUG)
+	// Use ShaderSystem method for better performance
+	r.ShaderSystem.SetRenderType(RENDER_TYPE_DEBUG)
 
 	RenderDebugEntities(r, []*DebugEntity{cameraSwitchDebugEntity})
 }
 
 func RenderDebugEntities(r *RenderDef, debugEntities []*DebugEntity) {
 	// Create renderer
-	renderer := NewOpenGLRenderer(&r.UniformLocations)
+	renderer := NewOpenGLRenderer(r.ShaderSystem.GetUniformLocations())
 
 	for _, debugEntity := range debugEntities {
 		entityVertexBuffer := debugEntity.VertexBuffer
@@ -44,9 +44,9 @@ func RenderDebugEntities(r *RenderDef, debugEntities []*DebugEntity) {
 			RENDER_TYPE_DEBUG,
 		)
 
-		// Set debug color uniform before rendering
+		// Set debug color uniform before rendering using ShaderSystem method
 		color := debugEntity.Color
-		gl.Uniform4f(r.UniformLocations.DebugColor, color[0], color[1], color[2], color[3])
+		r.ShaderSystem.SetDebugColor(color)
 
 		// Render the debug entity
 		renderer.RenderEntity(config)

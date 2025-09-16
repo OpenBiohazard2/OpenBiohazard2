@@ -13,10 +13,6 @@ const (
 	VERTEX_LEN         = 8
 )
 
-var (
-	animation = NewAnimation()
-)
-
 type PlayerEntity struct {
 	TextureId           uint32
 	VertexBuffer        []float32
@@ -31,6 +27,8 @@ type PlayerEntity struct {
 	ComponentOffsets []ComponentOffsets
 	LastPoseNumber   int  // Track when pose changes
 	BufferUploaded   bool // Track if buffer has been uploaded to GPU
+
+	Animation *Animation
 }
 
 // Offset in vertex buffer
@@ -66,6 +64,7 @@ func NewPlayerEntity(pldOutput *fileio.PLDOutput) *PlayerEntity {
 		ComponentOffsets:    componentOffsets,
 		LastPoseNumber:      -1,
 		BufferUploaded:      false,
+		Animation:           NewAnimation(),
 	}
 }
 
@@ -96,25 +95,25 @@ func RenderAnimatedEntity(r *RenderDef, playerEntity PlayerEntity, timeElapsedSe
 
 // updateAnimation handles animation frame updates
 func (pe *PlayerEntity) updateAnimation(timeElapsedSeconds float64) {
-	animation.UpdateAnimationFrame(pe.AnimationPoseNumber, pe.PLDOutput.AnimationData, timeElapsedSeconds)
+	pe.Animation.UpdateAnimationFrame(pe.AnimationPoseNumber, pe.PLDOutput.AnimationData, timeElapsedSeconds)
 }
 
 // updateTransforms recalculates bone transforms when needed
 func (pe *PlayerEntity) updateTransforms() {
 	needsUpdate := pe.LastPoseNumber != pe.AnimationPoseNumber || !pe.BufferUploaded
 	if needsUpdate {
-		buildComponentTransforms(pe.PLDOutput.SkeletonData, 0, -1, pe.Transforms)
+		buildComponentTransforms(pe.PLDOutput.SkeletonData, 0, -1, pe.Transforms, pe.Animation)
 		pe.LastPoseNumber = pe.AnimationPoseNumber
 	}
 }
 
 // setupRendering configures OpenGL state for rendering
 func (pe *PlayerEntity) setupRendering(r *RenderDef) {
-	// Set uniforms
-	gl.Uniform1i(r.UniformLocations.RenderType, RENDER_TYPE_ENTITY)
+	// Set uniforms using ShaderSystem methods
+	r.ShaderSystem.SetRenderType(RENDER_TYPE_ENTITY)
 	modelMatrix := pe.Player.GetModelMatrix()
-	gl.UniformMatrix4fv(r.UniformLocations.Model, 1, false, &modelMatrix[0])
-	gl.Uniform1i(r.UniformLocations.Diffuse, 0)
+	r.ShaderSystem.SetModelMatrix(modelMatrix)
+	r.ShaderSystem.SetDiffuse(0)
 
 	// Bind buffers
 	gl.BindVertexArray(pe.VertexArrayObject)
@@ -158,8 +157,8 @@ func (pe *PlayerEntity) setupVertexAttributes() {
 // renderComponents draws all mesh components
 func (pe *PlayerEntity) renderComponents(r *RenderDef) {
 	for i, offset := range pe.ComponentOffsets {
-		// Set bone transform
-		gl.UniformMatrix4fv(r.UniformLocations.BoneOffset, 1, false, &pe.Transforms[i][0])
+		// Set bone transform using ShaderSystem method
+		r.ShaderSystem.SetBoneOffset(pe.Transforms[i])
 
 		// Calculate vertex range
 		vertOffset := int32(offset.StartIndex / VERTEX_LEN)
@@ -177,7 +176,7 @@ func (pe *PlayerEntity) cleanup() {
 	gl.DisableVertexAttribArray(2)
 }
 
-func buildComponentTransforms(skeletonData *fileio.EMROutput, curId int, parentId int, transforms []mgl32.Mat4) {
+func buildComponentTransforms(skeletonData *fileio.EMROutput, curId int, parentId int, transforms []mgl32.Mat4, animation *Animation) {
 	transformMatrix := mgl32.Ident4()
 	if parentId != -1 {
 		transformMatrix = transforms[parentId]
@@ -204,7 +203,7 @@ func buildComponentTransforms(skeletonData *fileio.EMROutput, curId int, parentI
 	for i := 0; i < len(skeletonData.ArmatureChildren[curId]); i++ {
 		newParent := curId
 		newChild := int(skeletonData.ArmatureChildren[curId][i])
-		buildComponentTransforms(skeletonData, newChild, newParent, transforms)
+		buildComponentTransforms(skeletonData, newChild, newParent, transforms, animation)
 	}
 }
 

@@ -5,15 +5,6 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
-const (
-	IMAGE_SURFACE_WIDTH  = 320
-	IMAGE_SURFACE_HEIGHT = 240
-)
-
-var (
-	screenImage = NewImage16Bit(0, 0, IMAGE_SURFACE_WIDTH, IMAGE_SURFACE_HEIGHT)
-)
-
 type Surface2D struct {
 	TextureId          uint32    // texture id in OpenGL
 	VertexBuffer       []float32 // 3 elements for x,y,z and 2 elements for texture u,v
@@ -28,9 +19,9 @@ func NewSurface2D() *Surface2D {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
 
-	imagePixels := make([]uint16, IMAGE_SURFACE_WIDTH*IMAGE_SURFACE_HEIGHT)
+	imagePixels := make([]uint16, BACKGROUND_IMAGE_WIDTH*BACKGROUND_IMAGE_HEIGHT)
 	return &Surface2D{
-		TextureId:          BuildTexture(imagePixels, IMAGE_SURFACE_WIDTH, IMAGE_SURFACE_HEIGHT),
+		TextureId:          BuildTexture(imagePixels, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT),
 		VertexBuffer:       buildSurface2DVertexBuffer(),
 		VertexArrayObject:  vao,
 		VertexBufferObject: vbo,
@@ -40,13 +31,11 @@ func NewSurface2D() *Surface2D {
 func (renderDef *RenderDef) RenderSolidVideoBuffer() {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	programShader := renderDef.ProgramShader
-
 	// Activate shader
-	gl.UseProgram(programShader)
+	renderDef.ShaderSystem.Use()
 
 	// Use cached uniform location for better performance
-	gl.Uniform1i(renderDef.UniformLocations.GameState, RENDER_GAME_STATE_BACKGROUND_SOLID)
+	renderDef.ShaderSystem.SetGameState(RENDER_GAME_STATE_BACKGROUND_SOLID)
 
 	renderDef.RenderSurface2D(renderDef.VideoBuffer)
 }
@@ -54,13 +43,11 @@ func (renderDef *RenderDef) RenderSolidVideoBuffer() {
 func (renderDef *RenderDef) RenderTransparentVideoBuffer() {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	programShader := renderDef.ProgramShader
-
 	// Activate shader
-	gl.UseProgram(programShader)
+	renderDef.ShaderSystem.Use()
 
 	// Use cached uniform location for better performance
-	gl.Uniform1i(renderDef.UniformLocations.GameState, RENDER_GAME_STATE_BACKGROUND_TRANSPARENT)
+	renderDef.ShaderSystem.SetGameState(RENDER_GAME_STATE_BACKGROUND_TRANSPARENT)
 
 	renderDef.RenderSurface2D(renderDef.VideoBuffer)
 }
@@ -72,7 +59,7 @@ func (r *RenderDef) RenderSurface2D(surface *Surface2D) {
 	}
 
 	// Create renderer
-	renderer := NewOpenGLRenderer(&r.UniformLocations)
+	renderer := NewOpenGLRenderer(r.ShaderSystem.GetUniformLocations())
 
 	// Create render config for 2D surface (position + texture)
 	config := renderer.Create2DEntityConfig(

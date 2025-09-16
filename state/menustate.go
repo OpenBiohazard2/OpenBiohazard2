@@ -22,6 +22,8 @@ type InventoryStateInput struct {
 	InventoryMenuImages []*render.Image16Bit
 	InventoryItemImages []*render.Image16Bit
 	InventoryMenu       *gui.InventoryMenu
+	HealthDisplay       *gui.HealthDisplay
+	InventoryManager    *gui.InventoryManager
 }
 
 func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
@@ -41,6 +43,8 @@ func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
 		InventoryMenuImages: inventoryMenuImages,
 		InventoryItemImages: inventoryItemImages,
 		InventoryMenu:       gui.NewInventoryMenu(),
+		HealthDisplay:       gui.NewHealthDisplay(),
+		InventoryManager:    gui.NewInventoryManager(),
 	}
 }
 
@@ -49,6 +53,8 @@ func HandleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 	inventoryMenuImages := inventoryStateInput.InventoryMenuImages
 	inventoryItemImages := inventoryStateInput.InventoryItemImages
 	inventoryMenu := inventoryStateInput.InventoryMenu
+	healthDisplay := inventoryStateInput.HealthDisplay
+	inventoryManager := inventoryStateInput.InventoryManager
 
 	if !gameStateManager.ImageResourcesLoaded {
 		inventoryMenu.Reset()
@@ -82,7 +88,7 @@ func HandleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 	}
 
 	timeElapsedSeconds := windowHandler.GetTimeSinceLastFrame()
-	renderDef.GenerateInventoryImage(inventoryMenuImages, inventoryItemImages, inventoryMenu, timeElapsedSeconds)
+	renderDef.GenerateInventoryImage(inventoryMenuImages, inventoryItemImages, inventoryMenu, healthDisplay, inventoryManager, timeElapsedSeconds)
 	renderDef.RenderSolidVideoBuffer()
 }
 

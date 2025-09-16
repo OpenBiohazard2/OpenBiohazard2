@@ -9,29 +9,30 @@ func (renderDef *RenderDef) UpdateMainMenu(
 	menuTextImages []*Image16Bit,
 	mainMenuOption int,
 ) {
-	screenImage.Clear()
-	buildMainMenuBackground(menuBackgroundImage)
-	buildMainMenuText(menuTextImages, mainMenuOption)
+	renderDef.ScreenImageManager.Clear()
+	screenImage := renderDef.ScreenImageManager.GetScreenImage()
+	buildMainMenuBackground(screenImage, menuBackgroundImage)
+	buildMainMenuText(screenImage, menuTextImages, mainMenuOption)
 	renderDef.VideoBuffer.UpdateSurface(screenImage)
 }
 
-func buildMainMenuBackground(menuBackgroundImage *Image16Bit) {
-	screenImage.WriteSubImage(image.Point{0, 0}, menuBackgroundImage, image.Rect(0, 0, 320, 240))
+func buildMainMenuBackground(screenImage *Image16Bit, menuBackgroundImage *Image16Bit) {
+	screenImage.WriteSubImage(image.Point{0, 0}, menuBackgroundImage, image.Rect(0, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT))
 }
 
-func buildMainMenuText(menuTextImages []*Image16Bit, mainMenuOption int) {
-	buildTitleText(menuTextImages)
-	buildMainMenuOptions(menuTextImages, mainMenuOption)
+func buildMainMenuText(screenImage *Image16Bit, menuTextImages []*Image16Bit, mainMenuOption int) {
+	buildTitleText(screenImage, menuTextImages)
+	buildMainMenuOptions(screenImage, menuTextImages, mainMenuOption)
 }
 
-func buildTitleText(menuTextImages []*Image16Bit) {
+func buildTitleText(screenImage *Image16Bit, menuTextImages []*Image16Bit) {
 	screenImage.WriteSubImage(image.Point{18, 30}, menuTextImages[1], image.Rect(0, 0, 128, 81))
 	screenImage.WriteSubImage(image.Point{146, 31}, menuTextImages[1], image.Rect(0, 81, 128, 81+47))
 	screenImage.WriteSubImage(image.Point{146, 78}, menuTextImages[2], image.Rect(0, 0, 128, 34))
 	screenImage.WriteSubImage(image.Point{274, 31}, menuTextImages[2], image.Rect(0, 34, 46, 34+82))
 }
 
-func buildMainMenuOptions(menuTextImages []*Image16Bit, mainMenuOption int) {
+func buildMainMenuOptions(screenImage *Image16Bit, menuTextImages []*Image16Bit, mainMenuOption int) {
 	selectedOption := 1.0
 	otherOption := 0.3
 
@@ -60,18 +61,19 @@ func (renderDef *RenderDef) UpdateSpecialMenu(
 	menuTextImages []*Image16Bit,
 	mainMenuOption int,
 ) {
-	screenImage.Clear()
-	buildMainMenuBackground(menuBackgroundImage)
-	buildSpecialMenuText(menuTextImages, mainMenuOption)
+	renderDef.ScreenImageManager.Clear()
+	screenImage := renderDef.ScreenImageManager.GetScreenImage()
+	buildMainMenuBackground(screenImage, menuBackgroundImage)
+	buildSpecialMenuText(screenImage, menuTextImages, mainMenuOption)
 	renderDef.VideoBuffer.UpdateSurface(screenImage)
 }
 
-func buildSpecialMenuText(menuTextImages []*Image16Bit, mainMenuOption int) {
-	buildTitleText(menuTextImages)
-	buildSpecialMenuOptions(menuTextImages, mainMenuOption)
+func buildSpecialMenuText(screenImage *Image16Bit, menuTextImages []*Image16Bit, mainMenuOption int) {
+	buildTitleText(screenImage, menuTextImages)
+	buildSpecialMenuOptions(screenImage, menuTextImages, mainMenuOption)
 }
 
-func buildSpecialMenuOptions(menuTextImages []*Image16Bit, specialMenuOption int) {
+func buildSpecialMenuOptions(screenImage *Image16Bit, menuTextImages []*Image16Bit, specialMenuOption int) {
 	selectedOption := 1.0
 	otherOption := 0.3
 

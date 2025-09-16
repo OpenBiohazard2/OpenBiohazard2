@@ -341,7 +341,7 @@ func (scriptDef *ScriptDef) ScriptMemberSet(thread *ScriptThread, lineData []byt
 			gameDef.Player.RotationAngle = (float32(instruction.Value) / 4096.0) * 360.0
 		}
 	} else if thread.WorkSetComponent == WORKSET_OBJECT {
-		modelObject := renderDef.ItemGroupEntity.ModelObjectData[int(thread.WorkSetIndex)]
+		modelObject := renderDef.SceneSystem.ItemGroupEntity.ModelObjectData[int(thread.WorkSetIndex)]
 		switch int(instruction.MemberIndex) {
 		case 15:
 			// convert to angle in degrees

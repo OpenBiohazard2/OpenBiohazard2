@@ -105,7 +105,7 @@ func (renderDef *RenderDef) AddSprite(sprite fileio.ScriptInstrSceEsprOn) {
 		{0, 0, 0},
 	}
 
-	viewMatrix := renderDef.Camera.BuildViewMatrix()
+	viewMatrix := renderDef.ViewSystem.Camera.BuildViewMatrix()
 	cameraRight := mgl32.Vec3{viewMatrix.At(0, 0), viewMatrix.At(1, 0), viewMatrix.At(2, 0)}
 	cameraUp := mgl32.Vec3{viewMatrix.At(0, 1), viewMatrix.At(1, 1), viewMatrix.At(2, 1)}
 
@@ -123,7 +123,7 @@ func (renderDef *RenderDef) AddSprite(sprite fileio.ScriptInstrSceEsprOn) {
 		{0.0, 1.0},
 	}
 	rect := geometry.NewTexturedRectangle(renderVertices, uvs)
-	renderDef.SpriteGroupEntity.VertexBuffer = append(renderDef.SpriteGroupEntity.VertexBuffer, rect.VertexBuffer...)
+	renderDef.SceneSystem.SpriteGroupEntity.VertexBuffer = append(renderDef.SceneSystem.SpriteGroupEntity.VertexBuffer, rect.VertexBuffer...)
 }
 
 func RenderSprites(r *RenderDef, spriteGroupEntity *SpriteGroupEntity, timeElapsedSeconds float64) {
@@ -150,7 +150,7 @@ func RenderSprites(r *RenderDef, spriteGroupEntity *SpriteGroupEntity, timeElaps
 	}
 
 	// Create renderer
-	renderer := NewOpenGLRenderer(&r.UniformLocations)
+	renderer := NewOpenGLRenderer(r.ShaderSystem.GetUniformLocations())
 
 	// Create render config for 2D sprite (position + texture)
 	config := renderer.Create2DEntityConfig(

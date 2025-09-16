@@ -1,17 +1,18 @@
 package render
 
 import (
+	"github.com/OpenBiohazard2/OpenBiohazard2/shader"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
 // OpenGLRenderer encapsulates common OpenGL rendering operations
 type OpenGLRenderer struct {
-	uniformLocations *UniformLocations
+	uniformLocations *shader.UniformLocations
 }
 
 // NewOpenGLRenderer creates a new OpenGL renderer
-func NewOpenGLRenderer(uniformLocations *UniformLocations) *OpenGLRenderer {
+func NewOpenGLRenderer(uniformLocations *shader.UniformLocations) *OpenGLRenderer {
 	return &OpenGLRenderer{
 		uniformLocations: uniformLocations,
 	}

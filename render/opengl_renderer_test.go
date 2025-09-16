@@ -3,12 +3,13 @@ package render
 import (
 	"testing"
 
+	"github.com/OpenBiohazard2/OpenBiohazard2/shader"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
 func TestOpenGLRenderer_Create3DEntityConfig(t *testing.T) {
 	// Create mock uniform locations
-	uniformLocations := &UniformLocations{
+	uniformLocations := &shader.UniformLocations{
 		RenderType: 1,
 		Model:      2,
 		Diffuse:    3,
@@ -99,7 +100,7 @@ func TestOpenGLRenderer_Create3DEntityConfig(t *testing.T) {
 }
 
 func TestOpenGLRenderer_Create2DEntityConfig(t *testing.T) {
-	uniformLocations := &UniformLocations{}
+	uniformLocations := &shader.UniformLocations{}
 	renderer := NewOpenGLRenderer(uniformLocations)
 
 	vao := uint32(100)
@@ -145,7 +146,7 @@ func TestOpenGLRenderer_Create2DEntityConfig(t *testing.T) {
 }
 
 func TestOpenGLRenderer_CreateDebugEntityConfig(t *testing.T) {
-	uniformLocations := &UniformLocations{}
+	uniformLocations := &shader.UniformLocations{}
 	renderer := NewOpenGLRenderer(uniformLocations)
 
 	vao := uint32(100)
@@ -199,7 +200,7 @@ func TestOpenGLRenderer_CreateDebugEntityConfig(t *testing.T) {
 }
 
 func TestOpenGLRenderer_NewOpenGLRenderer(t *testing.T) {
-	uniformLocations := &UniformLocations{
+	uniformLocations := &shader.UniformLocations{
 		RenderType: 1,
 		Model:      2,
 		Diffuse:    3,
@@ -218,7 +219,7 @@ func TestOpenGLRenderer_NewOpenGLRenderer(t *testing.T) {
 
 // Test that the OpenGLRenderer can be created and configured correctly
 func TestOpenGLRenderer_Configuration(t *testing.T) {
-	uniformLocations := &UniformLocations{
+	uniformLocations := &shader.UniformLocations{
 		RenderType: 1,
 		Model:      2,
 		Diffuse:    3,

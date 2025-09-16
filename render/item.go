@@ -49,17 +49,17 @@ func (renderDef *RenderDef) SetItemEntity(instruction fileio.ScriptInstrObjModel
 		return
 	}
 
-	itemTextureData := renderDef.ItemGroupEntity.ItemTextureData[modelIndex]
-	itemMeshData := renderDef.ItemGroupEntity.ItemModelData[modelIndex]
+	itemTextureData := renderDef.SceneSystem.ItemGroupEntity.ItemTextureData[modelIndex]
+	itemMeshData := renderDef.SceneSystem.ItemGroupEntity.ItemModelData[modelIndex]
 
 	itemTextureId := NewTextureTIM(itemTextureData)
 	itemEntityVertexBuffer := geometry.NewMD1Geometry(itemMeshData, itemTextureData)
 
 	// Update model object
-	itemEntity := renderDef.ItemGroupEntity.ModelObjectData[modelIndex]
+	itemEntity := renderDef.SceneSystem.ItemGroupEntity.ModelObjectData[modelIndex]
 	itemEntity.TextureId = itemTextureId
 	itemEntity.VertexBuffer = itemEntityVertexBuffer
 	itemEntity.ModelPosition = position
 	itemEntity.RotationAngle = rotationAngle
-	renderDef.ItemGroupEntity.ModelObjectData[modelIndex] = itemEntity
+	renderDef.SceneSystem.ItemGroupEntity.ModelObjectData[modelIndex] = itemEntity
 }

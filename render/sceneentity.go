@@ -36,7 +36,7 @@ func (r *RenderDef) RenderSceneEntity(entity *SceneEntity, renderType int32) {
 	}
 
 	// Create renderer
-	renderer := NewOpenGLRenderer(&r.UniformLocations)
+	renderer := NewOpenGLRenderer(r.ShaderSystem.GetUniformLocations())
 
 	// Create render config for 2D entity (position + texture)
 	config := renderer.Create2DEntityConfig(

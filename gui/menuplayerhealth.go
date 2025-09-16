@@ -1,7 +1,6 @@
-package render
+package gui
 
 import (
-	"image"
 	"image/color"
 )
 
@@ -15,79 +14,57 @@ const (
 	HEALTH_POS_Y          = 29
 )
 
-var (
-	totalHealthTime  = float64(0)
-	updateHealthTime = float64(30) // milliseconds
-	ecgOffsetX       = 0
-	healthECGViews   = [5]HealthECGView{
-		NewHealthECGFine(),
-		NewHealthECGYellowCaution(),
-		NewHealthECGOrangeCaution(),
-		NewHealthECGDanger(),
-		NewHealthECGPoison(),
-	}
-)
-
+// HealthECGView represents a health status view with color and line data
 type HealthECGView struct {
 	Color    [3]int
 	Gradient [3]int
 	Lines    [80][2]int
 }
 
-func buildHealthECG(inventoryMenuImages []*Image16Bit, backgroundColor color.RGBA) {
-	healthStatus := HEALTH_FINE
-
-	drawHealthBackground(inventoryMenuImages, backgroundColor)
-	updateECGAnimation()
-	drawECGLines(healthStatus)
-	drawPlayerCondition(inventoryMenuImages, healthStatus)
+// HealthDisplay manages the health ECG animation and display state
+type HealthDisplay struct {
+	totalHealthTime    float64
+	updateHealthTimeMs float64 // milliseconds
+	ecgOffsetX         int
+	healthECGViews     [5]HealthECGView
 }
 
-// drawHealthBackground draws the health background and sloped line
-func drawHealthBackground(inventoryMenuImages []*Image16Bit, backgroundColor color.RGBA) {
-	// Draw health background
-	screenImage.WriteSubImage(image.Point{HEALTH_POS_X + 2, HEALTH_POS_Y}, inventoryMenuImages[0], image.Rect(0, 92, 99, 92+47))
-
-	// Sloped line to the right of Condition
-	for i := 0; i < 8; i++ {
-		screenImage.FillPixels(image.Point{129 - i, 68 + i}, image.Rect(129-i, 68+i, 159, 69+i), backgroundColor)
+// NewHealthDisplay creates a new HealthDisplay instance
+func NewHealthDisplay() *HealthDisplay {
+	return &HealthDisplay{
+		totalHealthTime:    0,
+		updateHealthTimeMs: 30, // milliseconds
+		ecgOffsetX:         0,
+		healthECGViews: [5]HealthECGView{
+			NewHealthECGFine(),
+			NewHealthECGYellowCaution(),
+			NewHealthECGOrangeCaution(),
+			NewHealthECGDanger(),
+			NewHealthECGPoison(),
+		},
 	}
 }
 
-// updateECGAnimation updates the ECG animation timing
-func updateECGAnimation() {
-	if totalHealthTime >= updateHealthTime {
-		ecgOffsetX = (ecgOffsetX + 1) % 128
-		totalHealthTime = 0
-	}
+// UpdateHealthDisplay updates the health display with elapsed time
+func (hd *HealthDisplay) UpdateHealthDisplay(timeElapsedSeconds float64) {
+	hd.totalHealthTime += timeElapsedSeconds * 1000
 }
 
-// drawECGLines draws the animated ECG lines with gradient colors
-func drawECGLines(healthStatus int) {
-	ecgView := healthECGViews[healthStatus]
-
-	for columnNum := 0; columnNum < 32; columnNum++ {
-		startX := ecgOffsetX - columnNum
-		if startX < 0 || startX >= len(ecgView.Lines) {
-			continue
-		}
-
-		// Calculate line position and size
-		destX := startX + HEALTH_POS_X + 12
-		destY := ecgView.Lines[startX][0] + HEALTH_POS_Y + 2
-		width := 1
-		height := ecgView.Lines[startX][1] + 1
-
-		// Calculate gradient color
-		finalColor := calculateECGLineColor(ecgView, columnNum)
-
-		// Draw the line
-		screenImage.FillPixels(image.Point{destX, destY}, image.Rect(destX, destY, destX+width, destY+height), finalColor)
-	}
+// GetECGOffsetX returns the current ECG animation offset
+func (hd *HealthDisplay) GetECGOffsetX() int {
+	return hd.ecgOffsetX
 }
 
-// calculateECGLineColor calculates the gradient color for an ECG line
-func calculateECGLineColor(ecgView HealthECGView, columnNum int) color.RGBA {
+// GetHealthECGView returns the ECG view for the given health status
+func (hd *HealthDisplay) GetHealthECGView(healthStatus int) HealthECGView {
+	if healthStatus >= 0 && healthStatus < len(hd.healthECGViews) {
+		return hd.healthECGViews[healthStatus]
+	}
+	return hd.healthECGViews[HEALTH_FINE] // Default to fine
+}
+
+// CalculateECGLineColor calculates the gradient color for an ECG line
+func CalculateECGLineColor(ecgView HealthECGView, columnNum int) color.RGBA {
 	lineColor := ecgView.Color
 	gradientColor := ecgView.Gradient
 
@@ -108,9 +85,12 @@ func calculateECGLineColor(ecgView HealthECGView, columnNum int) color.RGBA {
 	return color.RGBA{uint8(red), uint8(green), uint8(blue), 255}
 }
 
-func drawPlayerCondition(inventoryMenuImages []*Image16Bit, healthStatus int) {
-	screenImage.WriteSubImage(image.Point{HEALTH_POS_X + 47, HEALTH_POS_Y + 25},
-		inventoryMenuImages[4], image.Rect(0, healthStatus*11, 44, (healthStatus+1)*11))
+// UpdateECGAnimation updates the ECG animation timing
+func (hd *HealthDisplay) UpdateECGAnimation() {
+	if hd.totalHealthTime >= hd.updateHealthTimeMs {
+		hd.ecgOffsetX = (hd.ecgOffsetX + 1) % 128
+		hd.totalHealthTime = 0
+	}
 }
 
 func NewHealthECGFine() HealthECGView {

@@ -13,8 +13,8 @@ func NewTextureTIM(timOutput *fileio.TIMOutput) uint32 {
 
 func UpdateTextureADT(texId uint32, adtOutput *fileio.ADTOutput) {
 	texColors := adtOutput.ConvertToRenderData()
-	imageWidth := int32(320)
-	imageHeight := int32(240)
+	imageWidth := int32(BACKGROUND_IMAGE_WIDTH)
+	imageHeight := int32(BACKGROUND_IMAGE_HEIGHT)
 	UpdateTexture(texId, texColors, imageWidth, imageHeight)
 }
 
@@ -44,6 +44,4 @@ func UpdateTexture(texId uint32, imagePixels []uint16, imageWidth int32, imageHe
 	// Set texture wrapping/filtering options
 	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(uint32(gl.TEXTURE_2D), gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-
-	return
 }

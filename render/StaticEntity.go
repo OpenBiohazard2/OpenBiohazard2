@@ -20,7 +20,7 @@ func (r *RenderDef) RenderStaticEntity(entity SceneMD1Entity, renderType int32) 
 	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(float32(entity.RotationAngle))))
 
 	// Create renderer
-	renderer := NewOpenGLRenderer(&r.UniformLocations)
+	renderer := NewOpenGLRenderer(r.ShaderSystem.GetUniformLocations())
 
 	// Create render config for 3D entity (position + texture + normal)
 	config := renderer.Create3DEntityConfig(

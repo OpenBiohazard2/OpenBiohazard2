@@ -114,11 +114,11 @@ func loadRoomState(mainGameStateInput *MainGameStateInput) {
 	mainGameRender.RenderRoom = render.NewRenderRoom(rdtOutput)
 
 	// Initialize room model objects
-	renderDef.ItemGroupEntity.ItemTextureData = mainGameRender.RenderRoom.ItemTextureData
-	renderDef.ItemGroupEntity.ItemModelData = mainGameRender.RenderRoom.ItemModelData
+	renderDef.SceneSystem.ItemGroupEntity.ItemTextureData = mainGameRender.RenderRoom.ItemTextureData
+	renderDef.SceneSystem.ItemGroupEntity.ItemModelData = mainGameRender.RenderRoom.ItemModelData
 
 	// Initialize sprite textures
-	renderDef.SpriteGroupEntity = render.NewSpriteGroupEntity(mainGameRender.RenderRoom.SpriteData)
+	renderDef.SceneSystem.SpriteGroupEntity = render.NewSpriteGroupEntity(mainGameRender.RenderRoom.SpriteData)
 
 	initScriptOnRoomLoad(scriptDef, gameDef, renderDef)
 
@@ -162,8 +162,8 @@ func updateCameraView(mainGameRender *MainGameRender, gameDef *game.GameDef) {
 
 	// Update camera position
 	cameraPosition := gameDef.GameWorld.GameRoom.CameraPositionData[gameDef.CameraId]
-	renderDef.Camera.Update(cameraPosition.CameraFrom, cameraPosition.CameraTo, cameraPosition.CameraFov)
-	renderDef.ViewMatrix = renderDef.Camera.BuildViewMatrix()
+	renderDef.ViewSystem.Camera.Update(cameraPosition.CameraFrom, cameraPosition.CameraTo, cameraPosition.CameraFov)
+	renderDef.ViewSystem.ViewMatrix = renderDef.ViewSystem.Camera.BuildViewMatrix()
 
 	// Update lighting
 	renderDef.EnvironmentLight = render.BuildEnvironmentLight(mainGameRender.RenderRoom.LightData[gameDef.CameraId])
@@ -179,10 +179,10 @@ func updateRoomBackroundImage(mainGameRender *MainGameRender, gameDef *game.Game
 
 	if roomOutput.BackgroundImage != nil {
 		renderDef := mainGameRender.RenderDef
-		render.UpdateTextureADT(renderDef.BackgroundImageEntity.TextureId, roomOutput.BackgroundImage)
+		render.UpdateTextureADT(renderDef.SceneSystem.BackgroundImageEntity.TextureId, roomOutput.BackgroundImage)
 		// Camera image mask depends on updated camera position
 		cameraMasks := mainGameRender.RenderRoom.CameraMaskData[gameDef.CameraId]
-		renderDef.CameraMaskEntity.UpdateCameraImageMaskEntity(renderDef, roomOutput, cameraMasks)
+		renderDef.UpdateCameraMask(roomOutput, cameraMasks)
 	}
 }
 
