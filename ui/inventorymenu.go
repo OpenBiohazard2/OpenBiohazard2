@@ -1,4 +1,4 @@
-package gui
+package ui
 
 import (
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"

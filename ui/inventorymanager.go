@@ -1,4 +1,4 @@
-package gui
+package ui
 
 // InventoryItem represents an item in the player's inventory
 type InventoryItem struct {

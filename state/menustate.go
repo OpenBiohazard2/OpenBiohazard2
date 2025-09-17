@@ -6,24 +6,27 @@ import (
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/game"
-	"github.com/OpenBiohazard2/OpenBiohazard2/gui"
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
+	"github.com/OpenBiohazard2/OpenBiohazard2/ui"
+	"github.com/OpenBiohazard2/OpenBiohazard2/ui_render"
 )
 
 type MainMenuStateInput struct {
 	RenderDef           *render.RenderDef
+	UIRenderer          *ui_render.UIRenderer
 	MenuBackgroundImage *render.Image16Bit
 	MenuTextImages      []*render.Image16Bit
-	Menu                *gui.Menu
+	Menu                *ui.Menu
 }
 
 type InventoryStateInput struct {
 	RenderDef           *render.RenderDef
+	UIRenderer          *ui_render.UIRenderer
 	InventoryMenuImages []*render.Image16Bit
 	InventoryItemImages []*render.Image16Bit
-	InventoryMenu       *gui.InventoryMenu
-	HealthDisplay       *gui.HealthDisplay
-	InventoryManager    *gui.InventoryManager
+	InventoryMenu       *ui.InventoryMenu
+	HealthDisplay       *ui.HealthDisplay
+	InventoryManager    *ui.InventoryManager
 }
 
 func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
@@ -40,11 +43,12 @@ func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
 	}
 	return &InventoryStateInput{
 		RenderDef:           renderDef,
+		UIRenderer:          ui_render.NewUIRenderer(renderDef),
 		InventoryMenuImages: inventoryMenuImages,
 		InventoryItemImages: inventoryItemImages,
-		InventoryMenu:       gui.NewInventoryMenu(),
-		HealthDisplay:       gui.NewHealthDisplay(),
-		InventoryManager:    gui.NewInventoryManager(),
+		InventoryMenu:       ui.NewInventoryMenu(),
+		HealthDisplay:       ui.NewHealthDisplay(),
+		InventoryManager:    ui.NewInventoryManager(),
 	}
 }
 
@@ -88,7 +92,7 @@ func HandleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 	}
 
 	timeElapsedSeconds := windowHandler.GetTimeSinceLastFrame()
-	renderDef.GenerateInventoryImage(inventoryMenuImages, inventoryItemImages, inventoryMenu, healthDisplay, inventoryManager, timeElapsedSeconds)
+	inventoryStateInput.UIRenderer.GenerateInventoryImage(inventoryMenuImages, inventoryItemImages, inventoryMenu, healthDisplay, inventoryManager, timeElapsedSeconds)
 	renderDef.RenderSolidVideoBuffer()
 }
 
@@ -110,7 +114,7 @@ func HandleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *Ga
 		mainMenuStateInput.MenuBackgroundImage = menuBackgroundImage
 		mainMenuStateInput.MenuTextImages = menuTextImages
 		mainMenuStateInput.Menu.CurrentOption = 0
-		renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages,
+		mainMenuStateInput.UIRenderer.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages,
 			mainMenuStateInput.Menu.CurrentOption)
 
 		gameStateManager.ImageResourcesLoaded = true
@@ -137,7 +141,7 @@ func HandleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *Ga
 
 			mainMenuStateInput.Menu.IsOptionSelected = false
 		} else if mainMenuStateInput.Menu.IsNewOption {
-			renderDef.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages,
+			mainMenuStateInput.UIRenderer.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages,
 				mainMenuStateInput.Menu.CurrentOption)
 			gameStateManager.UpdateLastTimeChangeState(windowHandler)
 
@@ -154,7 +158,8 @@ func HandleLoadSave(renderDef *render.RenderDef, gameStateManager *GameStateMana
 			log.Fatal("Error loading save screen image: ", err)
 		}
 		saveScreenImageRender := render.ConvertPixelsToImage16Bit(saveScreenImageADTOutput.PixelData)
-		renderDef.GenerateSaveScreenImage(saveScreenImageRender)
+		uiRenderer := ui_render.NewUIRenderer(renderDef)
+		uiRenderer.GenerateSaveScreenImage(saveScreenImageRender)
 
 		gameStateManager.ImageResourcesLoaded = true
 		gameStateManager.UpdateLastTimeChangeState(windowHandler)
@@ -187,7 +192,7 @@ func HandleSpecialMenu(specialMenuStateInput *MainMenuStateInput, gameStateManag
 		specialMenuStateInput.MenuBackgroundImage = menuBackgroundImage
 		specialMenuStateInput.MenuTextImages = menuTextImages
 		specialMenuStateInput.Menu.CurrentOption = 0
-		renderDef.UpdateSpecialMenu(specialMenuStateInput.MenuBackgroundImage, specialMenuStateInput.MenuTextImages,
+		specialMenuStateInput.UIRenderer.UpdateSpecialMenu(specialMenuStateInput.MenuBackgroundImage, specialMenuStateInput.MenuTextImages,
 			specialMenuStateInput.Menu.CurrentOption)
 
 		gameStateManager.ImageResourcesLoaded = true
@@ -211,7 +216,7 @@ func HandleSpecialMenu(specialMenuStateInput *MainMenuStateInput, gameStateManag
 
 			specialMenuStateInput.Menu.IsOptionSelected = false
 		} else if specialMenuStateInput.Menu.IsNewOption {
-			renderDef.UpdateSpecialMenu(specialMenuStateInput.MenuBackgroundImage, specialMenuStateInput.MenuTextImages,
+			specialMenuStateInput.UIRenderer.UpdateSpecialMenu(specialMenuStateInput.MenuBackgroundImage, specialMenuStateInput.MenuTextImages,
 				specialMenuStateInput.Menu.CurrentOption)
 			gameStateManager.UpdateLastTimeChangeState(windowHandler)
 

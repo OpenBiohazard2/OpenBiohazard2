@@ -7,9 +7,10 @@ import (
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"
 	"github.com/OpenBiohazard2/OpenBiohazard2/game"
-	"github.com/OpenBiohazard2/OpenBiohazard2/gui"
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
 	"github.com/OpenBiohazard2/OpenBiohazard2/state"
+	"github.com/OpenBiohazard2/OpenBiohazard2/ui"
+	"github.com/OpenBiohazard2/OpenBiohazard2/ui_render"
 	"github.com/go-gl/glfw/v3.2/glfw"
 )
 
@@ -60,12 +61,14 @@ func createStateInputs(renderDef *render.RenderDef, gameDef *game.GameDef) map[s
 	return map[string]interface{}{
 		"mainGame": state.NewMainGameStateInput(renderDef, gameDef),
 		"mainMenu": &state.MainMenuStateInput{
-			RenderDef: renderDef,
-			Menu:      gui.NewMenu(4),
+			RenderDef:  renderDef,
+			UIRenderer: ui_render.NewUIRenderer(renderDef),
+			Menu:       ui.NewMenu(4),
 		},
 		"specialMenu": &state.MainMenuStateInput{
-			RenderDef: renderDef,
-			Menu:      gui.NewMenu(2),
+			RenderDef:  renderDef,
+			UIRenderer: ui_render.NewUIRenderer(renderDef),
+			Menu:       ui.NewMenu(2),
 		},
 		"inventory": state.NewInventoryStateInput(renderDef),
 	}
