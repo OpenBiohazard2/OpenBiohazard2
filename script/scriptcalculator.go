@@ -3,7 +3,6 @@ package script
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"log"
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
@@ -14,12 +13,12 @@ func (scriptDef *ScriptDef) GetBitArray(bitArrayIndex int, bitNumber int) int {
 	if !exists {
 		scriptDef.ScriptBitArray[bitArrayIndex] = make(map[int]int)
 		bitArray = scriptDef.ScriptBitArray[bitArrayIndex]
-		fmt.Println("Initialize bit array index", bitArrayIndex)
+		log.Printf("SCRIPT: Initialize bit array index %d", bitArrayIndex)
 	}
 	value, exists := bitArray[bitNumber]
 	if !exists {
 		bitArray[bitNumber] = 0
-		fmt.Println("Initialize bit array", bitArrayIndex, "with bit number ", bitNumber)
+		log.Printf("SCRIPT: Initialize bit array %d bit %d", bitArrayIndex, bitNumber)
 	}
 	return value
 }
@@ -68,7 +67,7 @@ func (scriptDef *ScriptDef) ScriptSetBit(lineData []byte) int {
 		currentBit := scriptDef.GetBitArray(int(instruction.BitArray), int(instruction.BitNumber))
 		scriptDef.SetBitArray(int(instruction.BitArray), int(instruction.BitNumber), currentBit^1)
 	default:
-		log.Fatal("Set bit operation ", instruction.Operation, " is invalid.")
+		log.Fatalf("SCRIPT: Invalid set bit operation %d", instruction.Operation)
 	}
 
 	return 1
@@ -205,7 +204,7 @@ func (scriptDef *ScriptDef) ScriptVariableCalculator(operation int, leftValue in
 	case 11:
 		return leftValue >> (rightValue % 32)
 	default:
-		log.Fatal("Script variable calculator operation ", operation, " is invalid.")
+		log.Fatalf("SCRIPT: Invalid calculator operation %d", operation)
 	}
 
 	return INSTRUCTION_BREAK_FLOW

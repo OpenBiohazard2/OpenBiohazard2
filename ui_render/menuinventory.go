@@ -5,6 +5,7 @@ import (
 	"image/color"
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
+	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 	"github.com/OpenBiohazard2/OpenBiohazard2/ui"
 )
 
@@ -17,8 +18,8 @@ const (
 
 // GenerateInventoryImage renders the inventory menu
 func (r *UIRenderer) GenerateInventoryImage(
-	inventoryMenuImages []*render.Image16Bit,
-	inventoryItemImages []*render.Image16Bit,
+	inventoryMenuImages []*resource.Image16Bit,
+	inventoryItemImages []*resource.Image16Bit,
 	inventoryMenu *ui.InventoryMenu,
 	healthDisplay *ui.HealthDisplay,
 	inventoryManager *ui.InventoryManager,
@@ -34,9 +35,9 @@ func (r *UIRenderer) GenerateInventoryImage(
 }
 
 func buildItems(
-	screenImage *render.Image16Bit,
-	inventoryMenuImages []*render.Image16Bit,
-	inventoryItemImages []*render.Image16Bit,
+	screenImage *resource.Image16Bit,
+	inventoryMenuImages []*resource.Image16Bit,
+	inventoryItemImages []*resource.Image16Bit,
 	inventoryMenu *ui.InventoryMenu,
 	inventoryManager *ui.InventoryManager,
 ) {
@@ -72,7 +73,7 @@ func buildItems(
 	}
 }
 
-func displayInventoryMainCursor(screenImage *render.Image16Bit, inventoryMenuImages []*render.Image16Bit, inventoryMenu *ui.InventoryMenu, inventoryManager *ui.InventoryManager) {
+func displayInventoryMainCursor(screenImage *resource.Image16Bit, inventoryMenuImages []*resource.Image16Bit, inventoryMenu *ui.InventoryMenu, inventoryManager *ui.InventoryManager) {
 	var cursorX, cursorY int
 	cursorFrameOffsetX := 3
 	cursorFrameOffsetY := 1
@@ -95,7 +96,7 @@ func displayInventoryMainCursor(screenImage *render.Image16Bit, inventoryMenuIma
 		inventoryMenuImages[3], image.Rect(0, 30, 44, 30+34), brightnessFactor)
 }
 
-func buildBackground(screenImage *render.Image16Bit, inventoryMenuImages []*render.Image16Bit, inventoryMenu *ui.InventoryMenu, healthDisplay *ui.HealthDisplay) {
+func buildBackground(screenImage *resource.Image16Bit, inventoryMenuImages []*resource.Image16Bit, inventoryMenu *ui.InventoryMenu, healthDisplay *ui.HealthDisplay) {
 	// The inventory image is split up into many small components
 	// Combine them manually back into a single image
 	// source image is 256x256
@@ -130,7 +131,7 @@ func buildBackground(screenImage *render.Image16Bit, inventoryMenuImages []*rend
 	buildDescription(screenImage, inventoryMenuImages)
 }
 
-func buildPlayerFace(screenImage *render.Image16Bit, inventoryMenuImages []*render.Image16Bit) {
+func buildPlayerFace(screenImage *resource.Image16Bit, inventoryMenuImages []*resource.Image16Bit) {
 	// Player
 	screenImage.WriteSubImage(image.Point{7, 16}, inventoryMenuImages[0], image.Rect(106, 152, 106+4, 152+60))  // left
 	screenImage.WriteSubImage(image.Point{11, 16}, inventoryMenuImages[0], image.Rect(0, 140, 39, 140+4))       // top
@@ -150,7 +151,7 @@ func buildPlayerFace(screenImage *render.Image16Bit, inventoryMenuImages []*rend
 	screenImage.WriteSubImage(image.Point{53, HEALTH_POS_X + 2}, inventoryMenuImages[0], image.Rect(56, 186, 56+7, 186+7))
 }
 
-func buildMenuTabs(screenImage *render.Image16Bit, inventoryMenuImages []*render.Image16Bit, inventoryMenu *ui.InventoryMenu) {
+func buildMenuTabs(screenImage *resource.Image16Bit, inventoryMenuImages []*resource.Image16Bit, inventoryMenu *ui.InventoryMenu) {
 	var selectedOption [3]float64
 	if inventoryMenu.IsCursorOnTopMenu() {
 		// Cursor is on this option, but it's not selected
@@ -186,7 +187,7 @@ func buildMenuTabs(screenImage *render.Image16Bit, inventoryMenuImages []*render
 		inventoryMenuImages[5], image.Rect(0, 30, 47, 30+10), optionsBrightness[3])
 }
 
-func buildDescription(screenImage *render.Image16Bit, inventoryMenuImages []*render.Image16Bit) {
+func buildDescription(screenImage *resource.Image16Bit, inventoryMenuImages []*resource.Image16Bit) {
 	descriptionColor := color.RGBA{6, 13, 23, 255}
 	screenImage.FillPixels(image.Point{13, 174}, image.Rect(13, 174, 13+201, 174+49), descriptionColor)
 	screenImage.WriteSubImage(image.Point{8, 174}, inventoryMenuImages[0], image.Rect(106, 163, 106+5, 163+49))   // left
@@ -205,7 +206,7 @@ func buildDescription(screenImage *render.Image16Bit, inventoryMenuImages []*ren
 
 // Health rendering functions
 
-func buildHealthECG(screenImage *render.Image16Bit, healthDisplay *ui.HealthDisplay, inventoryMenuImages []*render.Image16Bit, backgroundColor color.RGBA) {
+func buildHealthECG(screenImage *resource.Image16Bit, healthDisplay *ui.HealthDisplay, inventoryMenuImages []*resource.Image16Bit, backgroundColor color.RGBA) {
 	healthStatus := ui.HEALTH_FINE
 
 	drawHealthBackground(screenImage, inventoryMenuImages, backgroundColor)
@@ -215,7 +216,7 @@ func buildHealthECG(screenImage *render.Image16Bit, healthDisplay *ui.HealthDisp
 }
 
 // drawHealthBackground draws the health background and sloped line
-func drawHealthBackground(screenImage *render.Image16Bit, inventoryMenuImages []*render.Image16Bit, backgroundColor color.RGBA) {
+func drawHealthBackground(screenImage *resource.Image16Bit, inventoryMenuImages []*resource.Image16Bit, backgroundColor color.RGBA) {
 	// Draw health background
 	screenImage.WriteSubImage(image.Point{HEALTH_POS_X + 2, HEALTH_POS_Y}, inventoryMenuImages[0], image.Rect(0, 92, 99, 92+47))
 
@@ -226,7 +227,7 @@ func drawHealthBackground(screenImage *render.Image16Bit, inventoryMenuImages []
 }
 
 // drawECGLines draws the animated ECG lines with gradient colors
-func drawECGLines(screenImage *render.Image16Bit, healthDisplay *ui.HealthDisplay, healthStatus int) {
+func drawECGLines(screenImage *resource.Image16Bit, healthDisplay *ui.HealthDisplay, healthStatus int) {
 	ecgView := healthDisplay.GetHealthECGView(healthStatus)
 
 	for columnNum := 0; columnNum < 32; columnNum++ {
@@ -249,7 +250,7 @@ func drawECGLines(screenImage *render.Image16Bit, healthDisplay *ui.HealthDispla
 	}
 }
 
-func drawPlayerCondition(screenImage *render.Image16Bit, inventoryMenuImages []*render.Image16Bit, healthStatus int) {
+func drawPlayerCondition(screenImage *resource.Image16Bit, inventoryMenuImages []*resource.Image16Bit, healthStatus int) {
 	screenImage.WriteSubImage(image.Point{HEALTH_POS_X + 47, HEALTH_POS_Y + 25},
 		inventoryMenuImages[4], image.Rect(0, healthStatus*11, 44, (healthStatus+1)*11))
 }

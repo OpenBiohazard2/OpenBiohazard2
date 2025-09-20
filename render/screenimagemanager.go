@@ -1,19 +1,23 @@
 package render
 
+import (
+	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
+)
+
 // ScreenImageManager manages the screen image for menu rendering
 type ScreenImageManager struct {
-	screenImage *Image16Bit
+	screenImage *resource.Image16Bit
 }
 
 // NewScreenImageManager creates a new screen image manager
 func NewScreenImageManager() *ScreenImageManager {
 	return &ScreenImageManager{
-		screenImage: NewImage16Bit(0, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT),
+		screenImage: resource.NewImage16Bit(0, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT),
 	}
 }
 
 // GetScreenImage returns the screen image for rendering
-func (sim *ScreenImageManager) GetScreenImage() *Image16Bit {
+func (sim *ScreenImageManager) GetScreenImage() *resource.Image16Bit {
 	return sim.screenImage
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 )
 
 type RoomScript struct {
@@ -24,7 +25,7 @@ func (gameDef *GameDef) NewRoomScript(rdtOutput *fileio.RDTOutput) RoomScript {
 func (g *GameDef) GetRoomFilename(playerNum int) string {
 	stage := g.StageId
 	roomNumber := g.RoomId
-	return fmt.Sprintf(RDT_FILE, stage, roomNumber, playerNum)
+	return fmt.Sprintf(resource.RDT_FILE, stage, roomNumber, playerNum)
 }
 
 func (g *GameDef) GetBackgroundImageNumber() int {

@@ -2,6 +2,7 @@ package render
 
 import (
 	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
+	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
@@ -75,7 +76,7 @@ func (r *RenderDef) RenderSurface2D(surface *Surface2D) {
 	renderer.RenderEntity(config)
 }
 
-func (surface *Surface2D) UpdateSurface(newImage *Image16Bit) {
+func (surface *Surface2D) UpdateSurface(newImage *resource.Image16Bit) {
 	UpdateTexture(surface.TextureId, newImage.GetPixelsForRendering(), int32(newImage.GetWidth()), int32(newImage.GetHeight()))
 }
 

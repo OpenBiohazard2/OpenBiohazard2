@@ -1,7 +1,7 @@
 package world
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
@@ -124,9 +124,8 @@ func (aotManager *AotManager) AddDoorAot(aotInstruction fileio.ScriptInstrDoorAo
 		Free:        aotInstruction.Free,
 	}
 
-	fmt.Println("Create new door aot", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-	fmt.Printf("AOT index %v has origin (%v, %v), dimensions (%v, %v)\n",
-		aotInstruction.Aot, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth)
+	log.Printf("AOT[%d] door type=%d pos=(%d,%d) size=(%d,%d)",
+		aotInstruction.Aot, aotInstruction.Id, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth)
 	aotManager.Doors = append(aotManager.Doors, doorAot)
 }
 
@@ -163,10 +162,7 @@ func (aotManager *AotManager) AddDoorAot4p(aotInstruction fileio.ScriptInstrDoor
 		Free:        aotInstruction.Free,
 	}
 
-	fmt.Println("Create new door aot 4p", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-	fmt.Printf("AOT index %v has 4 points. P1: (%v, %v), P2: (%v, %v), P3: (%v, %v), P4: (%v, %v)\n",
-		aotInstruction.Aot, aotInstruction.X1, aotInstruction.Z1, aotInstruction.X2, aotInstruction.Z2,
-		aotInstruction.X3, aotInstruction.Z3, aotInstruction.X4, aotInstruction.Z4)
+	log.Printf("AOT[%d] door-4p type=%d", aotInstruction.Aot, aotInstruction.Id)
 	aotManager.Doors = append(aotManager.Doors, doorAot)
 }
 
@@ -191,9 +187,8 @@ func (aotManager *AotManager) AddItemAot(aotInstruction fileio.ScriptInstrItemAo
 		Act:             aotInstruction.Act,
 	}
 
-	fmt.Println("Create new item aot", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-	fmt.Printf("AOT index %v has origin (%v, %v), dimensions (%v, %v)\n",
-		aotInstruction.Aot, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth)
+	log.Printf("AOT[%d] item type=%d pos=(%d,%d) size=(%d,%d)",
+		aotInstruction.Aot, aotInstruction.Id, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth)
 	aotManager.Items = append(aotManager.Items, itemAot)
 }
 
@@ -221,10 +216,7 @@ func (aotManager *AotManager) AddItemAot4p(aotInstruction fileio.ScriptInstrItem
 		Act:             aotInstruction.Act,
 	}
 
-	fmt.Println("Create new item aot 4p", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-	fmt.Printf("AOT index %v has 4 points. P1: (%v, %v), P2: (%v, %v), P3: (%v, %v), P4: (%v, %v)\n",
-		aotInstruction.Aot, aotInstruction.X1, aotInstruction.Z1, aotInstruction.X2, aotInstruction.Z2,
-		aotInstruction.X3, aotInstruction.Z3, aotInstruction.X4, aotInstruction.Z4)
+	log.Printf("AOT[%d] item-4p type=%d", aotInstruction.Aot, aotInstruction.Id)
 	aotManager.Items = append(aotManager.Items, itemAot)
 }
 
@@ -245,9 +237,8 @@ func (aotManager *AotManager) AddAotTrigger(aotInstruction fileio.ScriptInstrAot
 		Data:   aotInstruction.Data,
 	}
 
-	fmt.Printf("Create new aot index %v with aot type %v\n", aotInstruction.Aot, aotInstruction.Id)
-	fmt.Printf("AOT index %v has origin (%v, %v), dimensions (%v, %v)\n",
-		aotInstruction.Aot, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth)
+	log.Printf("AOT[%d] trigger type=%d pos=(%d,%d) size=(%d,%d)",
+		aotInstruction.Aot, aotInstruction.Id, aotInstruction.X, aotInstruction.Z, aotInstruction.Width, aotInstruction.Depth)
 	aotManager.AotTriggers = append(aotManager.AotTriggers, aotTrigger)
 }
 
@@ -271,17 +262,14 @@ func (aotManager *AotManager) AddAotTrigger4p(aotInstruction fileio.ScriptInstrA
 		Data:   aotInstruction.Data,
 	}
 
-	fmt.Println("Create new aot 4p index", aotInstruction.Aot, "with aot type", aotInstruction.Id)
-	fmt.Printf("AOT index %v has 4 points. P1: (%v, %v), P2: (%v, %v), P3: (%v, %v), P4: (%v, %v)\n",
-		aotInstruction.Aot, aotInstruction.X1, aotInstruction.Z1, aotInstruction.X2, aotInstruction.Z2,
-		aotInstruction.X3, aotInstruction.Z3, aotInstruction.X4, aotInstruction.Z4)
+	log.Printf("AOT[%d] trigger-4p type=%d", aotInstruction.Aot, aotInstruction.Id)
 	aotManager.AotTriggers = append(aotManager.AotTriggers, aotTrigger)
 }
 
 func (aotManager *AotManager) ResetAotTrigger(aotInstruction fileio.ScriptInstrAotReset) {
 	for i, aot := range aotManager.AotTriggers {
 		if int(aot.Header.Aot) == int(aotInstruction.Aot) {
-			fmt.Println("Reset aot index", aotInstruction.Aot, "with aot type", aotInstruction.Id)
+			log.Printf("AOT[%d] reset trigger type=%d", aotInstruction.Aot, aotInstruction.Id)
 			aot.Header.Aot = aotInstruction.Aot
 			aot.Header.Id = aotInstruction.Id
 			aot.Header.Type = aotInstruction.Type
@@ -291,7 +279,7 @@ func (aotManager *AotManager) ResetAotTrigger(aotInstruction fileio.ScriptInstrA
 		}
 	}
 
-	fmt.Println("No existing aot found for", aotInstruction.Aot, ". Create new aot with aot type", aotInstruction.Id)
+	log.Printf("AOT[%d] create new trigger type=%d", aotInstruction.Aot, aotInstruction.Id)
 	aotTrigger := AotObject{
 		Header: AotHeader{
 			Aot:   aotInstruction.Aot,

@@ -11,6 +11,7 @@ import (
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/game"
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
+	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 	"github.com/OpenBiohazard2/OpenBiohazard2/script"
 	"github.com/OpenBiohazard2/OpenBiohazard2/world"
 )
@@ -55,19 +56,19 @@ func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *
 
 func NewMainGameRender(renderDef *render.RenderDef) *MainGameRender {
 	// Load player model
-	pldOutput, err := fileio.LoadPLDFile(game.LEON_MODEL_FILE)
+	pldOutput, err := fileio.LoadPLDFile(resource.LEON_MODEL_FILE)
 	if err != nil {
 		log.Fatal("Error loading player model: ", err)
 	}
 
 	// Core sprite file has sprite ids 0-7
 	// All other sprites are loaded based on the room
-	_, err = fileio.LoadESPFile(game.CORE_SPRITE_FILE)
+	_, err = fileio.LoadESPFile(resource.CORE_SPRITE_FILE)
 	if err != nil {
 		log.Fatal("Error loading core sprite file: ", err)
 	}
 
-	roomcutBinOutput, err := fileio.LoadBINFile(game.ROOMCUT_FILE)
+	roomcutBinOutput, err := fileio.LoadBINFile(resource.ROOMCUT_FILE)
 	if err != nil {
 		log.Fatal("Error loading roomcut BIN file: ", err)
 	}
@@ -171,7 +172,7 @@ func updateCameraView(mainGameRender *MainGameRender, gameDef *game.GameDef) {
 
 func updateRoomBackroundImage(mainGameRender *MainGameRender, gameDef *game.GameDef) {
 	// Update background image
-	roomOutput, err := fileio.ExtractRoomBackground(game.ROOMCUT_FILE, mainGameRender.RoomcutBinOutput, gameDef.GetBackgroundImageNumber())
+	roomOutput, err := fileio.ExtractRoomBackground(resource.ROOMCUT_FILE, mainGameRender.RoomcutBinOutput, gameDef.GetBackgroundImageNumber())
 	if err != nil {
 		log.Printf("Warning: failed to load room background: %v", err)
 		return

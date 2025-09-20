@@ -4,6 +4,7 @@ import (
 	"image"
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
+	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 )
 
 // UIRenderer handles UI-specific rendering operations
@@ -23,18 +24,18 @@ func (r *UIRenderer) ClearScreen() {
 	r.renderDef.ScreenImageManager.Clear()
 }
 
-func (r *UIRenderer) GetScreenImage() *render.Image16Bit {
+func (r *UIRenderer) GetScreenImage() *resource.Image16Bit {
 	return r.renderDef.ScreenImageManager.GetScreenImage()
 }
 
-func (r *UIRenderer) UpdateVideoBuffer(screenImage *render.Image16Bit) {
+func (r *UIRenderer) UpdateVideoBuffer(screenImage *resource.Image16Bit) {
 	r.renderDef.VideoBuffer.UpdateSurface(screenImage)
 }
 
 // UpdateMainMenu renders the main menu
 func (r *UIRenderer) UpdateMainMenu(
-	menuBackgroundImage *render.Image16Bit,
-	menuTextImages []*render.Image16Bit,
+	menuBackgroundImage *resource.Image16Bit,
+	menuTextImages []*resource.Image16Bit,
 	mainMenuOption int,
 ) {
 	r.ClearScreen()
@@ -46,8 +47,8 @@ func (r *UIRenderer) UpdateMainMenu(
 
 // UpdateSpecialMenu renders the special menu
 func (r *UIRenderer) UpdateSpecialMenu(
-	menuBackgroundImage *render.Image16Bit,
-	menuTextImages []*render.Image16Bit,
+	menuBackgroundImage *resource.Image16Bit,
+	menuTextImages []*resource.Image16Bit,
 	mainMenuOption int,
 ) {
 	r.ClearScreen()
@@ -57,23 +58,23 @@ func (r *UIRenderer) UpdateSpecialMenu(
 	r.UpdateVideoBuffer(screenImage)
 }
 
-func buildMainMenuBackground(screenImage *render.Image16Bit, menuBackgroundImage *render.Image16Bit) {
+func buildMainMenuBackground(screenImage *resource.Image16Bit, menuBackgroundImage *resource.Image16Bit) {
 	screenImage.WriteSubImage(image.Point{0, 0}, menuBackgroundImage, image.Rect(0, 0, render.BACKGROUND_IMAGE_WIDTH, render.BACKGROUND_IMAGE_HEIGHT))
 }
 
-func buildMainMenuText(screenImage *render.Image16Bit, menuTextImages []*render.Image16Bit, mainMenuOption int) {
+func buildMainMenuText(screenImage *resource.Image16Bit, menuTextImages []*resource.Image16Bit, mainMenuOption int) {
 	buildTitleText(screenImage, menuTextImages)
 	buildMainMenuOptions(screenImage, menuTextImages, mainMenuOption)
 }
 
-func buildTitleText(screenImage *render.Image16Bit, menuTextImages []*render.Image16Bit) {
+func buildTitleText(screenImage *resource.Image16Bit, menuTextImages []*resource.Image16Bit) {
 	screenImage.WriteSubImage(image.Point{18, 30}, menuTextImages[1], image.Rect(0, 0, 128, 81))
 	screenImage.WriteSubImage(image.Point{146, 31}, menuTextImages[1], image.Rect(0, 81, 128, 81+47))
 	screenImage.WriteSubImage(image.Point{146, 78}, menuTextImages[2], image.Rect(0, 0, 128, 34))
 	screenImage.WriteSubImage(image.Point{274, 31}, menuTextImages[2], image.Rect(0, 34, 46, 34+82))
 }
 
-func buildMainMenuOptions(screenImage *render.Image16Bit, menuTextImages []*render.Image16Bit, mainMenuOption int) {
+func buildMainMenuOptions(screenImage *resource.Image16Bit, menuTextImages []*resource.Image16Bit, mainMenuOption int) {
 	selectedOption := 1.0
 	otherOption := 0.3
 
@@ -97,12 +98,12 @@ func buildMainMenuOptions(screenImage *render.Image16Bit, menuTextImages []*rend
 		optionsBrightness[3])
 }
 
-func buildSpecialMenuText(screenImage *render.Image16Bit, menuTextImages []*render.Image16Bit, mainMenuOption int) {
+func buildSpecialMenuText(screenImage *resource.Image16Bit, menuTextImages []*resource.Image16Bit, mainMenuOption int) {
 	buildTitleText(screenImage, menuTextImages)
 	buildSpecialMenuOptions(screenImage, menuTextImages, mainMenuOption)
 }
 
-func buildSpecialMenuOptions(screenImage *render.Image16Bit, menuTextImages []*render.Image16Bit, specialMenuOption int) {
+func buildSpecialMenuOptions(screenImage *resource.Image16Bit, menuTextImages []*resource.Image16Bit, specialMenuOption int) {
 	selectedOption := 1.0
 	otherOption := 0.3
 

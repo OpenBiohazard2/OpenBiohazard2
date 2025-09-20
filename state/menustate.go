@@ -1,12 +1,9 @@
 package state
 
 import (
-	"log"
-
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"
-	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
-	"github.com/OpenBiohazard2/OpenBiohazard2/game"
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
+	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 	"github.com/OpenBiohazard2/OpenBiohazard2/ui"
 	"github.com/OpenBiohazard2/OpenBiohazard2/ui_render"
 )
@@ -14,33 +11,25 @@ import (
 type MainMenuStateInput struct {
 	RenderDef           *render.RenderDef
 	UIRenderer          *ui_render.UIRenderer
-	MenuBackgroundImage *render.Image16Bit
-	MenuTextImages      []*render.Image16Bit
+	MenuBackgroundImage *resource.Image16Bit
+	MenuTextImages      []*resource.Image16Bit
 	Menu                *ui.Menu
 }
 
 type InventoryStateInput struct {
 	RenderDef           *render.RenderDef
 	UIRenderer          *ui_render.UIRenderer
-	InventoryMenuImages []*render.Image16Bit
-	InventoryItemImages []*render.Image16Bit
+	InventoryMenuImages []*resource.Image16Bit
+	InventoryItemImages []*resource.Image16Bit
 	InventoryMenu       *ui.InventoryMenu
 	HealthDisplay       *ui.HealthDisplay
 	InventoryManager    *ui.InventoryManager
 }
 
 func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
-	inventoryMenuImagesTIMOutput, _ := fileio.LoadTIMImages(game.INVENTORY_FILE)
-	inventoryMenuImages := make([]*render.Image16Bit, len(inventoryMenuImagesTIMOutput))
-	for i := 0; i < len(inventoryMenuImages); i++ {
-		inventoryMenuImages[i] = render.ConvertPixelsToImage16Bit(inventoryMenuImagesTIMOutput[i].PixelData)
-	}
-
-	inventoryItemImagesTIMOutput, _ := fileio.LoadTIMImages(game.ITEMALL_FILE)
-	inventoryItemImages := make([]*render.Image16Bit, len(inventoryItemImagesTIMOutput))
-	for i := 0; i < len(inventoryItemImages); i++ {
-		inventoryItemImages[i] = render.ConvertPixelsToImage16Bit(inventoryItemImagesTIMOutput[i].PixelData)
-	}
+	inventoryMenuImages := resource.LoadTIMImages(resource.INVENTORY_FILE)
+	inventoryItemImages := resource.LoadTIMImages(resource.ITEMALL_FILE)
+	
 	return &InventoryStateInput{
 		RenderDef:           renderDef,
 		UIRenderer:          ui_render.NewUIRenderer(renderDef),
@@ -99,20 +88,8 @@ func HandleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 func HandleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *GameStateManager, windowHandler *client.WindowHandler) {
 	renderDef := mainMenuStateInput.RenderDef
 	if !gameStateManager.ImageResourcesLoaded {
-		menuBackgroundImageADTOutput, err := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
-		if err != nil {
-			log.Fatal("Error loading menu image: ", err)
-		}
-		menuBackgroundImage := render.ConvertPixelsToImage16Bit(menuBackgroundImageADTOutput.PixelData)
-
-		menuBackgroundTextImagesTIMOutput, _ := fileio.LoadTIMImages(game.MENU_TEXT_FILE)
-		menuTextImages := make([]*render.Image16Bit, len(menuBackgroundTextImagesTIMOutput))
-		for i := 0; i < len(menuBackgroundTextImagesTIMOutput); i++ {
-			menuTextImages[i] = render.ConvertPixelsToImage16Bit(menuBackgroundTextImagesTIMOutput[i].PixelData)
-		}
-
-		mainMenuStateInput.MenuBackgroundImage = menuBackgroundImage
-		mainMenuStateInput.MenuTextImages = menuTextImages
+		mainMenuStateInput.MenuBackgroundImage = resource.LoadADTImage(resource.MENU_IMAGE_FILE)
+		mainMenuStateInput.MenuTextImages = resource.LoadTIMImages(resource.MENU_TEXT_FILE)
 		mainMenuStateInput.Menu.CurrentOption = 0
 		mainMenuStateInput.UIRenderer.UpdateMainMenu(mainMenuStateInput.MenuBackgroundImage, mainMenuStateInput.MenuTextImages,
 			mainMenuStateInput.Menu.CurrentOption)
@@ -153,13 +130,9 @@ func HandleMainMenu(mainMenuStateInput *MainMenuStateInput, gameStateManager *Ga
 func HandleLoadSave(renderDef *render.RenderDef, gameStateManager *GameStateManager, windowHandler *client.WindowHandler) {
 	if !gameStateManager.ImageResourcesLoaded {
 		// Initialize load save screen
-		saveScreenImageADTOutput, err := fileio.LoadADTFile(game.SAVE_SCREEN_FILE)
-		if err != nil {
-			log.Fatal("Error loading save screen image: ", err)
-		}
-		saveScreenImageRender := render.ConvertPixelsToImage16Bit(saveScreenImageADTOutput.PixelData)
+		saveScreenImage := resource.LoadADTImage(resource.SAVE_SCREEN_FILE)
 		uiRenderer := ui_render.NewUIRenderer(renderDef)
-		uiRenderer.GenerateSaveScreenImage(saveScreenImageRender)
+		uiRenderer.GenerateSaveScreenImage(saveScreenImage)
 
 		gameStateManager.ImageResourcesLoaded = true
 		gameStateManager.UpdateLastTimeChangeState(windowHandler)
@@ -177,20 +150,8 @@ func HandleLoadSave(renderDef *render.RenderDef, gameStateManager *GameStateMana
 func HandleSpecialMenu(specialMenuStateInput *MainMenuStateInput, gameStateManager *GameStateManager, windowHandler *client.WindowHandler) {
 	renderDef := specialMenuStateInput.RenderDef
 	if !gameStateManager.ImageResourcesLoaded {
-		menuBackgroundImageADTOutput, err := fileio.LoadADTFile(game.MENU_IMAGE_FILE)
-		if err != nil {
-			log.Fatal("Error loading menu image: ", err)
-		}
-		menuBackgroundImage := render.ConvertPixelsToImage16Bit(menuBackgroundImageADTOutput.PixelData)
-
-		menuBackgroundTextImagesTIMOutput, _ := fileio.LoadTIMImages(game.MENU_TEXT_FILE)
-		menuTextImages := make([]*render.Image16Bit, len(menuBackgroundTextImagesTIMOutput))
-		for i := 0; i < len(menuBackgroundTextImagesTIMOutput); i++ {
-			menuTextImages[i] = render.ConvertPixelsToImage16Bit(menuBackgroundTextImagesTIMOutput[i].PixelData)
-		}
-
-		specialMenuStateInput.MenuBackgroundImage = menuBackgroundImage
-		specialMenuStateInput.MenuTextImages = menuTextImages
+		specialMenuStateInput.MenuBackgroundImage = resource.LoadADTImage(resource.MENU_IMAGE_FILE)
+		specialMenuStateInput.MenuTextImages = resource.LoadTIMImages(resource.MENU_TEXT_FILE)
 		specialMenuStateInput.Menu.CurrentOption = 0
 		specialMenuStateInput.UIRenderer.UpdateSpecialMenu(specialMenuStateInput.MenuBackgroundImage, specialMenuStateInput.MenuTextImages,
 			specialMenuStateInput.Menu.CurrentOption)

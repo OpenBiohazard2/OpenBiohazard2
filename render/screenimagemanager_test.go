@@ -4,6 +4,8 @@ import (
 	"image"
 	"image/color"
 	"testing"
+
+	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 )
 
 func TestNewScreenImageManager(t *testing.T) {
@@ -96,7 +98,7 @@ func TestScreenImageManager_WriteOperations(t *testing.T) {
 	screenImage := manager.GetScreenImage()
 
 	// Create a test image
-	testImage := NewImage16Bit(0, 0, 10, 10)
+	testImage := resource.NewImage16Bit(0, 0, 10, 10)
 	redColor := color.RGBA{255, 0, 0, 255}
 	testImage.FillPixels(image.Point{0, 0}, image.Rect(0, 0, 10, 10), redColor)
 
@@ -128,7 +130,7 @@ func TestScreenImageManager_ClearAfterWrite(t *testing.T) {
 	screenImage := manager.GetScreenImage()
 
 	// Write some data
-	testImage := NewImage16Bit(0, 0, 5, 5)
+	testImage := resource.NewImage16Bit(0, 0, 5, 5)
 	whiteColor := color.RGBA{255, 255, 255, 255}
 	testImage.FillPixels(image.Point{0, 0}, image.Rect(0, 0, 5, 5), whiteColor)
 	screenImage.WriteSubImage(image.Point{0, 0}, testImage, image.Rect(0, 0, 5, 5))

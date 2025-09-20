@@ -2,6 +2,7 @@ package script
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 )
@@ -115,22 +116,22 @@ var (
 )
 
 func (scriptDef *ScriptDef) ScriptDebugFunction(threadNum int, functionIds []int, lineBytes []byte) {
-	if !scriptDebugEnabled {
+	if !scriptDef.DebugEnabled {
 		return
 	}
 
 	currentFunctionId := functionIds[len(functionIds)-1]
-	functionData := fmt.Sprintf("[ScriptThread %v][Function %v] %s%s",
+	functionData := fmt.Sprintf("[Thread %d][Function %d] %s%s",
 		threadNum, currentFunctionId, getFunctionNameFromOpcode(lineBytes[0]), showParameters(lineBytes))
-	fmt.Println(functionData)
+	log.Printf("SCRIPT-DEBUG: %s", functionData)
 }
 
 func (scriptDef *ScriptDef) ScriptDebugLine(line string) {
-	if !scriptDebugEnabled {
+	if !scriptDef.DebugEnabled {
 		return
 	}
 
-	fmt.Println(line)
+	log.Printf("SCRIPT-DEBUG: %s", line)
 }
 
 func getFunctionNameFromOpcode(opcode byte) string {

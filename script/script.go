@@ -26,14 +26,14 @@ const (
 )
 
 var (
-	scriptDeltaTime    = 0.0
-	scriptDebugEnabled = false
+	scriptDeltaTime = 0.0
 )
 
 type ScriptDef struct {
 	ScriptThreads  []*ScriptThread
 	ScriptBitArray map[int]map[int]int
 	ScriptVariable map[int]int
+	DebugEnabled   bool
 }
 
 func NewScriptDef() *ScriptDef {
@@ -46,6 +46,7 @@ func NewScriptDef() *ScriptDef {
 		ScriptThreads:  scriptThreads,
 		ScriptBitArray: make(map[int]map[int]int),
 		ScriptVariable: make(map[int]int),
+		DebugEnabled:   false,
 	}
 }
 

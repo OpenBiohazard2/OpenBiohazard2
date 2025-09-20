@@ -5,6 +5,7 @@ import (
 
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
 	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
+	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 )
 
 const (
@@ -30,10 +31,10 @@ func (cameraMaskImageEntity *SceneEntity) UpdateCameraImageMaskEntity(
 	cameraMaskImageEntity.SetMesh(cameraMaskDepthBuffer)
 }
 
-func BuildCameraMask(roomImageOutput *fileio.RoomImageOutput, cameraMasks []fileio.MaskRectangle) *Image16Bit {
+func BuildCameraMask(roomImageOutput *fileio.RoomImageOutput, cameraMasks []fileio.MaskRectangle) *resource.Image16Bit {
 	// Combine original background image with mask data
-	backgroundImage := ConvertPixelsToImage16Bit(roomImageOutput.BackgroundImage.PixelData)
-	imageMask := ConvertPixelsToImage16Bit(roomImageOutput.ImageMask.PixelData)
+	backgroundImage := resource.ConvertPixelsToImage16Bit(roomImageOutput.BackgroundImage.PixelData)
+	imageMask := resource.ConvertPixelsToImage16Bit(roomImageOutput.ImageMask.PixelData)
 
 	for _, cameraMask := range cameraMasks {
 		sourceRect := image.Rect(cameraMask.SrcX, cameraMask.SrcY,

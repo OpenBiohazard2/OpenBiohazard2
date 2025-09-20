@@ -8,6 +8,7 @@ import (
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"
 	"github.com/OpenBiohazard2/OpenBiohazard2/game"
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
+	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 	"github.com/OpenBiohazard2/OpenBiohazard2/state"
 	"github.com/OpenBiohazard2/OpenBiohazard2/ui"
 	"github.com/OpenBiohazard2/OpenBiohazard2/ui_render"
@@ -21,7 +22,7 @@ const (
 
 func main() {
 	fmt.Println("Validating game folders exist...")
-	if err := game.ValidateFilesExist(); err != nil {
+	if err := resource.ValidateFilesExist(); err != nil {
 		log.Fatal("File validation failed: ", err)
 	}
 	fmt.Println("Validated game folders exist")
