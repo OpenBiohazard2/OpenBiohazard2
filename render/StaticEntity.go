@@ -19,11 +19,8 @@ func (r *RenderDef) RenderStaticEntity(entity SceneMD1Entity, renderType int32) 
 	modelMatrix = modelMatrix.Mul4(mgl32.Translate3D(entity.ModelPosition.X(), entity.ModelPosition.Y(), entity.ModelPosition.Z()))
 	modelMatrix = modelMatrix.Mul4(mgl32.HomogRotate3DY(mgl32.DegToRad(float32(entity.RotationAngle))))
 
-	// Create renderer
-	renderer := NewOpenGLRenderer(r.ShaderSystem.GetUniformLocations())
-
 	// Create render config for 3D entity (position + texture + normal)
-	config := renderer.Create3DEntityConfig(
+	config := r.Renderer.Create3DEntityConfig(
 		entity.VertexArrayObject,
 		entity.VertexBufferObject,
 		entity.VertexBuffer,
@@ -33,5 +30,5 @@ func (r *RenderDef) RenderStaticEntity(entity SceneMD1Entity, renderType int32) 
 	)
 
 	// Render the entity
-	renderer.RenderEntity(config)
+	r.Renderer.RenderEntity(config)
 }

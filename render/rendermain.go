@@ -9,41 +9,24 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-const (
-	RENDER_GAME_STATE_MAIN                   = 0
-	RENDER_GAME_STATE_BACKGROUND_SOLID       = 1
-	RENDER_GAME_STATE_BACKGROUND_TRANSPARENT = 2
-	RENDER_TYPE_ITEM                         = 5
-
-	// Camera Constants
-	DEFAULT_FOV_DEGREES = 60.0
-	NEAR_PLANE          = 16.0
-	FAR_PLANE           = 45000.0
-	ASPECT_RATIO        = 4.0 / 3.0
-)
 
 type RenderDef struct {
 	ShaderSystem     *shader.ShaderSystem // Grouped shader management
 	ViewSystem       *ViewSystem          // Grouped camera/view components
 	SceneSystem      *SceneSystem         // Grouped scene entities
 	EnvironmentLight [3]float32
-	VideoBuffer      *Surface2D
+	VideoBuffer      *Entity2D
 
 	// Screen image management for menu rendering
 	ScreenImageManager *ScreenImageManager
+	
+	// OpenGL renderer instance
+	Renderer *OpenGLRenderer
 }
 
 type DebugEntities struct {
 	CameraSwitchDebugEntity *DebugEntity
 	DebugEntities           []*DebugEntity
-}
-
-type RenderRoom struct {
-	CameraMaskData  [][]fileio.MaskRectangle
-	LightData       []fileio.LITCameraLight
-	ItemTextureData []*fileio.TIMOutput
-	ItemModelData   []*fileio.MD1Output
-	SpriteData      []fileio.SpriteData
 }
 
 func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
@@ -71,8 +54,9 @@ func InitRenderer(windowWidth int, windowHeight int) *RenderDef {
 		ShaderSystem:       shaderSystem,
 		ViewSystem:         NewViewSystem(windowWidth, windowHeight),
 		SceneSystem:        NewSceneSystem(),
-		VideoBuffer:        NewSurface2D(),
+		VideoBuffer:        NewBackgroundImageEntity(),
 		ScreenImageManager: NewScreenImageManager(),
+		Renderer:           NewOpenGLRenderer(shaderSystem.GetUniformLocations()),
 	}
 
 	return renderDef
@@ -115,25 +99,6 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 // UpdateCameraMask updates the camera mask entity
 func (r *RenderDef) UpdateCameraMask(roomOutput *fileio.RoomImageOutput, masks []fileio.MaskRectangle) {
 	r.SceneSystem.UpdateCameraMask(r, roomOutput, masks)
-}
-
-func NewRenderRoom(rdtOutput *fileio.RDTOutput) RenderRoom {
-	return RenderRoom{
-		CameraMaskData:  rdtOutput.RIDOutput.CameraMasks,
-		LightData:       rdtOutput.LightData.Lights,
-		ItemTextureData: rdtOutput.ItemTextureData,
-		ItemModelData:   rdtOutput.ItemModelData,
-		SpriteData:      rdtOutput.SpriteOutput.SpriteData,
-	}
-}
-
-func BuildEnvironmentLight(light fileio.LITCameraLight) [3]float32 {
-	lightColor := light.AmbientColor
-	// Normalize color rgb values to be between 0.0 and 1.0
-	red := float32(lightColor.R) / 255.0
-	green := float32(lightColor.G) / 255.0
-	blue := float32(lightColor.B) / 255.0
-	return [3]float32{red, green, blue}
 }
 
 func (r *RenderDef) GetPerspectiveMatrix(fovDegrees float32) mgl32.Mat4 {

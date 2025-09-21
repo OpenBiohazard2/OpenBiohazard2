@@ -71,21 +71,7 @@ func BuildSpriteTexture(spriteData fileio.SpriteData) []uint32 {
 		startX := int(framePosition.ImageX)
 		startY := int(framePosition.ImageY)
 
-		frameImageColors := make([]uint16, 0)
-		for y := startY; y < startY+frameHeight; y++ {
-			for x := startX; x < startX+frameWidth; x++ {
-				curColor := spriteData.ImageData.PixelData[y][x]
-
-				// Determine if pixel should be transparent
-				// Set black to be transparent color
-				newTextureColor := curColor
-				if curColor > 0 {
-					// Set alpha bit to 1
-					newTextureColor = uint16(curColor) | (1 << 15)
-				}
-				frameImageColors = append(frameImageColors, newTextureColor)
-			}
-		}
+		frameImageColors := buildTexturePixels(spriteData.ImageData.PixelData, startX, startY, frameWidth, frameHeight)
 		textureId := BuildTexture(frameImageColors, int32(frameWidth), int32(frameHeight))
 		allFrameTextures = append(allFrameTextures, textureId)
 	}
@@ -93,36 +79,35 @@ func BuildSpriteTexture(spriteData fileio.SpriteData) []uint32 {
 	return allFrameTextures
 }
 
+// buildTexturePixels extracts and processes pixel data for texture creation
+func buildTexturePixels(pixelData [][]uint16, startX, startY, width, height int) []uint16 {
+	texturePixels := make([]uint16, 0, width*height)
+	
+	for y := startY; y < startY+height; y++ {
+		for x := startX; x < startX+width; x++ {
+			curColor := pixelData[y][x]
+
+			// Determine if pixel should be transparent
+			// Set black to be transparent color
+			newTextureColor := curColor
+			if curColor > 0 {
+				// Set alpha bit to 1
+				newTextureColor = uint16(curColor) | (1 << 15)
+			}
+			texturePixels = append(texturePixels, newTextureColor)
+		}
+	}
+	
+	return texturePixels
+}
+
 func (renderDef *RenderDef) AddSprite(sprite fileio.ScriptInstrSceEsprOn) {
 	spriteWidth := float32(1024 * 2)
-
-	// Generate billboard sprite
 	spriteCenter := mgl32.Vec3{float32(sprite.X), float32(sprite.Y), float32(sprite.Z)}
-	squareVertices := [4]mgl32.Vec3{
-		{0, 1, 0},
-		{1, 1, 0},
-		{1, 0, 0},
-		{0, 0, 0},
-	}
-
 	viewMatrix := renderDef.ViewSystem.Camera.BuildViewMatrix()
-	cameraRight := mgl32.Vec3{viewMatrix.At(0, 0), viewMatrix.At(1, 0), viewMatrix.At(2, 0)}
-	cameraUp := mgl32.Vec3{viewMatrix.At(0, 1), viewMatrix.At(1, 1), viewMatrix.At(2, 1)}
 
-	renderVertices := [4][]float32{}
-	for i := 0; i < 4; i++ {
-		x := squareVertices[i].X()
-		y := squareVertices[i].Y()
-		worldspacePosition := spriteCenter.Add(cameraRight.Mul(x * spriteWidth)).Add(cameraUp.Mul(y * spriteWidth))
-		renderVertices[i] = []float32{worldspacePosition.X(), worldspacePosition.Y(), worldspacePosition.Z()}
-	}
-	uvs := [4][]float32{
-		{0.0, 0.0},
-		{1.0, 0.0},
-		{1.0, 1.0},
-		{0.0, 1.0},
-	}
-	rect := geometry.NewTexturedRectangle(renderVertices, uvs)
+	// Generate billboard sprite using geometry package
+	rect := geometry.NewBillboardSprite(spriteCenter, spriteWidth, viewMatrix)
 	renderDef.SceneSystem.SpriteGroupEntity.VertexBuffer = append(renderDef.SceneSystem.SpriteGroupEntity.VertexBuffer, rect.VertexBuffer...)
 }
 
@@ -149,11 +134,8 @@ func RenderSprites(r *RenderDef, spriteGroupEntity *SpriteGroupEntity, timeElaps
 		}
 	}
 
-	// Create renderer
-	renderer := NewOpenGLRenderer(r.ShaderSystem.GetUniformLocations())
-
 	// Create render config for 2D sprite (position + texture)
-	config := renderer.Create2DEntityConfig(
+	config := r.Renderer.Create2DEntityConfig(
 		spriteGroupEntity.VertexArrayObject,
 		spriteGroupEntity.VertexBufferObject,
 		vertexBuffer,
@@ -163,5 +145,5 @@ func RenderSprites(r *RenderDef, spriteGroupEntity *SpriteGroupEntity, timeElaps
 	)
 
 	// Render the sprite
-	renderer.RenderEntity(config)
+	r.Renderer.RenderEntity(config)
 }

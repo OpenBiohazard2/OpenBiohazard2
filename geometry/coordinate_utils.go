@@ -1,9 +1,17 @@
-package render
+package geometry
+
+import "image"
 
 const (
 	BACKGROUND_IMAGE_WIDTH  = 320
 	BACKGROUND_IMAGE_HEIGHT = 240
+	
+	// Depth constants for 2D rendering
+	BACKGROUND_DEPTH = 0.999  // Background elements drawn in the back
 )
+
+// BACKGROUND_IMAGE_RECT represents the full background image rectangle (0,0 to width,height)
+var BACKGROUND_IMAGE_RECT = image.Rect(0, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT)
 
 // ConvertToScreenX normalizes x coordinates between -1 and 1
 func ConvertToScreenX(x float32) float32 {

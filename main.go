@@ -66,7 +66,7 @@ func createStateInputs(renderDef *render.RenderDef, gameDef *game.GameDef) map[s
 			UIRenderer: ui_render.NewUIRenderer(renderDef),
 			Menu:       ui.NewMenu(4),
 		},
-		"specialMenu": &state.MainMenuStateInput{
+		"specialMenu": &state.SpecialMenuStateInput{
 			RenderDef:  renderDef,
 			UIRenderer: ui_render.NewUIRenderer(renderDef),
 			Menu:       ui.NewMenu(2),
@@ -90,7 +90,7 @@ func runMainGameLoop(windowHandler *client.WindowHandler, gameStateManager *stat
 		case state.GAME_STATE_LOAD_SAVE:
 			state.HandleLoadSave(renderDef, gameStateManager, windowHandler)
 		case state.GAME_STATE_SPECIAL_MENU:
-			state.HandleSpecialMenu(stateInputs["specialMenu"].(*state.MainMenuStateInput), gameStateManager, windowHandler)
+			state.HandleSpecialMenu(stateInputs["specialMenu"].(*state.SpecialMenuStateInput), gameStateManager, windowHandler)
 		default:
 			log.Fatal("Invalid game state: ", gameStateManager.GameState)
 		}

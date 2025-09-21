@@ -3,6 +3,7 @@ package ui_render
 import (
 	"image"
 
+	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
 	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 )
@@ -59,7 +60,7 @@ func (r *UIRenderer) UpdateSpecialMenu(
 }
 
 func buildMainMenuBackground(screenImage *resource.Image16Bit, menuBackgroundImage *resource.Image16Bit) {
-	screenImage.WriteSubImage(image.Point{0, 0}, menuBackgroundImage, image.Rect(0, 0, render.BACKGROUND_IMAGE_WIDTH, render.BACKGROUND_IMAGE_HEIGHT))
+	screenImage.WriteSubImage(image.Point{0, 0}, menuBackgroundImage, geometry.BACKGROUND_IMAGE_RECT)
 }
 
 func buildMainMenuText(screenImage *resource.Image16Bit, menuTextImages []*resource.Image16Bit, mainMenuOption int) {

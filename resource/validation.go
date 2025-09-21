@@ -29,9 +29,9 @@ func ValidateFilesExist() error {
 		"RDT_FOLDER":         RDT_FOLDER,
 		"COMMON_DATA_FOLDER": COMMON_DATA_FOLDER,
 	}
-	for key, folder := range regionFolders {
+	for _, folder := range regionFolders {
 		if err := validateFolder(folder, "region-specific"); err != nil {
-			return fmt.Errorf("region-specific folder validation failed for %s (%s): %w", key, folder, err)
+			return fmt.Errorf("missing region-specific folder %s", folder)
 		}
 	}
 
@@ -64,7 +64,7 @@ func ValidateFilesExist() error {
 func validateFolder(folderPath, folderType string) error {
 	folderExists, err := PathExists(folderPath)
 	if !folderExists {
-		return fmt.Errorf("missing %s folder: %s: %w", folderType, folderPath, err)
+		return fmt.Errorf("missing folder %s", folderPath)
 	}
 
 	files, err := os.ReadDir(folderPath)

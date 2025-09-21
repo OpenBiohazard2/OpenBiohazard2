@@ -18,14 +18,14 @@ func (scriptDef *ScriptDef) ScriptEvtEnd(thread *ScriptThread, lineData []byte, 
 		thread.StackIndex = ifElseCounter + 1
 
 		currentFunctionId := thread.FunctionIds[len(thread.FunctionIds)-1]
-		scriptDef.ScriptDebugLine(fmt.Sprintf("[ScriptThread %v][Function %v] Exit current function, continue running", threadNum, currentFunctionId))
+		scriptDef.ScriptDebugLine(fmt.Sprintf("[Thread %v][Function %v] Exit current function, continue running", threadNum, currentFunctionId))
 		thread.FunctionIds = thread.FunctionIds[0 : len(thread.FunctionIds)-1]
 		return INSTRUCTION_NORMAL
 	}
 
 	// The program is in the top level
 	thread.RunStatus = false
-	scriptDef.ScriptDebugLine(fmt.Sprintf("[ScriptThread %v] End script thread", threadNum))
+	scriptDef.ScriptDebugLine(fmt.Sprintf("[Thread %v] End script thread", threadNum))
 	return INSTRUCTION_THREAD_END
 }
 

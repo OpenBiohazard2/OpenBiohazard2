@@ -2,6 +2,7 @@ package render
 
 import (
 	"github.com/OpenBiohazard2/OpenBiohazard2/fileio"
+	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
@@ -13,8 +14,8 @@ func NewTextureTIM(timOutput *fileio.TIMOutput) uint32 {
 
 func UpdateTextureADT(texId uint32, adtOutput *fileio.ADTOutput) {
 	texColors := adtOutput.ConvertToRenderData()
-	imageWidth := int32(BACKGROUND_IMAGE_WIDTH)
-	imageHeight := int32(BACKGROUND_IMAGE_HEIGHT)
+	imageWidth := int32(geometry.BACKGROUND_IMAGE_WIDTH)
+	imageHeight := int32(geometry.BACKGROUND_IMAGE_HEIGHT)
 	UpdateTexture(texId, texColors, imageWidth, imageHeight)
 }
 

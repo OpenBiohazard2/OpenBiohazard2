@@ -4,7 +4,7 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/OpenBiohazard2/OpenBiohazard2/render"
+	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
 	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 	"github.com/OpenBiohazard2/OpenBiohazard2/ui"
 )
@@ -102,7 +102,7 @@ func buildBackground(screenImage *resource.Image16Bit, inventoryMenuImages []*re
 	// source image is 256x256
 	// dest image is 320x240
 	backgroundColor := color.RGBA{5, 5, 31, 255}
-	screenImage.FillPixels(image.Point{0, 0}, image.Rect(0, 0, render.BACKGROUND_IMAGE_WIDTH, render.BACKGROUND_IMAGE_HEIGHT), backgroundColor)
+	screenImage.FillPixels(image.Point{0, 0}, geometry.BACKGROUND_IMAGE_RECT, backgroundColor)
 
 	buildPlayerFace(screenImage, inventoryMenuImages)
 	buildHealthECG(screenImage, healthDisplay, inventoryMenuImages, backgroundColor)

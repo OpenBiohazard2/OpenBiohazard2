@@ -7,8 +7,8 @@ import (
 // SceneSystem manages all scene entities and rendering
 type SceneSystem struct {
 	SpriteGroupEntity     *SpriteGroupEntity
-	BackgroundImageEntity *SceneEntity
-	CameraMaskEntity      *SceneEntity
+	BackgroundImageEntity *Entity2D
+	CameraMaskEntity      *Entity2D
 	ItemGroupEntity       *ItemGroupEntity
 }
 
@@ -17,7 +17,7 @@ func NewSceneSystem() *SceneSystem {
 	return &SceneSystem{
 		SpriteGroupEntity:     NewSpriteGroupEntity([]fileio.SpriteData{}),
 		BackgroundImageEntity: NewBackgroundImageEntity(),
-		CameraMaskEntity:      NewSceneEntity(),
+		CameraMaskEntity:      NewEntity2D(),
 		ItemGroupEntity:       NewItemGroupEntity(),
 	}
 }
@@ -34,8 +34,8 @@ func NewSceneSystemForTesting() *SceneSystem {
 
 // RenderBackground renders the background entities
 func (ss *SceneSystem) RenderBackground(renderDef *RenderDef) {
-	renderDef.RenderSceneEntity(ss.BackgroundImageEntity, RENDER_GAME_STATE_BACKGROUND_SOLID)
-	renderDef.RenderSceneEntity(ss.CameraMaskEntity, RENDER_GAME_STATE_BACKGROUND_TRANSPARENT)
+	renderDef.RenderEntity2D(ss.BackgroundImageEntity, RENDER_GAME_STATE_BACKGROUND_SOLID)
+	renderDef.RenderEntity2D(ss.CameraMaskEntity, RENDER_GAME_STATE_BACKGROUND_TRANSPARENT)
 }
 
 // RenderItems renders all item entities

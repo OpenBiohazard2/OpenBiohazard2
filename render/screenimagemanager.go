@@ -1,6 +1,7 @@
 package render
 
 import (
+	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
 	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 )
 
@@ -12,7 +13,7 @@ type ScreenImageManager struct {
 // NewScreenImageManager creates a new screen image manager
 func NewScreenImageManager() *ScreenImageManager {
 	return &ScreenImageManager{
-		screenImage: resource.NewImage16Bit(0, 0, BACKGROUND_IMAGE_WIDTH, BACKGROUND_IMAGE_HEIGHT),
+		screenImage: resource.NewImage16Bit(0, 0, geometry.BACKGROUND_IMAGE_WIDTH, geometry.BACKGROUND_IMAGE_HEIGHT),
 	}
 }
 
