@@ -22,6 +22,7 @@ type RenderDef struct {
 	
 	// OpenGL renderer instance
 	Renderer *OpenGLRenderer
+	
 }
 
 type DebugEntities struct {
@@ -88,6 +89,8 @@ func (r *RenderDef) RenderFrame(playerEntity PlayerEntity,
 	// Use cached uniform location for environment light
 	r.ShaderSystem.SetEnvironmentLight(r.EnvironmentLight)
 	RenderAnimatedEntity(r, playerEntity, timeElapsedSeconds)
+
+	r.SceneSystem.RenderEnemies(r, timeElapsedSeconds)
 
 	// RenderSprites(r, r.SpriteGroupEntity, timeElapsedSeconds)
 

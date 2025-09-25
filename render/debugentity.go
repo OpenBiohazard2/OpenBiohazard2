@@ -5,6 +5,7 @@ import (
 	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
 	"github.com/OpenBiohazard2/OpenBiohazard2/world"
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 const (
@@ -18,7 +19,9 @@ var (
 	DEBUG_COLOR_BLUE   = [4]float32{0.0, 0.0, 1.0, 0.3} // Door triggers
 	DEBUG_COLOR_CYAN   = [4]float32{0.0, 1.0, 1.0, 0.3} // Item triggers and AOT triggers
 	DEBUG_COLOR_MAGENTA = [4]float32{1.0, 0.0, 1.0, 0.3} // Sloped surfaces
+	DEBUG_COLOR_YELLOW = [4]float32{1.0, 1.0, 0.0, 0.5} // Enemy placeholders
 )
+
 
 type DebugEntity struct {
 	Color              [4]float32
@@ -124,3 +127,81 @@ func NewSlopedSurfacesDebugEntity(collisionEntities []fileio.CollisionEntity) *D
 	vertexBuffer := geometry.NewSlopedSurfacesDebugVertexBuffer(collisionEntities)
 	return createDebugEntity(vertexBuffer, DEBUG_COLOR_MAGENTA)
 }
+
+// NewEnemyDebugEntity creates a debug entity for an enemy at the specified position
+func NewEnemyDebugEntity(position mgl32.Vec3, rotationY float32) *DebugEntity {
+	// Create a simple rectangular prism (enemy-sized box)
+	width := float32(600)   // Half width
+	height := float32(1600)  // Half height  
+	depth := float32(600)   // Half depth
+	
+	// Shift the bounding box down so it covers the enemy's full body
+	// The enemy position might be at their head/torso, so we need to move the bounding box down
+	// to center it on their body
+	centeredPosition := mgl32.Vec3{
+		position.X(),
+		position.Y() - height, // Move down by the full height to center on body
+		position.Z(),
+	}
+	
+	// Create box vertices (6 faces of a cube)
+	// Front face
+	front := geometry.NewQuad([4]mgl32.Vec3{
+		{centeredPosition.X() - width, centeredPosition.Y() - height, centeredPosition.Z() + depth},
+		{centeredPosition.X() + width, centeredPosition.Y() - height, centeredPosition.Z() + depth},
+		{centeredPosition.X() + width, centeredPosition.Y() + height, centeredPosition.Z() + depth},
+		{centeredPosition.X() - width, centeredPosition.Y() + height, centeredPosition.Z() + depth},
+	})
+	
+	// Back face
+	back := geometry.NewQuad([4]mgl32.Vec3{
+		{centeredPosition.X() + width, centeredPosition.Y() - height, centeredPosition.Z() - depth},
+		{centeredPosition.X() - width, centeredPosition.Y() - height, centeredPosition.Z() - depth},
+		{centeredPosition.X() - width, centeredPosition.Y() + height, centeredPosition.Z() - depth},
+		{centeredPosition.X() + width, centeredPosition.Y() + height, centeredPosition.Z() - depth},
+	})
+	
+	// Left face
+	left := geometry.NewQuad([4]mgl32.Vec3{
+		{centeredPosition.X() - width, centeredPosition.Y() - height, centeredPosition.Z() - depth},
+		{centeredPosition.X() - width, centeredPosition.Y() - height, centeredPosition.Z() + depth},
+		{centeredPosition.X() - width, centeredPosition.Y() + height, centeredPosition.Z() + depth},
+		{centeredPosition.X() - width, centeredPosition.Y() + height, centeredPosition.Z() - depth},
+	})
+	
+	// Right face
+	right := geometry.NewQuad([4]mgl32.Vec3{
+		{centeredPosition.X() + width, centeredPosition.Y() - height, centeredPosition.Z() + depth},
+		{centeredPosition.X() + width, centeredPosition.Y() - height, centeredPosition.Z() - depth},
+		{centeredPosition.X() + width, centeredPosition.Y() + height, centeredPosition.Z() - depth},
+		{centeredPosition.X() + width, centeredPosition.Y() + height, centeredPosition.Z() + depth},
+	})
+	
+	// Top face
+	top := geometry.NewQuad([4]mgl32.Vec3{
+		{centeredPosition.X() - width, centeredPosition.Y() + height, centeredPosition.Z() + depth},
+		{centeredPosition.X() + width, centeredPosition.Y() + height, centeredPosition.Z() + depth},
+		{centeredPosition.X() + width, centeredPosition.Y() + height, centeredPosition.Z() - depth},
+		{centeredPosition.X() - width, centeredPosition.Y() + height, centeredPosition.Z() - depth},
+	})
+	
+	// Bottom face
+	bottom := geometry.NewQuad([4]mgl32.Vec3{
+		{centeredPosition.X() - width, centeredPosition.Y() - height, centeredPosition.Z() - depth},
+		{centeredPosition.X() + width, centeredPosition.Y() - height, centeredPosition.Z() - depth},
+		{centeredPosition.X() + width, centeredPosition.Y() - height, centeredPosition.Z() + depth},
+		{centeredPosition.X() - width, centeredPosition.Y() - height, centeredPosition.Z() + depth},
+	})
+	
+	// Combine all faces into one vertex buffer
+	vertexBuffer := make([]float32, 0)
+	vertexBuffer = append(vertexBuffer, front.VertexBuffer...)
+	vertexBuffer = append(vertexBuffer, back.VertexBuffer...)
+	vertexBuffer = append(vertexBuffer, left.VertexBuffer...)
+	vertexBuffer = append(vertexBuffer, right.VertexBuffer...)
+	vertexBuffer = append(vertexBuffer, top.VertexBuffer...)
+	vertexBuffer = append(vertexBuffer, bottom.VertexBuffer...)
+	
+	return createDebugEntity(vertexBuffer, DEBUG_COLOR_YELLOW)
+}
+

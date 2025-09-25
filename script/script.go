@@ -231,7 +231,7 @@ func (scriptDef *ScriptDef) ExecuteSingleInstruction(
 	case fileio.OP_PLC_NECK: // 0x41
 		returnValue = scriptDef.ScriptPlcNeck(lineData)
 	case fileio.OP_SCE_EM_SET: // 0x44
-		returnValue = scriptDef.ScriptSceEmSet(lineData)
+		returnValue = scriptDef.ScriptSceEmSet(lineData, renderDef)
 	case fileio.OP_AOT_RESET: // 0x46
 		returnValue = scriptDef.ScriptAotReset(lineData, gameDef)
 	case fileio.OP_SCE_ESPR_KILL: // 0x4c
@@ -373,10 +373,34 @@ func (scriptDef *ScriptDef) ScriptMemberCompare(lineData []byte) int {
 	return 1
 }
 
-func (scriptDef *ScriptDef) ScriptSceEmSet(lineData []byte) int {
+func (scriptDef *ScriptDef) ScriptSceEmSet(lineData []byte, renderDef *render.RenderDef) int {
 	byteArr := bytes.NewBuffer(lineData)
 	instruction := fileio.ScriptInstrSceEmSet{}
 	binary.Read(byteArr, binary.LittleEndian, &instruction)
+
+	// Create enemy entity if we have valid data
+	if instruction.Type != 0 && instruction.ModelType != 0 {
+		// Load the EMD file based on the enemy type (3-digit hexadecimal)
+		enemyEMDPath := fmt.Sprintf("data/PL0/EMD0/EM%03X.EMD", instruction.Type)
+		
+		// Load the enemy model data
+		emdOutput := fileio.LoadEMDFile(enemyEMDPath)
+		if emdOutput != nil {
+			// Create enemy entity
+			enemyEntity := render.NewEnemyEntity(emdOutput)
+			enemyEntity.SetEnemyData(instruction)
+			
+			// Add to scene system
+			renderDef.SceneSystem.EnemyGroupEntity.AddEnemy(enemyEntity)
+			
+			// Log enemy creation since there won't be too many enemies
+			fmt.Printf("Created enemy type 0x%03X at position (%d, %d, %d)\n", 
+				instruction.Type, instruction.X, instruction.Y, instruction.Z)
+		} else {
+			// Only log failures for debugging purposes
+			fmt.Printf("Failed to load enemy model for type 0x%03X\n", instruction.Type)
+		}
+	}
 
 	return 1
 }

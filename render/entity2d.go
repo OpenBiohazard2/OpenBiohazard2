@@ -64,8 +64,8 @@ func (entity *Entity2D) SetMesh(vertexBuffer []float32) {
 	entity.VertexBuffer = vertexBuffer
 }
 
-func (entity *Entity2D) UpdateTextureData(newImagePixels []uint16, imageWidth int32, imageHeight int32) {
-	UpdateTexture(entity.TextureId, newImagePixels, imageWidth, imageHeight)
+func (entity *Entity2D) UpdateTextureFromImage(newImage *resource.Image16Bit) {
+	UpdateTexture(entity.TextureId, newImage.GetPixelsForRendering(), int32(newImage.GetWidth()), int32(newImage.GetHeight()))
 }
 
 func NewBackgroundImageEntity() *Entity2D {
@@ -76,10 +76,6 @@ func NewBackgroundImageEntity() *Entity2D {
 	rect := geometry.NewFullScreenQuad(geometry.BACKGROUND_DEPTH)
 	backgroundImageEntity.SetMesh(rect.VertexBuffer)
 	return backgroundImageEntity
-}
-
-func (surface *Entity2D) UpdateSurface(newImage *resource.Image16Bit) {
-	UpdateTexture(surface.TextureId, newImage.GetPixelsForRendering(), int32(newImage.GetWidth()), int32(newImage.GetHeight()))
 }
 
 func (renderDef *RenderDef) RenderSolidVideoBuffer() {

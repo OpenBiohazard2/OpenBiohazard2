@@ -30,7 +30,7 @@ func (r *UIRenderer) GetScreenImage() *resource.Image16Bit {
 }
 
 func (r *UIRenderer) UpdateVideoBuffer(screenImage *resource.Image16Bit) {
-	r.renderDef.VideoBuffer.UpdateSurface(screenImage)
+	r.renderDef.VideoBuffer.UpdateTextureFromImage(screenImage)
 }
 
 // UpdateMainMenu renders the main menu

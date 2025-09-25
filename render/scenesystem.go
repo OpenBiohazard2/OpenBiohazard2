@@ -10,6 +10,7 @@ type SceneSystem struct {
 	BackgroundImageEntity *Entity2D
 	CameraMaskEntity      *Entity2D
 	ItemGroupEntity       *ItemGroupEntity
+	EnemyGroupEntity      *EnemyGroupEntity
 }
 
 // NewSceneSystem creates a new scene system with all entities
@@ -19,6 +20,7 @@ func NewSceneSystem() *SceneSystem {
 		BackgroundImageEntity: NewBackgroundImageEntity(),
 		CameraMaskEntity:      NewEntity2D(),
 		ItemGroupEntity:       NewItemGroupEntity(),
+		EnemyGroupEntity:      NewEnemyGroupEntity(),
 	}
 }
 
@@ -29,6 +31,7 @@ func NewSceneSystemForTesting() *SceneSystem {
 		BackgroundImageEntity: nil,
 		CameraMaskEntity:      nil,
 		ItemGroupEntity:       nil,
+		EnemyGroupEntity:      nil,
 	}
 }
 
@@ -42,6 +45,12 @@ func (ss *SceneSystem) RenderBackground(renderDef *RenderDef) {
 func (ss *SceneSystem) RenderItems(renderDef *RenderDef) {
 	for _, itemEntity := range ss.ItemGroupEntity.ModelObjectData {
 		renderDef.RenderStaticEntity(*itemEntity, RENDER_TYPE_ITEM)
+	}
+}
+
+func (ss *SceneSystem) RenderEnemies(renderDef *RenderDef, timeElapsedSeconds float64) {
+	for _, enemyEntity := range ss.EnemyGroupEntity.EnemyEntities {
+		RenderEnemyEntity(renderDef, *enemyEntity, timeElapsedSeconds)
 	}
 }
 
