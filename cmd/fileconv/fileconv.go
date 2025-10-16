@@ -153,7 +153,10 @@ func convertPLDToOBJ(inputFilename, outputFilename string, useSkeleton bool) {
 	texturePNG := outputFilename[:len(outputFilename)-4] + ".png"
 	if pld.TextureData != nil {
 		fmt.Println("Exporting texture...")
-		if err := pld.TextureData.ConvertToPNG(texturePNG); err != nil {
+		// Ensure output directory exists
+		if err := os.MkdirAll(filepath.Dir(texturePNG), 0755); err != nil {
+			fmt.Printf("Warning: Failed to create output directory: %v\n", err)
+		} else if err := pld.TextureData.ConvertToPNG(texturePNG); err != nil {
 			fmt.Printf("Warning: Failed to export texture %s: %v\n", texturePNG, err)
 		}
 	}
@@ -218,7 +221,10 @@ func convertEMDToOBJ(inputFilename, outputFilename string, useSkeleton bool) {
 		timOutput, err := fileio.LoadTIMFile(timPath)
 		if err == nil {
 			fmt.Println("Exporting texture...")
-			if err := timOutput.ConvertToPNG(texturePNG); err != nil {
+			// Ensure output directory exists
+			if err := os.MkdirAll(filepath.Dir(texturePNG), 0755); err != nil {
+				fmt.Printf("Warning: Failed to create output directory: %v\n", err)
+			} else if err := timOutput.ConvertToPNG(texturePNG); err != nil {
 				fmt.Printf("Warning: Failed to export texture %s: %v\n", texturePNG, err)
 			}
 		} else {

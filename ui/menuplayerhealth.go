@@ -106,7 +106,7 @@ func NewHealthECGFine() HealthECGView {
 	}
 
 	return HealthECGView{
-		Color:    [3]int{20, 255, 20}, // green,
+		Color:    [3]int{32, 255, 32}, // green,
 		Gradient: [3]int{1, 8, 1},
 		Lines:    lines,
 	}
@@ -125,7 +125,7 @@ func NewHealthECGYellowCaution() HealthECGView {
 	}
 
 	return HealthECGView{
-		Color:    [3]int{255, 255, 20}, // yellow
+		Color:    [3]int{255, 255, 32}, // yellow
 		Gradient: [3]int{8, 8, 1},
 		Lines:    lines,
 	}
@@ -144,7 +144,7 @@ func NewHealthECGOrangeCaution() HealthECGView {
 	}
 
 	return HealthECGView{
-		Color:    [3]int{255, 80, 20}, // orange
+		Color:    [3]int{255, 128, 32}, // orange
 		Gradient: [3]int{8, 4, 1},
 		Lines:    lines,
 	}
@@ -163,7 +163,7 @@ func NewHealthECGDanger() HealthECGView {
 	}
 
 	return HealthECGView{
-		Color:    [3]int{255, 20, 20}, // red
+		Color:    [3]int{255, 32, 32}, // red
 		Gradient: [3]int{8, 1, 1},
 		Lines:    lines,
 	}
@@ -182,7 +182,7 @@ func NewHealthECGPoison() HealthECGView {
 	}
 
 	return HealthECGView{
-		Color:    [3]int{255, 20, 255}, // purple
+		Color:    [3]int{255, 32, 255}, // purple
 		Gradient: [3]int{8, 1, 8},
 		Lines:    lines,
 	}

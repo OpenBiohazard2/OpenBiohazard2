@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"testing"
 
+	"github.com/OpenBiohazard2/OpenBiohazard2/geometry"
 	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 )
 
@@ -20,12 +21,12 @@ func TestNewScreenImageManager(t *testing.T) {
 	}
 
 	// Test that the screen image has correct dimensions
-	if manager.screenImage.GetWidth() != BACKGROUND_IMAGE_WIDTH {
-		t.Errorf("Expected screen image width to be %d, got %d", BACKGROUND_IMAGE_WIDTH, manager.screenImage.GetWidth())
+	if manager.screenImage.GetWidth() != geometry.BACKGROUND_IMAGE_WIDTH {
+		t.Errorf("Expected screen image width to be %d, got %d", geometry.BACKGROUND_IMAGE_WIDTH, manager.screenImage.GetWidth())
 	}
 
-	if manager.screenImage.GetHeight() != BACKGROUND_IMAGE_HEIGHT {
-		t.Errorf("Expected screen image height to be %d, got %d", BACKGROUND_IMAGE_HEIGHT, manager.screenImage.GetHeight())
+	if manager.screenImage.GetHeight() != geometry.BACKGROUND_IMAGE_HEIGHT {
+		t.Errorf("Expected screen image height to be %d, got %d", geometry.BACKGROUND_IMAGE_HEIGHT, manager.screenImage.GetHeight())
 	}
 }
 
