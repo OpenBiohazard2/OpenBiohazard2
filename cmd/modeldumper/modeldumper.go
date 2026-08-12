@@ -289,9 +289,9 @@ func main() {
 		fmt.Printf("Successfully processed PLD file with %d components\n", len(pldData.MeshData.Components))
 
 	case "emd":
-		emdData := fileio.LoadEMDFile(inputFile)
-		if emdData == nil {
-			log.Fatalf("Failed to load EMD file")
+		emdData, err := fileio.LoadEMDFile(inputFile)
+		if err != nil {
+			log.Fatalf("Failed to load EMD file: %v", err)
 		}
 		
 		jsonOutput := convertEMDToJSON(emdData)

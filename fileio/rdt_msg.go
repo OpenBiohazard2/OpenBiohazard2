@@ -4,8 +4,8 @@ package fileio
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
-	"log"
 )
 
 type MSGOutput struct {
@@ -42,7 +42,7 @@ func LoadRDT_MSGStream(fileReader io.ReaderAt, fileLength int64) (*MSGOutput, er
 
 	for i := 0; i < len(offsets)-1; i++ {
 		if offsets[i] >= offsets[i+1] {
-			log.Fatal("MSG offsets are not sorted")
+			return nil, fmt.Errorf("MSG offsets are not sorted")
 		}
 
 		textData := make([]uint8, offsets[i+1]-offsets[i])

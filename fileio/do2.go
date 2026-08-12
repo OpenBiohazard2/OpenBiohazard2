@@ -4,8 +4,8 @@ package fileio
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -27,26 +27,24 @@ type DO2Output struct {
 	DO2FileFormat   *DO2FileFormat
 }
 
-func LoadDO2File(filename string) *DO2Output {
-	file, _ := os.Open(filename)
-	defer file.Close()
-	if file == nil {
-		log.Fatal("DO2 file doesn't exist: ", filename)
-		return nil
+func LoadDO2File(filename string) (*DO2Output, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open DO2 file %s: %w", filename, err)
 	}
+	defer file.Close()
+
 	fi, err := file.Stat()
 	if err != nil {
-		log.Fatal(err)
-		return nil
+		return nil, fmt.Errorf("failed to stat DO2 file %s: %w", filename, err)
 	}
 	fileLength := fi.Size()
 	fileOutput, err := LoadDO2Stream(file, fileLength)
 	if err != nil {
-		log.Fatal("Failed to load DO2 file: ", err)
-		return nil
+		return nil, fmt.Errorf("failed to load DO2 file %s: %w", filename, err)
 	}
 
-	return fileOutput
+	return fileOutput, nil
 }
 
 func LoadDO2Stream(r io.ReaderAt, fileLength int64) (*DO2Output, error) {
@@ -99,16 +97,14 @@ func LoadDO2Stream(r io.ReaderAt, fileLength int64) (*DO2Output, error) {
 	md1Reader := io.NewSectionReader(r, md1Offset, fileLength-md1Offset)
 	md1Output, err := LoadMD1Stream(md1Reader, fileLength-md1Offset)
 	if err != nil {
-		log.Fatal("Error loading md1 file in do2 file")
-		return nil, err
+		return nil, fmt.Errorf("error loading md1 file in do2 file: %w", err)
 	}
 
 	timOffset := md1Offset + int64(md1Output.NumBytes)
 	timReader := io.NewSectionReader(r, timOffset, fileLength-timOffset)
 	timOutput, err := LoadTIMStream(timReader, fileLength-timOffset)
 	if err != nil {
-		log.Fatal("Error loading tim file in do2 file")
-		return nil, err
+		return nil, fmt.Errorf("error loading tim file in do2 file: %w", err)
 	}
 
 	do2FileFormat := &DO2FileFormat{

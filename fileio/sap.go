@@ -4,7 +4,6 @@ package fileio
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -25,11 +24,12 @@ func LoadSAPFile(filename string) (*SAPOutput, error) {
 	}, nil
 }
 
-func (sapOutput *SAPOutput) ConvertToWAV(outputFilename string) {
+func (sapOutput *SAPOutput) ConvertToWAV(outputFilename string) error {
 	err := os.WriteFile(outputFilename, sapOutput.AudioData, 0644)
 	if err != nil {
-		log.Fatal("Error writing .sap file to .wav file: ", err)
+		return fmt.Errorf("error writing .sap file to .wav file %s: %w", outputFilename, err)
 	}
 
 	fmt.Println("Written audio data to " + outputFilename)
+	return nil
 }

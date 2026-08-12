@@ -55,7 +55,11 @@ func main() {
 	case "do2":
 		fmt.Println("Processing DO2 file...")
 		fmt.Println("Loading DO2 file structure...")
-		do2Output := fileio.LoadDO2File(inputFilename)
+		do2Output, err := fileio.LoadDO2File(inputFilename)
+		if err != nil {
+			fmt.Printf("Error: Failed to load DO2 file '%s': %v\n", inputFilename, err)
+			os.Exit(1)
+		}
 
 		file, err := os.Open(inputFilename)
 		if err != nil {

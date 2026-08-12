@@ -8,7 +8,6 @@ import (
 	"image/color"
 	"image/png"
 	"io"
-	"log"
 	"math"
 	"os"
 	"strconv"
@@ -76,7 +75,7 @@ func LoadTIMStream(r io.ReaderAt, fileLength int64) (*TIMOutput, error) {
 	}
 
 	if timHeader.Magic != 16 {
-		log.Fatal("TIM header is invalid: ", timHeader)
+		return nil, fmt.Errorf("TIM header is invalid: %+v", timHeader)
 	}
 
 	// Read TIM cluts
@@ -84,11 +83,9 @@ func LoadTIMStream(r io.ReaderAt, fileLength int64) (*TIMOutput, error) {
 		return read4BPP(fileStreamReader, timHeader)
 	} else if timHeader.BPP == TIM_BPP_8 {
 		return read8BPP(fileStreamReader, timHeader)
-	} else {
-		log.Fatal(fmt.Errorf("BPP %v is not supported.\n", timHeader.BPP))
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("BPP %v is not supported", timHeader.BPP)
 }
 
 func read4BPP(streamReader *StreamReader, timHeader TIMHeader) (*TIMOutput, error) {
@@ -96,7 +93,7 @@ func read4BPP(streamReader *StreamReader, timHeader TIMHeader) (*TIMOutput, erro
 	palettes := make([][]uint16, int(timHeader.NumCluts))
 
 	if numColors != 16 {
-		log.Fatal("4BPP TIM image does not have 16 colors in palette. It has ", numColors, "colors.")
+		return nil, fmt.Errorf("4BPP TIM image does not have 16 colors in palette. It has %d colors", numColors)
 	}
 
 	for i := 0; i < int(timHeader.NumCluts); i++ {
@@ -162,7 +159,7 @@ func read8BPP(streamReader *StreamReader, timHeader TIMHeader) (*TIMOutput, erro
 	palettes := make([][]uint16, int(timHeader.NumCluts))
 
 	if numColors != 256 {
-		log.Fatal("8BPP TIM image does not have 256 colors in palette. It has ", numColors, "colors.")
+		return nil, fmt.Errorf("8BPP TIM image does not have 256 colors in palette. It has %d colors", numColors)
 	}
 
 	for i := 0; i < int(timHeader.NumCluts); i++ {

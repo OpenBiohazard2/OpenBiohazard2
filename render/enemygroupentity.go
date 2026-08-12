@@ -16,12 +16,24 @@ func (ege *EnemyGroupEntity) AddEnemy(enemy *EnemyEntity) {
 
 func (ege *EnemyGroupEntity) RemoveEnemy(index int) {
 	if index >= 0 && index < len(ege.EnemyEntities) {
+		deleteEnemyGPUResources(ege.EnemyEntities[index])
 		ege.EnemyEntities = append(ege.EnemyEntities[:index], ege.EnemyEntities[index+1:]...)
 	}
 }
 
+// ClearEnemies removes all enemies, releasing the GPU resources (debug entity VAO/VBO)
+// owned by each one first.
 func (ege *EnemyGroupEntity) ClearEnemies() {
+	for _, enemy := range ege.EnemyEntities {
+		deleteEnemyGPUResources(enemy)
+	}
 	ege.EnemyEntities = make([]*EnemyEntity, 0)
+}
+
+func deleteEnemyGPUResources(enemy *EnemyEntity) {
+	if enemy != nil && enemy.DebugEntity != nil {
+		enemy.DebugEntity.Delete()
+	}
 }
 
 func (ege *EnemyGroupEntity) GetEnemyCount() int {

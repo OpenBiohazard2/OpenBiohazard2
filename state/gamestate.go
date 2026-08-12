@@ -119,10 +119,22 @@ func loadRoomState(mainGameStateInput *MainGameStateInput) {
 	renderDef.SceneSystem.ItemGroupEntity.ItemModelData = mainGameRender.RenderRoom.ItemModelData
 
 	// Initialize sprite textures
+	// Free the previous room's sprite textures/VAO/VBO before replacing them, otherwise
+	// every room transition leaks GPU resources.
+	if renderDef.SceneSystem.SpriteGroupEntity != nil {
+		renderDef.SceneSystem.SpriteGroupEntity.Delete()
+	}
 	renderDef.SceneSystem.SpriteGroupEntity = render.NewSpriteGroupEntity(mainGameRender.RenderRoom.SpriteData)
+
+	// Clear enemies from the previous room before the new room's init script runs and
+	// repopulates them (via ScriptSceEmSet) - otherwise stale enemies from every room
+	// ever visited keep accumulating and rendering.
+	renderDef.SceneSystem.EnemyGroupEntity.ClearEnemies()
 
 	initScriptOnRoomLoad(scriptDef, gameDef, renderDef)
 
+	// Same as above: free the previous room's debug entities before replacing them.
+	render.DeleteDebugEntities(mainGameRender.DebugEntities)
 	mainGameRender.DebugEntities = render.BuildAllDebugEntities(gameDef.GameWorld)
 }
 
@@ -188,6 +200,13 @@ func updateRoomBackroundImage(mainGameRender *MainGameRender, gameDef *game.Game
 }
 
 func updateCameraSwitchZones(mainGameRender *MainGameRender, gameDef *game.GameDef) {
+	// Free the previous camera switch debug entity before replacing it, otherwise every
+	// camera change (which happens frequently as the player moves through a room) leaks
+	// a VAO/VBO pair.
+	if mainGameRender.CameraSwitchDebugEntity != nil {
+		mainGameRender.CameraSwitchDebugEntity.Delete()
+	}
+
 	cameraSwitchHandler := gameDef.GameWorld.GameRoom.CameraSwitchHandler
 	mainGameRender.CameraSwitchDebugEntity = render.NewCameraSwitchDebugEntity(gameDef.CameraId,
 		cameraSwitchHandler.CameraSwitches, cameraSwitchHandler.CameraSwitchTransitions)

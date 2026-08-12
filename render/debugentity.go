@@ -30,6 +30,21 @@ type DebugEntity struct {
 	VertexBufferObject uint32
 }
 
+// Delete releases the GPU resources (VAO/VBO) owned by this debug entity.
+func (debugEntity *DebugEntity) Delete() {
+	gl.DeleteVertexArrays(1, &debugEntity.VertexArrayObject)
+	gl.DeleteBuffers(1, &debugEntity.VertexBufferObject)
+}
+
+// DeleteDebugEntities releases the GPU resources for a slice of debug entities.
+func DeleteDebugEntities(debugEntities []*DebugEntity) {
+	for _, debugEntity := range debugEntities {
+		if debugEntity != nil {
+			debugEntity.Delete()
+		}
+	}
+}
+
 func RenderCameraSwitches(r *RenderDef, cameraSwitchDebugEntity *DebugEntity) {
 	// Use ShaderSystem method for better performance
 	r.ShaderSystem.SetRenderType(RENDER_TYPE_DEBUG)

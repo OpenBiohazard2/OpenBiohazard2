@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -127,7 +126,7 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 		tempReader := io.NewSectionReader(r, offset, fileLength-offset)
 		modelItemData := make([]RDTItemOffsets, rdtHeader.NumModels)
 		if err := binary.Read(tempReader, binary.LittleEndian, &modelItemData); err != nil {
-			log.Fatal("Error reading item model data ", err)
+			return nil, fmt.Errorf("error reading item model data: %w", err)
 		}
 
 		// Read item texture
@@ -136,7 +135,7 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 			timReader := io.NewSectionReader(r, int64(modelItemData[i].OffsetTexture), modelTextureLength)
 			timOutput, err := LoadTIMStream(timReader, modelTextureLength)
 			if err != nil {
-				log.Fatal("Error reading item texture: ", err)
+				return nil, fmt.Errorf("error reading item texture: %w", err)
 			}
 			itemTextureData[i] = timOutput
 		}
@@ -152,7 +151,7 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 			timReader := io.NewSectionReader(r, offset, modelLength)
 			md1Output, err := LoadMD1Stream(timReader, modelLength)
 			if err != nil {
-				log.Fatal("Error reading item model: ", err)
+				return nil, fmt.Errorf("error reading item model: %w", err)
 			}
 			itemModelData[i] = md1Output
 		}
@@ -161,7 +160,9 @@ func LoadRDT(r io.ReaderAt, fileLength int64) (*RDTOutput, error) {
 	offset := int64(offsets.OffsetLang1)
 	if offset > 0 {
 		lang1MsgReader := io.NewSectionReader(r, offset, fileLength-offset)
-		LoadRDT_MSGStream(lang1MsgReader, fileLength)
+		if _, err := LoadRDT_MSGStream(lang1MsgReader, fileLength); err != nil {
+			return nil, fmt.Errorf("error reading message data: %w", err)
+		}
 	}
 
 	// Script data

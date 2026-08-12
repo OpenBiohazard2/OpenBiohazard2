@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -90,17 +89,15 @@ func LoadBIN(r io.ReaderAt, archiveLength int64) ([]ImageFile, error) {
 }
 
 func LoadTIMImages(inputFilename string) ([]*TIMOutput, error) {
-	binFile, _ := os.Open(inputFilename)
-	defer binFile.Close()
-
-	if binFile == nil {
-		log.Fatal("Failed to load TIM images. BIN file doesn't exist", inputFilename)
-		return nil, nil
+	binFile, err := os.Open(inputFilename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open TIM images file %s: %w", inputFilename, err)
 	}
+	defer binFile.Close()
 
 	fi, err := binFile.Stat()
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("failed to stat TIM images file %s: %w", inputFilename, err)
 	}
 	archiveLength := fi.Size()
 
@@ -111,7 +108,7 @@ func LoadTIMImages(inputFilename string) ([]*TIMOutput, error) {
 		timReader := io.NewSectionReader(binFile, int64(totalBytesRead), archiveLength)
 		timOutput, err := LoadTIMStream(timReader, archiveLength)
 		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("failed to load TIM image at offset %d in %s: %w", totalBytesRead, inputFilename, err)
 		}
 		images = append(images, timOutput)
 		totalBytesRead += timOutput.NumBytes

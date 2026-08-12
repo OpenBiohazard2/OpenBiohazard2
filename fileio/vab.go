@@ -4,8 +4,8 @@ package fileio
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
-	"log"
 )
 
 type VABHeader struct {
@@ -79,10 +79,10 @@ func LoadVABHeaderStream(r io.ReaderAt, fileLength int64) (*VABHeaderOutput, err
 	}
 
 	if string(vabHeader.Magic[:]) != "pBAV" {
-		log.Fatal("VAB header is invalid: ", vabHeader.Magic)
+		return nil, fmt.Errorf("VAB header is invalid: %v", vabHeader.Magic)
 	}
 	if vabHeader.ProgramCount > 128 {
-		log.Fatal("Too many programs: ", vabHeader.ProgramCount)
+		return nil, fmt.Errorf("too many programs: %d", vabHeader.ProgramCount)
 	}
 
 	programData := make([]VABProgram, 128)

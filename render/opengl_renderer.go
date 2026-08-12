@@ -101,7 +101,7 @@ func (r *OpenGLRenderer) setupVertexData(config RenderConfig) {
 // setupVertexAttributes configures all vertex attribute pointers
 func (r *OpenGLRenderer) setupVertexAttributes(config RenderConfig) {
 	for _, attr := range config.Attributes {
-		gl.VertexAttribPointer(attr.Index, attr.Size, attr.Type, attr.Normalized, config.Stride, gl.PtrOffset(int(attr.Offset)))
+		gl.VertexAttribPointerWithOffset(attr.Index, attr.Size, attr.Type, attr.Normalized, config.Stride, uintptr(attr.Offset))
 		gl.EnableVertexAttribArray(attr.Index)
 	}
 }

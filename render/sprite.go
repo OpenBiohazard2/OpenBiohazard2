@@ -52,6 +52,17 @@ func NewSpriteGroupEntity(spriteData []fileio.SpriteData) *SpriteGroupEntity {
 	}
 }
 
+// Delete releases the GPU resources (VAO, VBO, and all frame textures) owned by this sprite group.
+func (spriteGroupEntity *SpriteGroupEntity) Delete() {
+	gl.DeleteVertexArrays(1, &spriteGroupEntity.VertexArrayObject)
+	gl.DeleteBuffers(1, &spriteGroupEntity.VertexBufferObject)
+	for _, frameTextures := range spriteGroupEntity.TextureIdPool {
+		for _, texId := range frameTextures {
+			gl.DeleteTextures(1, &texId)
+		}
+	}
+}
+
 // Each sprite id has its own texture
 // Build a texture for each frame
 func BuildSpriteTexture(spriteData fileio.SpriteData) []uint32 {

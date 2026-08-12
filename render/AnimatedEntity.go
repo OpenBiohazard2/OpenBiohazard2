@@ -142,15 +142,15 @@ func (pe *PlayerEntity) setupVertexAttributes() {
 	)
 
 	// Position (3 floats)
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, stride, gl.PtrOffset(0))
+	gl.VertexAttribPointerWithOffset(0, 3, gl.FLOAT, false, stride, uintptr(0))
 	gl.EnableVertexAttribArray(0)
 
 	// Texture UV (2 floats)
-	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, stride, gl.PtrOffset(3*floatSize))
+	gl.VertexAttribPointerWithOffset(1, 2, gl.FLOAT, false, stride, uintptr(3*floatSize))
 	gl.EnableVertexAttribArray(1)
 
 	// Normal (3 floats)
-	gl.VertexAttribPointer(2, 3, gl.FLOAT, false, stride, gl.PtrOffset(5*floatSize))
+	gl.VertexAttribPointerWithOffset(2, 3, gl.FLOAT, false, stride, uintptr(5*floatSize))
 	gl.EnableVertexAttribArray(2)
 }
 

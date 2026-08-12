@@ -5,7 +5,6 @@ package fileio
 import (
 	"fmt"
 	"io"
-	"log"
 )
 
 const (
@@ -688,7 +687,11 @@ func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64) (*SCDOutput, er
 				fmt.Println("Unknown opcode:", opcode)
 			}
 
-			scriptData.Instructions[programCounter] = generateScriptLine(streamReader, byteSize, opcode)
+			scriptLine, err := generateScriptLine(streamReader, byteSize, opcode)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read script for opcode %v: %w", opcode, err)
+			}
+			scriptData.Instructions[programCounter] = scriptLine
 			// Sleep contains sleep and sleeping commands
 			if opcode == OP_SLEEP {
 				scriptData.Instructions[programCounter+1] = scriptData.Instructions[programCounter][1:]
@@ -709,20 +712,20 @@ func LoadRDT_SCDStream(fileReader io.ReaderAt, fileLength int64) (*SCDOutput, er
 	return output, nil
 }
 
-func generateScriptLine(streamReader *StreamReader, totalByteSize int, opcode byte) []byte {
+func generateScriptLine(streamReader *StreamReader, totalByteSize int, opcode byte) ([]byte, error) {
 	scriptLine := make([]byte, 0)
 	scriptLine = append(scriptLine, opcode)
 
 	if totalByteSize == 1 {
-		return scriptLine
+		return scriptLine, nil
 	}
 
 	parameters, err := readRemainingBytes(streamReader, totalByteSize-1)
 	if err != nil {
-		log.Fatalf("Error reading script for opcode %v\n", opcode)
+		return nil, err
 	}
 	scriptLine = append(scriptLine, parameters...)
-	return scriptLine
+	return scriptLine, nil
 }
 
 func readRemainingBytes(streamReader *StreamReader, byteSize int) ([]byte, error) {

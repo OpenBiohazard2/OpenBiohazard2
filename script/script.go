@@ -384,21 +384,22 @@ func (scriptDef *ScriptDef) ScriptSceEmSet(lineData []byte, renderDef *render.Re
 		enemyEMDPath := fmt.Sprintf("data/PL0/EMD0/EM%03X.EMD", instruction.Type)
 		
 		// Load the enemy model data
-		emdOutput := fileio.LoadEMDFile(enemyEMDPath)
-		if emdOutput != nil {
+		emdOutput, err := fileio.LoadEMDFile(enemyEMDPath)
+		if err == nil {
 			// Create enemy entity
 			enemyEntity := render.NewEnemyEntity(emdOutput)
 			enemyEntity.SetEnemyData(instruction)
-			
+
 			// Add to scene system
 			renderDef.SceneSystem.EnemyGroupEntity.AddEnemy(enemyEntity)
-			
+
 			// Log enemy creation since there won't be too many enemies
-			fmt.Printf("Created enemy type 0x%03X at position (%d, %d, %d)\n", 
+			fmt.Printf("Created enemy type 0x%03X at position (%d, %d, %d)\n",
 				instruction.Type, instruction.X, instruction.Y, instruction.Z)
 		} else {
-			// Only log failures for debugging purposes
-			fmt.Printf("Failed to load enemy model for type 0x%03X\n", instruction.Type)
+			// Only log failures for debugging purposes; skip this enemy rather than
+			// crashing the whole game on a missing/corrupt model file
+			fmt.Printf("Failed to load enemy model for type 0x%03X: %v\n", instruction.Type, err)
 		}
 	}
 

@@ -54,6 +54,7 @@ func (r *RenderDef) RenderEntity2D(entity *Entity2D, renderType int32) {
 func (entity *Entity2D) DeleteEntity2D() {
 	gl.DeleteVertexArrays(1, &entity.VertexArrayObject)
 	gl.DeleteBuffers(1, &entity.VertexBufferObject)
+	gl.DeleteTextures(1, &entity.TextureId)
 }
 
 func (entity *Entity2D) SetTexture(imagePixels []uint16, imageWidth int32, imageHeight int32) {

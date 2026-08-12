@@ -67,7 +67,7 @@ func (scriptDef *ScriptDef) ScriptSetBit(lineData []byte) int {
 		currentBit := scriptDef.GetBitArray(int(instruction.BitArray), int(instruction.BitNumber))
 		scriptDef.SetBitArray(int(instruction.BitArray), int(instruction.BitNumber), currentBit^1)
 	default:
-		log.Fatalf("SCRIPT: Invalid set bit operation %d", instruction.Operation)
+		log.Printf("SCRIPT: Invalid set bit operation %d", instruction.Operation)
 	}
 
 	return 1

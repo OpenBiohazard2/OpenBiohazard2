@@ -4,8 +4,8 @@ package fileio
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -35,26 +35,24 @@ type EMDOutput struct {
 	MeshData       *MD1Output
 }
 
-func LoadEMDFile(filename string) *EMDOutput {
-	file, _ := os.Open(filename)
-	defer file.Close()
-	if file == nil {
-		log.Fatal("EMD file doesn't exist: ", filename)
-		return nil
+func LoadEMDFile(filename string) (*EMDOutput, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open EMD file %s: %w", filename, err)
 	}
+	defer file.Close()
+
 	fi, err := file.Stat()
 	if err != nil {
-		log.Fatal(err)
-		return nil
+		return nil, fmt.Errorf("failed to stat EMD file %s: %w", filename, err)
 	}
 	fileLength := fi.Size()
 	fileOutput, err := LoadEMDStream(file, fileLength)
 	if err != nil {
-		log.Fatal("Failed to load EMD file: ", err)
-		return nil
+		return nil, fmt.Errorf("failed to load EMD file %s: %w", filename, err)
 	}
 
-	return fileOutput
+	return fileOutput, nil
 }
 
 func LoadEMDStream(r io.ReaderAt, fileLength int64) (*EMDOutput, error) {

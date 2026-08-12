@@ -24,11 +24,13 @@ func (scriptDef *ScriptDef) ScriptDoorAotSet(lineData []byte, gameDef *game.Game
 	door := fileio.ScriptInstrDoorAotSet{}
 	err := binary.Read(byteArr, binary.LittleEndian, &door)
 	if err != nil {
-		log.Fatal("Error loading door")
+		log.Print("Error loading door: ", err)
+		return 1
 	}
 
 	if door.Id != world.AOT_DOOR {
-		log.Fatal("Door has incorrect aot type ", door.Id)
+		log.Print("Door has incorrect aot type ", door.Id)
+		return 1
 	}
 
 	gameDef.GameWorld.AotManager.AddDoorAot(door)
@@ -41,7 +43,8 @@ func (scriptDef *ScriptDef) ScriptItemAotSet(lineData []byte, gameDef *game.Game
 	binary.Read(byteArr, binary.LittleEndian, &item)
 
 	if item.Id != world.AOT_ITEM {
-		log.Fatal("Item has incorrect aot type ", item.Id)
+		log.Print("Item has incorrect aot type ", item.Id)
+		return 1
 	}
 
 	gameDef.GameWorld.AotManager.AddItemAot(item)
@@ -71,11 +74,13 @@ func (scriptDef *ScriptDef) ScriptDoorAotSet4p(lineData []byte, gameDef *game.Ga
 	door := fileio.ScriptInstrDoorAotSet4p{}
 	err := binary.Read(byteArr, binary.LittleEndian, &door)
 	if err != nil {
-		log.Fatal("Error loading door")
+		log.Print("Error loading door: ", err)
+		return 1
 	}
 
 	if door.Id != world.AOT_DOOR {
-		log.Fatal("Door has incorrect aot type ", door.Id)
+		log.Print("Door has incorrect aot type ", door.Id)
+		return 1
 	}
 
 	gameDef.GameWorld.AotManager.AddDoorAot4p(door)
@@ -89,7 +94,8 @@ func (scriptDef *ScriptDef) ScriptItemAotSet4p(lineData []byte, gameDef *game.Ga
 	binary.Read(byteArr, binary.LittleEndian, &item)
 
 	if item.Id != world.AOT_ITEM {
-		log.Fatal("Item has incorrect aot type ", item.Id)
+		log.Print("Item has incorrect aot type ", item.Id)
+		return 1
 	}
 
 	gameDef.GameWorld.AotManager.AddItemAot4p(item)

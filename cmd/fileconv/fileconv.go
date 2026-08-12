@@ -131,7 +131,10 @@ func convertSAPToWAV(inputFilename, outputFilename string) {
 	fmt.Printf("SAP file loaded: %d bytes of audio data\n", len(sapOutput.AudioData))
 	
 	fmt.Println("Converting to WAV...")
-	sapOutput.ConvertToWAV(outputFilename)
+	if err := sapOutput.ConvertToWAV(outputFilename); err != nil {
+		fmt.Printf("Error converting to WAV: %v\n", err)
+		os.Exit(1)
+	}
 	fmt.Printf("Successfully converted to %s\n", outputFilename)
 }
 
@@ -198,9 +201,9 @@ func convertPLDToOBJ(inputFilename, outputFilename string, useSkeleton bool) {
 
 func convertEMDToOBJ(inputFilename, outputFilename string, useSkeleton bool) {
 	fmt.Println("Loading EMD file...")
-	emd := fileio.LoadEMDFile(inputFilename)
-	if emd == nil {
-		fmt.Println("Error: failed to load EMD")
+	emd, err := fileio.LoadEMDFile(inputFilename)
+	if err != nil {
+		fmt.Printf("Error: failed to load EMD: %v\n", err)
 		os.Exit(1)
 	}
 	if emd.MeshData == nil {
