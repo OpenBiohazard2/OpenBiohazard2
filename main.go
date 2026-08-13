@@ -37,9 +37,15 @@ func main() {
 
 	// Initialize game components
 	renderDef, gameDef, gameStateManager := initializeGame()
+	// Free the shader program on exit. Registered after glfw.Terminate() above, so as a
+	// defer it runs first - the GL context must still be current when we delete it.
+	defer renderDef.ShaderSystem.Delete()
 
 	// Create all state inputs
-	stateInputs := createStateInputs(renderDef, gameDef)
+	stateInputs, err := createStateInputs(renderDef, gameDef)
+	if err != nil {
+		log.Fatal("Failed to initialize game state: ", err)
+	}
 
 	// Run the main game loop
 	runMainGameLoop(windowHandler, gameStateManager, stateInputs, renderDef)
@@ -58,9 +64,19 @@ func initializeGame() (*render.RenderDef, *game.GameDef, *state.GameStateManager
 }
 
 // createStateInputs initializes all game state input handlers
-func createStateInputs(renderDef *render.RenderDef, gameDef *game.GameDef) map[string]interface{} {
+func createStateInputs(renderDef *render.RenderDef, gameDef *game.GameDef) (map[string]interface{}, error) {
+	mainGameStateInput, err := state.NewMainGameStateInput(renderDef, gameDef)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create main game state input: %w", err)
+	}
+
+	inventoryStateInput, err := state.NewInventoryStateInput(renderDef)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create inventory state input: %w", err)
+	}
+
 	return map[string]interface{}{
-		"mainGame": state.NewMainGameStateInput(renderDef, gameDef),
+		"mainGame": mainGameStateInput,
 		"mainMenu": &state.MainMenuStateInput{
 			RenderDef:  renderDef,
 			UIRenderer: ui_render.NewUIRenderer(renderDef),
@@ -71,8 +87,8 @@ func createStateInputs(renderDef *render.RenderDef, gameDef *game.GameDef) map[s
 			UIRenderer: ui_render.NewUIRenderer(renderDef),
 			Menu:       ui.NewMenu(2),
 		},
-		"inventory": state.NewInventoryStateInput(renderDef),
-	}
+		"inventory": inventoryStateInput,
+	}, nil
 }
 
 // runMainGameLoop handles the main game loop and state management
@@ -80,19 +96,23 @@ func runMainGameLoop(windowHandler *client.WindowHandler, gameStateManager *stat
 	for !windowHandler.ShouldClose() {
 		windowHandler.StartFrame()
 
+		var err error
 		switch gameStateManager.GameState {
 		case state.GAME_STATE_MAIN_MENU:
-			state.HandleMainMenu(stateInputs["mainMenu"].(*state.MainMenuStateInput), gameStateManager, windowHandler)
+			err = state.HandleMainMenu(stateInputs["mainMenu"].(*state.MainMenuStateInput), gameStateManager, windowHandler)
 		case state.GAME_STATE_MAIN_GAME:
-			state.HandleMainGame(stateInputs["mainGame"].(*state.MainGameStateInput), gameStateManager, windowHandler)
+			err = state.HandleMainGame(stateInputs["mainGame"].(*state.MainGameStateInput), gameStateManager, windowHandler)
 		case state.GAME_STATE_INVENTORY:
 			state.HandleInventory(stateInputs["inventory"].(*state.InventoryStateInput), gameStateManager, windowHandler)
 		case state.GAME_STATE_LOAD_SAVE:
-			state.HandleLoadSave(renderDef, gameStateManager, windowHandler)
+			err = state.HandleLoadSave(renderDef, gameStateManager, windowHandler)
 		case state.GAME_STATE_SPECIAL_MENU:
-			state.HandleSpecialMenu(stateInputs["specialMenu"].(*state.SpecialMenuStateInput), gameStateManager, windowHandler)
+			err = state.HandleSpecialMenu(stateInputs["specialMenu"].(*state.SpecialMenuStateInput), gameStateManager, windowHandler)
 		default:
 			log.Fatal("Invalid game state: ", gameStateManager.GameState)
+		}
+		if err != nil {
+			log.Fatal("Fatal error in game state: ", err)
 		}
 	}
 }

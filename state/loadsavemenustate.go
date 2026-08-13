@@ -1,28 +1,30 @@
 package state
 
 import (
+	"fmt"
+
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
 	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
 	"github.com/OpenBiohazard2/OpenBiohazard2/ui_render"
 )
 
-func HandleLoadSave(renderDef *render.RenderDef, gameStateManager *GameStateManager, windowHandler *client.WindowHandler) {
+func HandleLoadSave(renderDef *render.RenderDef, gameStateManager *GameStateManager, windowHandler *client.WindowHandler) error {
 	if !gameStateManager.ImageResourcesLoaded {
 		// Initialize load save screen
-		saveScreenImage := resource.LoadADTImage(resource.SAVE_SCREEN_FILE)
+		saveScreenImage, err := resource.LoadADTImage(resource.SAVE_SCREEN_FILE)
+		if err != nil {
+			return fmt.Errorf("failed to load save screen image: %w", err)
+		}
 		uiRenderer := ui_render.NewUIRenderer(renderDef)
 		uiRenderer.GenerateSaveScreenImage(saveScreenImage)
 
 		gameStateManager.ImageResourcesLoaded = true
-		gameStateManager.UpdateLastTimeChangeState(windowHandler)
 	}
 
 	renderDef.RenderTransparentVideoBuffer()
-	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
-		if gameStateManager.CanUpdateGameState(windowHandler) {
-			gameStateManager.UpdateGameState(GAME_STATE_MAIN_MENU)
-			gameStateManager.UpdateLastTimeChangeState(windowHandler)
-		}
+	if windowHandler.InputHandler.IsActiveOnce(client.ACTION_BUTTON) {
+		gameStateManager.UpdateGameState(GAME_STATE_MAIN_MENU)
 	}
+	return nil
 }

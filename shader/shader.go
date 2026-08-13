@@ -3,7 +3,6 @@ package shader
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -80,7 +79,11 @@ func (sh *Shader) compileShader(source string, shaderType uint32) (uint32, error
 }
 
 func (sh *Shader) initVertexShader(filePath string) (uint32, error) {
-	vertexShader, err := sh.compileShader(sh.readShaderCode(filePath), gl.VERTEX_SHADER)
+	shaderCode, err := sh.readShaderCode(filePath)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read vertex shader code: %w", err)
+	}
+	vertexShader, err := sh.compileShader(shaderCode, gl.VERTEX_SHADER)
 	if err != nil {
 		return 0, fmt.Errorf("vertex shader compilation failed: %w", err)
 	}
@@ -88,7 +91,11 @@ func (sh *Shader) initVertexShader(filePath string) (uint32, error) {
 }
 
 func (sh *Shader) initFragmentShader(filePath string) (uint32, error) {
-	fragmentShader, err := sh.compileShader(sh.readShaderCode(filePath), gl.FRAGMENT_SHADER)
+	shaderCode, err := sh.readShaderCode(filePath)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read fragment shader code: %w", err)
+	}
+	fragmentShader, err := sh.compileShader(shaderCode, gl.FRAGMENT_SHADER)
 	if err != nil {
 		return 0, fmt.Errorf("fragment shader compilation failed: %w", err)
 	}
@@ -96,11 +103,11 @@ func (sh *Shader) initFragmentShader(filePath string) (uint32, error) {
 }
 
 // Read shader code from file
-func (sh *Shader) readShaderCode(filePath string) string {
+func (sh *Shader) readShaderCode(filePath string) (string, error) {
 	var builder strings.Builder
 	f, err := os.Open(filePath)
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("failed to open shader file %s: %w", filePath, err)
 	}
 	defer f.Close()
 
@@ -110,8 +117,8 @@ func (sh *Shader) readShaderCode(filePath string) string {
 		builder.WriteString(scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("failed to read shader file %s: %w", filePath, err)
 	}
 	builder.WriteString("\x00")
-	return builder.String()
+	return builder.String(), nil
 }

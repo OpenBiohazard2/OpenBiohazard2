@@ -247,10 +247,12 @@ func (timOutput *TIMOutput) ConvertToPNG(outputFilename string) error {
 
 	imageOutputFile, err := os.Create(outputFilename)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to create PNG file %s: %w", outputFilename, err)
 	}
 	defer imageOutputFile.Close()
-	png.Encode(imageOutputFile, imageOutputData)
+	if err := png.Encode(imageOutputFile, imageOutputData); err != nil {
+		return fmt.Errorf("failed to encode PNG %s: %w", outputFilename, err)
+	}
 
 	fmt.Println("Written image data to " + outputFilename)
 	return nil

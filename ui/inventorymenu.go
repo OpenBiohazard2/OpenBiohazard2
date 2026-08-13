@@ -36,22 +36,22 @@ func (inventoryMenu *InventoryMenu) Reset() {
 
 func (inventoryMenu *InventoryMenu) HandleSwitchMenuOption(windowHandler *client.WindowHandler) {
 	if inventoryMenu.IsCursorOnTopMenu() {
-		if windowHandler.InputHandler.IsActive(client.MENU_LEFT_BUTTON) {
+		if windowHandler.InputHandler.IsActiveOnce(client.MENU_LEFT_BUTTON) {
 			inventoryMenu.PrevTopMenuOption()
-		} else if windowHandler.InputHandler.IsActive(client.MENU_RIGHT_BUTTON) {
+		} else if windowHandler.InputHandler.IsActiveOnce(client.MENU_RIGHT_BUTTON) {
 			inventoryMenu.NextTopMenuOption()
 		}
 		return
 	}
 
 	if inventoryMenu.IsEditingItemScreen() {
-		if windowHandler.InputHandler.IsActive(client.MENU_LEFT_BUTTON) {
+		if windowHandler.InputHandler.IsActiveOnce(client.MENU_LEFT_BUTTON) {
 			inventoryMenu.PrevItemInList()
-		} else if windowHandler.InputHandler.IsActive(client.MENU_RIGHT_BUTTON) {
+		} else if windowHandler.InputHandler.IsActiveOnce(client.MENU_RIGHT_BUTTON) {
 			inventoryMenu.NextItemInList()
-		} else if windowHandler.InputHandler.IsActive(client.MENU_UP_BUTTON) {
+		} else if windowHandler.InputHandler.IsActiveOnce(client.MENU_UP_BUTTON) {
 			inventoryMenu.PrevRowInItemList()
-		} else if windowHandler.InputHandler.IsActive(client.MENU_DOWN_BUTTON) {
+		} else if windowHandler.InputHandler.IsActiveOnce(client.MENU_DOWN_BUTTON) {
 			inventoryMenu.NextRowInItemList()
 		}
 		return

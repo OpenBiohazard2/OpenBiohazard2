@@ -40,37 +40,42 @@ type DebugDumpJson struct {
 	GameRoom   *world.Room
 }
 
-func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) *MainGameStateInput {
+func NewMainGameStateInput(renderDef *render.RenderDef, gameDef *game.GameDef) (*MainGameStateInput, error) {
 	scriptDef := script.NewScriptDef()
 	// Set game difficulty (0 is easy, 1 is normal)
 	scriptDef.SetBitArray(0, 25, game.DIFFICULTY_EASY)
 	// Set camera id
 	scriptDef.SetScriptVariable(26, 0)
 
+	mainGameRender, err := NewMainGameRender(renderDef)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create main game render: %w", err)
+	}
+
 	return &MainGameStateInput{
 		GameDef:        gameDef,
 		ScriptDef:      scriptDef,
-		MainGameRender: NewMainGameRender(renderDef),
-	}
+		MainGameRender: mainGameRender,
+	}, nil
 }
 
-func NewMainGameRender(renderDef *render.RenderDef) *MainGameRender {
+func NewMainGameRender(renderDef *render.RenderDef) (*MainGameRender, error) {
 	// Load player model
 	pldOutput, err := fileio.LoadPLDFile(resource.LEON_MODEL_FILE)
 	if err != nil {
-		log.Fatal("Error loading player model: ", err)
+		return nil, fmt.Errorf("error loading player model: %w", err)
 	}
 
 	// Core sprite file has sprite ids 0-7
 	// All other sprites are loaded based on the room
 	_, err = fileio.LoadESPFile(resource.CORE_SPRITE_FILE)
 	if err != nil {
-		log.Fatal("Error loading core sprite file: ", err)
+		return nil, fmt.Errorf("error loading core sprite file: %w", err)
 	}
 
 	roomcutBinOutput, err := fileio.LoadBINFile(resource.ROOMCUT_FILE)
 	if err != nil {
-		log.Fatal("Error loading roomcut BIN file: ", err)
+		return nil, fmt.Errorf("error loading roomcut BIN file: %w", err)
 	}
 
 	return &MainGameRender{
@@ -79,15 +84,17 @@ func NewMainGameRender(renderDef *render.RenderDef) *MainGameRender {
 		PlayerEntity:            render.NewPlayerEntity(pldOutput),
 		DebugEntities:           make([]*render.DebugEntity, 0),
 		CameraSwitchDebugEntity: nil,
-	}
+	}, nil
 }
 
-func HandleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *GameStateManager, windowHandler *client.WindowHandler) {
+func HandleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *GameStateManager, windowHandler *client.WindowHandler) error {
 	gameDef := mainGameStateInput.GameDef
 
 	switch gameDef.StateStatus {
 	case game.GAME_LOAD_ROOM:
-		loadRoomState(mainGameStateInput)
+		if err := loadRoomState(mainGameStateInput); err != nil {
+			return fmt.Errorf("failed to load room: %w", err)
+		}
 		gameDef.StateStatus = game.GAME_LOAD_CAMERA
 	case game.GAME_LOAD_CAMERA:
 		loadCameraState(mainGameStateInput)
@@ -95,9 +102,10 @@ func HandleMainGame(mainGameStateInput *MainGameStateInput, gameStateManager *Ga
 	case game.GAME_LOOP:
 		runGameLoop(mainGameStateInput, gameStateManager, windowHandler)
 	}
+	return nil
 }
 
-func loadRoomState(mainGameStateInput *MainGameStateInput) {
+func loadRoomState(mainGameStateInput *MainGameStateInput) error {
 	gameDef := mainGameStateInput.GameDef
 	scriptDef := mainGameStateInput.ScriptDef
 	mainGameRender := mainGameStateInput.MainGameRender
@@ -107,7 +115,7 @@ func loadRoomState(mainGameStateInput *MainGameStateInput) {
 	roomFilename := gameDef.GetRoomFilename(game.PLAYER_LEON)
 	rdtOutput, err := fileio.LoadRDTFile(roomFilename)
 	if err != nil {
-		log.Fatal("Error loading RDT file. ", err)
+		return fmt.Errorf("error loading RDT file %s: %w", roomFilename, err)
 	}
 	fmt.Println("Loaded", roomFilename)
 	gameDef.RoomScript = gameDef.NewRoomScript(rdtOutput)
@@ -136,6 +144,7 @@ func loadRoomState(mainGameStateInput *MainGameStateInput) {
 	// Same as above: free the previous room's debug entities before replacing them.
 	render.DeleteDebugEntities(mainGameRender.DebugEntities)
 	mainGameRender.DebugEntities = render.BuildAllDebugEntities(gameDef.GameWorld)
+	return nil
 }
 
 func initScriptOnRoomLoad(scriptDef *script.ScriptDef, gameDef *game.GameDef, renderDef *render.RenderDef) {
@@ -231,16 +240,16 @@ func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameS
 				AotManager: gameDef.GameWorld.AotManager,
 				GameRoom:   gameDef.GameWorld.GameRoom,
 			}
+			// This is a developer convenience feature - a failure to dump debug data
+			// should never take down a running game, so just log a warning and move on.
 			file, err := json.MarshalIndent(debugDumpJson, "", " ")
 			if err != nil {
-				log.Fatal("Failed to marshal data: ", err)
+				log.Printf("Warning: failed to marshal debug dump data: %v", err)
+			} else if err := os.WriteFile(debugOutputFilename, file, 0644); err != nil {
+				log.Printf("Warning: failed to write debug dump to %s: %v", debugOutputFilename, err)
+			} else {
+				fmt.Printf("Dumped debug data to %v\n", debugOutputFilename)
 			}
-
-			err = os.WriteFile(debugOutputFilename, file, 0644)
-			if err != nil {
-				log.Fatal("Error writing to ", debugOutputFilename)
-			}
-			fmt.Printf("Dumped debug data to %v\n", debugOutputFilename)
 		}
 	}
 

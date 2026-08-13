@@ -45,20 +45,14 @@ func (h *InputHandler) HandleTankRotation(gameDef *game.GameDef, timeElapsedSeco
 }
 
 func (h *InputHandler) HandleActionButton(gameDef *game.GameDef, collisionEntities []fileio.CollisionEntity) {
-	if h.windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
-		if h.gameStateManager.CanUpdateGameState(h.windowHandler) {
-			gameDef.HandlePlayerActionButton(collisionEntities)
-			h.gameStateManager.UpdateLastTimeChangeState(h.windowHandler)
-		}
+	if h.windowHandler.InputHandler.IsActiveOnce(client.ACTION_BUTTON) {
+		gameDef.HandlePlayerActionButton(collisionEntities)
 	}
 }
 
 func (h *InputHandler) HandleInventoryToggle() {
-	if h.windowHandler.InputHandler.IsActive(client.PLAYER_VIEW_INVENTORY) {
-		if h.gameStateManager.CanUpdateGameState(h.windowHandler) {
-			h.gameStateManager.UpdateGameState(GAME_STATE_INVENTORY)
-			h.gameStateManager.UpdateLastTimeChangeState(h.windowHandler)
-		}
+	if h.windowHandler.InputHandler.IsActiveOnce(client.PLAYER_VIEW_INVENTORY) {
+		h.gameStateManager.UpdateGameState(GAME_STATE_INVENTORY)
 	}
 }
 

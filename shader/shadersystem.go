@@ -55,6 +55,11 @@ func (ss *ShaderSystem) Initialize(vertexPath, fragPath string) error {
 	return nil
 }
 
+// Delete releases the GPU resources (shader program) owned by this shader system.
+func (ss *ShaderSystem) Delete() {
+	gl.DeleteProgram(ss.ProgramShader)
+}
+
 // Use activates the shader program
 func (ss *ShaderSystem) Use() {
 	gl.UseProgram(ss.ProgramShader)

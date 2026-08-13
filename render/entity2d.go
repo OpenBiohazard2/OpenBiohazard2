@@ -51,7 +51,8 @@ func (r *RenderDef) RenderEntity2D(entity *Entity2D, renderType int32) {
 	r.Renderer.RenderEntity(config)
 }
 
-func (entity *Entity2D) DeleteEntity2D() {
+// Delete releases the GPU resources (VAO, VBO, and texture) owned by this entity.
+func (entity *Entity2D) Delete() {
 	gl.DeleteVertexArrays(1, &entity.VertexArrayObject)
 	gl.DeleteBuffers(1, &entity.VertexBufferObject)
 	gl.DeleteTextures(1, &entity.TextureId)

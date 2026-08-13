@@ -56,6 +56,10 @@ func resizeCallback(w *glfw.Window, width int, height int) {
 func (windowHandler *WindowHandler) StartFrame() {
 	windowHandler.glfwWindow.SwapBuffers()
 
+	// Snapshot this frame's key state as "last frame" before polling new events, so
+	// IsActiveOnce can detect newly-pressed keys once PollEvents refreshes the state below.
+	windowHandler.InputHandler.snapshotKeyState()
+
 	// Window events for keyboard and mouse
 	glfw.PollEvents()
 

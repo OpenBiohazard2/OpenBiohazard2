@@ -21,19 +21,19 @@ func NewMenu(maxOptions int) *Menu {
 }
 
 func (menu *Menu) HandleMenuEvent(windowHandler *client.WindowHandler) {
-	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
+	if windowHandler.InputHandler.IsActiveOnce(client.ACTION_BUTTON) {
 		menu.IsOptionSelected = true
 	} else {
 		menu.IsOptionSelected = false
 	}
 
-	if windowHandler.InputHandler.IsActive(client.MENU_UP_BUTTON) {
+	if windowHandler.InputHandler.IsActiveOnce(client.MENU_UP_BUTTON) {
 		menu.CurrentOption--
 		if menu.CurrentOption < 0 {
 			menu.CurrentOption = 0
 		}
 		menu.IsNewOption = true
-	} else if windowHandler.InputHandler.IsActive(client.MENU_DOWN_BUTTON) {
+	} else if windowHandler.InputHandler.IsActiveOnce(client.MENU_DOWN_BUTTON) {
 		menu.CurrentOption++
 		if menu.CurrentOption >= menu.MaxOptions {
 			menu.CurrentOption = menu.MaxOptions - 1

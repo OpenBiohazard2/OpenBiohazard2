@@ -393,7 +393,7 @@ func (adtOutput *ADTOutput) ConvertToRenderData() []uint16 {
 	return pixelData1D
 }
 
-func (adtOutput *ADTOutput) ConvertToPNG(outputFilename string) {
+func (adtOutput *ADTOutput) ConvertToPNG(outputFilename string) error {
 	pixelData := adtOutput.PixelData
 
 	imageOutputData := image.NewRGBA(image.Rect(0, 0, TOTAL_IMAGE_WIDTH, TOTAL_IMAGE_HEIGHT))
@@ -417,10 +417,13 @@ func (adtOutput *ADTOutput) ConvertToPNG(outputFilename string) {
 
 	imageOutputFile, err := os.Create(outputFilename)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to create PNG file %s: %w", outputFilename, err)
 	}
 	defer imageOutputFile.Close()
-	png.Encode(imageOutputFile, imageOutputData)
+	if err := png.Encode(imageOutputFile, imageOutputData); err != nil {
+		return fmt.Errorf("failed to encode PNG %s: %w", outputFilename, err)
+	}
 
 	fmt.Println("Written image data to " + outputFilename)
+	return nil
 }

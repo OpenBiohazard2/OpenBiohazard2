@@ -1,6 +1,8 @@
 package state
 
 import (
+	"fmt"
+
 	"github.com/OpenBiohazard2/OpenBiohazard2/client"
 	"github.com/OpenBiohazard2/OpenBiohazard2/render"
 	"github.com/OpenBiohazard2/OpenBiohazard2/resource"
@@ -18,10 +20,16 @@ type InventoryStateInput struct {
 	InventoryManager    *ui.InventoryManager
 }
 
-func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
-	inventoryMenuImages := resource.LoadTIMImages(resource.INVENTORY_FILE)
-	inventoryItemImages := resource.LoadTIMImages(resource.ITEMALL_FILE)
-	
+func NewInventoryStateInput(renderDef *render.RenderDef) (*InventoryStateInput, error) {
+	inventoryMenuImages, err := resource.LoadTIMImages(resource.INVENTORY_FILE)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load inventory menu images: %w", err)
+	}
+	inventoryItemImages, err := resource.LoadTIMImages(resource.ITEMALL_FILE)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load inventory item images: %w", err)
+	}
+
 	return &InventoryStateInput{
 		RenderDef:           renderDef,
 		UIRenderer:          ui_render.NewUIRenderer(renderDef),
@@ -30,7 +38,7 @@ func NewInventoryStateInput(renderDef *render.RenderDef) *InventoryStateInput {
 		InventoryMenu:       ui.NewInventoryMenu(),
 		HealthDisplay:       ui.NewHealthDisplay(),
 		InventoryManager:    ui.NewInventoryManager(),
-	}
+	}, nil
 }
 
 func HandleInventory(inventoryStateInput *InventoryStateInput, gameStateManager *GameStateManager, windowHandler *client.WindowHandler) {
@@ -44,33 +52,23 @@ func HandleInventory(inventoryStateInput *InventoryStateInput, gameStateManager 
 	if !gameStateManager.ImageResourcesLoaded {
 		inventoryMenu.Reset()
 		gameStateManager.ImageResourcesLoaded = true
-		gameStateManager.UpdateLastTimeChangeState(windowHandler)
 	}
 
-	if windowHandler.InputHandler.IsActive(client.PLAYER_VIEW_INVENTORY) {
-		if gameStateManager.CanUpdateGameState(windowHandler) {
-			gameStateManager.UpdateGameState(GAME_STATE_MAIN_GAME)
-			gameStateManager.UpdateLastTimeChangeState(windowHandler)
-		}
+	if windowHandler.InputHandler.IsActiveOnce(client.PLAYER_VIEW_INVENTORY) {
+		gameStateManager.UpdateGameState(GAME_STATE_MAIN_GAME)
 	}
 
-	if windowHandler.InputHandler.IsActive(client.ACTION_BUTTON) {
-		if gameStateManager.CanUpdateGameState(windowHandler) {
-			if inventoryMenu.IsCursorOnTopMenu() {
-				if inventoryMenu.IsTopMenuExit() {
-					gameStateManager.UpdateGameState(GAME_STATE_MAIN_GAME)
-				} else if inventoryMenu.IsTopMenuCursorOnItems() {
-					inventoryMenu.SetEditItemScreen()
-				}
+	if windowHandler.InputHandler.IsActiveOnce(client.ACTION_BUTTON) {
+		if inventoryMenu.IsCursorOnTopMenu() {
+			if inventoryMenu.IsTopMenuExit() {
+				gameStateManager.UpdateGameState(GAME_STATE_MAIN_GAME)
+			} else if inventoryMenu.IsTopMenuCursorOnItems() {
+				inventoryMenu.SetEditItemScreen()
 			}
-			gameStateManager.UpdateLastTimeChangeState(windowHandler)
 		}
 	}
 
-	if gameStateManager.CanUpdateGameState(windowHandler) {
-		inventoryMenu.HandleSwitchMenuOption(windowHandler)
-		gameStateManager.UpdateLastTimeChangeState(windowHandler)
-	}
+	inventoryMenu.HandleSwitchMenuOption(windowHandler)
 
 	timeElapsedSeconds := windowHandler.GetTimeSinceLastFrame()
 	inventoryStateInput.UIRenderer.GenerateInventoryImage(inventoryMenuImages, inventoryItemImages, inventoryMenu, healthDisplay, inventoryManager, timeElapsedSeconds)

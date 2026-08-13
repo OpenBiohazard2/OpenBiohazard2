@@ -117,7 +117,10 @@ func convertADTToPNG(inputFilename, outputFilename string) {
 	fmt.Printf("ADT file loaded: %d pixel data entries\n", len(adtOutput.PixelData))
 	
 	fmt.Println("Converting to PNG...")
-	adtOutput.ConvertToPNG(outputFilename)
+	if err := adtOutput.ConvertToPNG(outputFilename); err != nil {
+		fmt.Printf("Error converting to PNG: %v\n", err)
+		os.Exit(1)
+	}
 	fmt.Printf("Successfully converted to %s\n", outputFilename)
 }
 

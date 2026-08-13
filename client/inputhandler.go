@@ -23,9 +23,11 @@ const (
 )
 
 type InputHandler struct {
-	actionToKeyMap  map[Action]glfw.Key
-	keysPressed     [glfw.KeyLast]bool
-	keysPressedOnce [glfw.KeyLast]bool
+	actionToKeyMap map[Action]glfw.Key
+	keysPressed    [glfw.KeyLast]bool
+	// keysPressedLast is the key state as of the previous frame, used by IsActiveOnce to
+	// detect the frame a key transitions from released to pressed.
+	keysPressedLast [glfw.KeyLast]bool
 
 	firstCursorAction    bool
 	cursor               mgl64.Vec2
@@ -56,8 +58,25 @@ func NewInputHandler() *InputHandler {
 	}
 }
 
+// IsActive returns true while the key mapped to this action is currently held down.
+// Use this for continuous actions like movement, where holding the key should keep acting.
 func (handler *InputHandler) IsActive(a Action) bool {
 	return handler.keysPressed[handler.actionToKeyMap[a]]
+}
+
+// IsActiveOnce returns true only on the frame the mapped key transitions from released to
+// pressed - it fires exactly once per physical key press no matter how long the key is held.
+// Use this for discrete actions like menu navigation or confirming a selection.
+func (handler *InputHandler) IsActiveOnce(a Action) bool {
+	key := handler.actionToKeyMap[a]
+	return handler.keysPressed[key] && !handler.keysPressedLast[key]
+}
+
+// snapshotKeyState records the current key state as "last frame's" state, so the next
+// frame's IsActiveOnce calls can detect newly-pressed keys. Must be called once per frame,
+// before new input events are polled.
+func (handler *InputHandler) snapshotKeyState() {
+	handler.keysPressedLast = handler.keysPressed
 }
 
 func (handler *InputHandler) keyCallback(window *glfw.Window, key glfw.Key, scancode int,
