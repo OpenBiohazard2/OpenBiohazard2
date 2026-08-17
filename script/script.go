@@ -25,15 +25,14 @@ const (
 	WORKSET_OBJECT = 4
 )
 
-var (
-	scriptDeltaTime = 0.0
-)
-
 type ScriptDef struct {
 	ScriptThreads  []*ScriptThread
 	ScriptBitArray map[int]map[int]int
 	ScriptVariable map[int]int
 	DebugEnabled   bool
+
+	// scriptDeltaTime throttles script execution to SCRIPT_FRAMES_PER_SECOND.
+	scriptDeltaTime float64
 }
 
 func NewScriptDef() *ScriptDef {
@@ -66,6 +65,15 @@ func (scriptDef *ScriptDef) InitScript(
 	scriptDef.ScriptThreads[threadNum].FunctionIds = []int{startFunction}
 }
 
+// shouldRunScriptFrame advances the accumulator and reports whether a script frame should run.
+func shouldRunScriptFrame(deltaTime float64, timeElapsedSeconds float64) (newDeltaTime float64, shouldRun bool) {
+	deltaTime += timeElapsedSeconds
+	if deltaTime > 1.0/SCRIPT_FRAMES_PER_SECOND {
+		return 0.0, true
+	}
+	return deltaTime, false
+}
+
 func (scriptDef *ScriptDef) RunScript(
 	scriptData fileio.ScriptFunction,
 	timeElapsedSeconds float64,
@@ -73,10 +81,9 @@ func (scriptDef *ScriptDef) RunScript(
 	renderDef *render.RenderDef) {
 	for i := 0; i < len(scriptDef.ScriptThreads); i++ {
 		// Regulate frames per second
-		scriptDeltaTime += timeElapsedSeconds
-		if scriptDeltaTime > 1.0/SCRIPT_FRAMES_PER_SECOND {
-			scriptDeltaTime = 0.0
-		} else {
+		var shouldRun bool
+		scriptDef.scriptDeltaTime, shouldRun = shouldRunScriptFrame(scriptDef.scriptDeltaTime, timeElapsedSeconds)
+		if !shouldRun {
 			continue
 		}
 
@@ -397,8 +404,7 @@ func (scriptDef *ScriptDef) ScriptSceEmSet(lineData []byte, renderDef *render.Re
 			fmt.Printf("Created enemy type 0x%03X at position (%d, %d, %d)\n",
 				instruction.Type, instruction.X, instruction.Y, instruction.Z)
 		} else {
-			// Only log failures for debugging purposes; skip this enemy rather than
-			// crashing the whole game on a missing/corrupt model file
+			// Skip this enemy rather than crashing on a missing/corrupt model file.
 			fmt.Printf("Failed to load enemy model for type 0x%03X: %v\n", instruction.Type, err)
 		}
 	}

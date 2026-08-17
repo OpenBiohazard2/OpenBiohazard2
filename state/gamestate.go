@@ -127,21 +127,18 @@ func loadRoomState(mainGameStateInput *MainGameStateInput) error {
 	renderDef.SceneSystem.ItemGroupEntity.ItemModelData = mainGameRender.RenderRoom.ItemModelData
 
 	// Initialize sprite textures
-	// Free the previous room's sprite textures/VAO/VBO before replacing them, otherwise
-	// every room transition leaks GPU resources.
+	// Free the previous room's sprite resources before replacing them.
 	if renderDef.SceneSystem.SpriteGroupEntity != nil {
 		renderDef.SceneSystem.SpriteGroupEntity.Delete()
 	}
 	renderDef.SceneSystem.SpriteGroupEntity = render.NewSpriteGroupEntity(mainGameRender.RenderRoom.SpriteData)
 
-	// Clear enemies from the previous room before the new room's init script runs and
-	// repopulates them (via ScriptSceEmSet) - otherwise stale enemies from every room
-	// ever visited keep accumulating and rendering.
+	// Clear enemies before the room's init script repopulates them.
 	renderDef.SceneSystem.EnemyGroupEntity.ClearEnemies()
 
 	initScriptOnRoomLoad(scriptDef, gameDef, renderDef)
 
-	// Same as above: free the previous room's debug entities before replacing them.
+	// Free the previous room's debug entities before replacing them.
 	render.DeleteDebugEntities(mainGameRender.DebugEntities)
 	mainGameRender.DebugEntities = render.BuildAllDebugEntities(gameDef.GameWorld)
 	return nil
@@ -209,9 +206,7 @@ func updateRoomBackroundImage(mainGameRender *MainGameRender, gameDef *game.Game
 }
 
 func updateCameraSwitchZones(mainGameRender *MainGameRender, gameDef *game.GameDef) {
-	// Free the previous camera switch debug entity before replacing it, otherwise every
-	// camera change (which happens frequently as the player moves through a room) leaks
-	// a VAO/VBO pair.
+	// Free the previous camera switch debug entity before replacing it.
 	if mainGameRender.CameraSwitchDebugEntity != nil {
 		mainGameRender.CameraSwitchDebugEntity.Delete()
 	}
@@ -240,8 +235,7 @@ func runGameLoop(mainGameStateInput *MainGameStateInput, gameStateManager *GameS
 				AotManager: gameDef.GameWorld.AotManager,
 				GameRoom:   gameDef.GameWorld.GameRoom,
 			}
-			// This is a developer convenience feature - a failure to dump debug data
-			// should never take down a running game, so just log a warning and move on.
+			// Dev-only feature; log and continue instead of crashing.
 			file, err := json.MarshalIndent(debugDumpJson, "", " ")
 			if err != nil {
 				log.Printf("Warning: failed to marshal debug dump data: %v", err)

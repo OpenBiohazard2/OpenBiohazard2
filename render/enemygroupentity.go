@@ -21,8 +21,7 @@ func (ege *EnemyGroupEntity) RemoveEnemy(index int) {
 	}
 }
 
-// ClearEnemies removes all enemies, releasing the GPU resources (debug entity VAO/VBO)
-// owned by each one first.
+// ClearEnemies removes all enemies, releasing each one's GPU resources first.
 func (ege *EnemyGroupEntity) ClearEnemies() {
 	for _, enemy := range ege.EnemyEntities {
 		deleteEnemyGPUResources(enemy)

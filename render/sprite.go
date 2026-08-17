@@ -12,17 +12,16 @@ const (
 	SPRITE_FRAME_TIME  = 0.5 // in seconds
 )
 
-var (
-	totalSpriteRuntime = float64(0)
-	curSpriteFrame     = 0
-)
-
 type SpriteGroupEntity struct {
 	SpriteTextureIndexMap map[int]int
 	TextureIdPool         [][]uint32
 	VertexBuffer          []float32
 	VertexArrayObject     uint32
 	VertexBufferObject    uint32
+
+	// Animation state for the currently displayed sprite frame.
+	totalRuntime float64
+	curFrame     int
 }
 
 func NewSpriteGroupEntity(spriteData []fileio.SpriteData) *SpriteGroupEntity {
@@ -122,6 +121,19 @@ func (renderDef *RenderDef) AddSprite(sprite fileio.ScriptInstrSceEsprOn) {
 	renderDef.SceneSystem.SpriteGroupEntity.VertexBuffer = append(renderDef.SceneSystem.SpriteGroupEntity.VertexBuffer, rect.VertexBuffer...)
 }
 
+// advanceSpriteFrame computes the next animation-time accumulator and frame index.
+func advanceSpriteFrame(totalRuntime float64, curFrame int, numFrames int, timeElapsedSeconds float64) (newTotalRuntime float64, newFrame int) {
+	totalRuntime += timeElapsedSeconds
+	if totalRuntime > SPRITE_FRAME_TIME {
+		totalRuntime = 0
+		curFrame++
+		if curFrame >= numFrames {
+			curFrame = 0
+		}
+	}
+	return totalRuntime, curFrame
+}
+
 func RenderSprites(r *RenderDef, spriteGroupEntity *SpriteGroupEntity, timeElapsedSeconds float64) {
 	vertexBuffer := spriteGroupEntity.VertexBuffer
 	if len(vertexBuffer) == 0 {
@@ -135,22 +147,15 @@ func RenderSprites(r *RenderDef, spriteGroupEntity *SpriteGroupEntity, timeElaps
 	// TODO: Calculate index based on id
 	spriteIndex := 0
 
-	// Check when to move on to the next frame
-	totalSpriteRuntime += timeElapsedSeconds
-	if totalSpriteRuntime > SPRITE_FRAME_TIME {
-		totalSpriteRuntime = 0
-		curSpriteFrame++
-		if curSpriteFrame >= len(textureIds[spriteIndex]) {
-			curSpriteFrame = 0
-		}
-	}
+	spriteGroupEntity.totalRuntime, spriteGroupEntity.curFrame = advanceSpriteFrame(
+		spriteGroupEntity.totalRuntime, spriteGroupEntity.curFrame, len(textureIds[spriteIndex]), timeElapsedSeconds)
 
 	// Create render config for 2D sprite (position + texture)
 	config := r.Renderer.Create2DEntityConfig(
 		spriteGroupEntity.VertexArrayObject,
 		spriteGroupEntity.VertexBufferObject,
 		vertexBuffer,
-		textureIds[spriteIndex][curSpriteFrame],
+		textureIds[spriteIndex][spriteGroupEntity.curFrame],
 		nil, // No model matrix for sprites
 		RENDER_TYPE_SPRITE,
 	)

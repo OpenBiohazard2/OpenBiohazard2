@@ -37,8 +37,7 @@ func main() {
 
 	// Initialize game components
 	renderDef, gameDef, gameStateManager := initializeGame()
-	// Free the shader program on exit. Registered after glfw.Terminate() above, so as a
-	// defer it runs first - the GL context must still be current when we delete it.
+	// Free the shader program before the GL context is destroyed.
 	defer renderDef.ShaderSystem.Delete()
 
 	// Create all state inputs
